@@ -1,68 +1,43 @@
-import { Effect, type HelloResponse, type Reducer } from '@arbo/common';
-import { useStore } from '@arbo/common/react';
-import { useEffect, useState } from 'react';
-import { fetchHello } from './api/hello.js';
+// packages/ui/src/App.tsx
+import { useEffect } from 'react';
+import { AuthProvider } from 'react-oidc-context';
+import { authStore } from './auth/auth.store.js';
+import { AuthEnvProvider } from './auth/legacy/AuthEnvProvider.js';
+import { ReauthModal } from './auth/ReauthModal.js';
+import { useAuth } from './auth/useAuth.js';
+import { Counter } from './Counter.js';
 
-interface CounterState {
-  count: number;
-}
-type CounterAction = 'inc' | 'dec';
-type CounterEnv = null;
-
-const counterReducer: Reducer<CounterState, CounterAction, CounterEnv> = ($, action, _) => {
-  switch (action) {
-    case 'dec': {
-      $.state.count -= 1;
-      return Effect.none();
-    }
-    case 'inc': {
-      $.state.count += 1;
-      return Effect.none();
-    }
-  }
+const oidcConfig = {
+  authority: 'https://your-idp.example.com',
+  client_id: 'your-client-id',
+  redirect_uri: window.location.origin,
+  scope: 'openid profile email',
 };
 
 function App() {
-  const [hello, setHello] = useState<HelloResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [$, send] = useStore(counterReducer, null, {
-    count: 0,
-  });
+  const { state } = useAuth();
 
   useEffect(() => {
-    fetchHello()
-      .then(setHello)
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : String(err));
-      });
+    authStore.send({ tag: 'load' });
   }, []);
+
+  if (state.tag === 'loading') {
+    return <p>Loading...</p>;
+  }
+
+  if (state.tag === 'unauthenticated') {
+    return <p>Please log in.</p>; // or redirect to /auth/login
+  }
 
   return (
     <main>
-      <h1>Arbo</h1>
-      <button
-        onClick={() => {
-          send('dec');
-        }}
-      >
-        -
-      </button>
-      {$.state.count}
-      <button
-        onClick={() => {
-          send('inc');
-        }}
-      >
-        +
-      </button>
-      {error != null && <p style={{ color: 'red' }}>Error: {error}</p>}
-      {hello != null ? (
-        <p>
-          {hello.message} — {hello.timestamp}
-        </p>
-      ) : (
-        <p>Loading…</p>
-      )}
+      <AuthProvider {...oidcConfig}>
+        <AuthEnvProvider>
+          <h1>Arbo</h1>
+          <Counter />
+          {state.tag === 'reauthing' && <ReauthModal />}
+        </AuthEnvProvider>
+      </AuthProvider>
     </main>
   );
 }

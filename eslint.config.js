@@ -3,7 +3,6 @@ import { defineConfig } from 'eslint/config';
 import { configs } from 'typescript-eslint';
 
 export default defineConfig({
-  files: ['**/*.ts', '**/*.tsx'],
   extends: [...configs.strictTypeChecked, ...configs.stylisticTypeChecked],
   ignores: ['** /dist/**', '**/node_modules/**', '**/*.tsbuildinfo'],
   languageOptions: {
@@ -13,7 +12,12 @@ export default defineConfig({
       tsconfigRootDir: import.meta.dirname,
     },
   },
+  // We are explicit here because we want to avoid exporting `effect-ts` directly
+  files: ['packages/ui/**/*.ts', 'packages/ui/**/*.tsx', 'packages/api/**/*.ts'],
   rules: {
+    // We intentially prevent usage of effect-ts outside the store
+    // eslint.config.js
+    'no-restricted-imports': ['error', { patterns: ['effect', 'effect/*'] }],
     '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/consistent-type-imports': [
       'error',

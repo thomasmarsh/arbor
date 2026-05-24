@@ -1,7 +1,11 @@
+import type { Effect } from '@arbo/common';
 import { HelloResponseSchema, type HelloResponse } from '@arbo/common';
+import type { HttpError } from '@arbo/common/http';
+import { httpClient } from '../api/auth.interceptor.js';
 
-export async function fetchHello(): Promise<HelloResponse> {
-  const res = await fetch('/api/hello');
-  if (!res.ok) throw new Error(`HTTP ${res.status.toString()}: ${res.statusText}`);
-  return HelloResponseSchema.parse(await res.json());
+export function fetchHello<A>(
+  onSuccess: (value: HelloResponse) => A,
+  onError: (error: HttpError) => A,
+): Effect<A> {
+  return httpClient.get('/api/hello', HelloResponseSchema, onSuccess, onError);
 }

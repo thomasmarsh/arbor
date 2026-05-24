@@ -5,7 +5,7 @@ interface Draft<S> {
   state: S;
 }
 
-export type Reducer<S, A, R> = (state: Draft<S>, action: A, environment: R) => Effect<A>;
+export type Reducer<S, A, R> = (state: Draft<S>, action: A, environment: R) => Effect<A> | null;
 export class Store<S, A, R> {
   private proxyState: Draft<S>;
   private queue: A[] = [];
@@ -33,7 +33,7 @@ export class Store<S, A, R> {
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const action = this.queue.shift()!;
       const effect = this.reducer(this.proxyState, action, this.environment);
-      effect.unsafeRun(this.send);
+      effect?.unsafeRun(this.send);
     }
   }
 

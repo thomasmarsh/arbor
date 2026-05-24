@@ -14,14 +14,14 @@ interface Environment {
 
 const mockEnvironment: Environment = {
   log: () =>
-    new Effect(() => {
+    Effect.of(() => {
       /* empty */
     }),
 };
 
 const liveEnvironment: Environment = {
   log: (msg) =>
-    new Effect(() => {
+    Effect.of(() => {
       console.log(msg);
     }),
 };

@@ -1,43 +1,119 @@
+import { Effect as Eff, Runtime, Schedule, pipe } from 'effect';
+import { Result } from '../result.js';
+
 export type Send<A> = (a: A) => void;
 
-export type UnsafeRun<A> = (send: Send<A>) => void;
+const runtime = Runtime.defaultRuntime;
+
+type Runner<A> = (send: Send<A>) => Eff.Effect<void>;
 
 export class Effect<A> {
-  private run: UnsafeRun<A>;
+  private readonly runner: Runner<A>;
 
-  constructor(unsafeRun: UnsafeRun<A>) {
-    this.run = unsafeRun;
+  private constructor(runner: Runner<A>) {
+    this.runner = runner;
   }
 
-  public unsafeRun(send: Send<A>) {
-    this.run(send);
+  public static of<A>(runner: (send: Send<A>) => void): Effect<A> {
+    return new Effect((send) => Eff.sync(() => runner(send)));
+  }
+
+  public unsafeRun(send: Send<A>): void {
+    Runtime.runFork(runtime, this.runner(send));
   }
 
   public static none<A>(): Effect<A> {
-    return new Effect(() => {
-      /* empty */
-    });
+    return new Effect(() => Eff.void);
   }
 
   public static send<A>(a: A): Effect<A> {
-    return new Effect((send) => {
-      send(a);
-    });
+    return new Effect((send) =>
+      Eff.sync(() => {
+        send(a);
+      }),
+    );
   }
 
   public map<B>(f: (a: A) => B): Effect<B> {
-    return new Effect((send) => {
-      this.run((a) => {
+    return new Effect<B>((send) =>
+      this.runner((a) => {
         send(f(a));
-      });
-    });
+      }),
+    );
   }
 
-  public tryPromise<A>(promise: Promise<A>, onReject: (err: unknown) => A): Effect<A> {
-    return new Effect((send) => {
-      promise.then(send).catch((x: unknown) => {
-        send(onReject(x));
-      });
-    });
+  public static tryPromise<A, S, F>(
+    promise: () => Promise<A>,
+    onSuccess: (a: A) => S,
+    onReject: (err: unknown) => F,
+  ): Effect<S | F> {
+    return new Effect((send) =>
+      pipe(
+        Eff.tryPromise({ try: promise, catch: (e) => e }),
+        Eff.match({
+          onSuccess: (a) => {
+            send(onSuccess(a));
+          },
+          onFailure: (e) => {
+            send(onReject(e));
+          },
+        }),
+      ),
+    );
+  }
+
+  public static merge<A>(...effects: Effect<A>[]): Effect<A> {
+    return new Effect((send) =>
+      Eff.all(
+        effects.map((e) => e.runner(send)),
+        { concurrency: 'unbounded' },
+      ).pipe(Eff.asVoid),
+    );
+  }
+
+  public static sleep(ms: number): Effect<void> {
+    return new Effect((send) =>
+      Eff.sleep(ms).pipe(Eff.andThen(Eff.sync(() => send(undefined as void)))),
+    );
+  }
+
+  public delay(ms: number): Effect<A> {
+    return new Effect((send) => this.runner(send).pipe(Eff.delay(ms)));
+  }
+
+  public retry(times: number): Effect<A> {
+    return new Effect((send) => this.runner(send).pipe(Eff.retry(Schedule.recurs(times))));
+  }
+
+  public timeout(ms: number, onTimeout: A): Effect<A> {
+    return new Effect((send) =>
+      this.runner(send).pipe(
+        Eff.timeout(ms),
+        Eff.catchTag('TimeoutException', () => Eff.sync(() => send(onTimeout))),
+      ),
+    );
+  }
+
+  public static tryCatch<T, E>(
+    promise: () => Promise<T>,
+    onError: (err: unknown) => E,
+  ): Effect<Result<T, E>> {
+    return Effect.fromEff(
+      Eff.tryPromise({
+        try: promise,
+        catch: (e) => onError(e),
+      }).pipe(
+        Eff.map((x) => Result.success<T>(x)),
+        Eff.catchAll((e) => Eff.succeed(Result.failure<T, E>(e))),
+      ),
+    );
+  }
+
+  public widen<B>(): Effect<A | B> {
+    return this as unknown as Effect<A | B>;
+  }
+
+  public static fromEff<A>(eff: Eff.Effect<A, never, never>): Effect<A> {
+    return new Effect((send) => Eff.flatMap(eff, (a) => Eff.sync(() => send(a))));
   }
 }
