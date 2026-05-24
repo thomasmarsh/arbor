@@ -13,6 +13,12 @@ export class Effect<A> {
     this.run(send);
   }
 
+  public static none<A>(): Effect<A> {
+    return new Effect(() => {
+      /* empty */
+    });
+  }
+
   public static send<A>(a: A): Effect<A> {
     return new Effect((send) => {
       send(a);

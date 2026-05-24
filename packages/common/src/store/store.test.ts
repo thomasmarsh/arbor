@@ -52,8 +52,8 @@ describe('Store', () => {
 
   it('should update state', () => {
     const store = new Store(counterReducer, mockEnvironment, { count: 0 });
-    expect(store.getSnapshot().count).toBe(0);
+    expect(store.getProxyState().state.count).toBe(0);
     store.send('increment');
-    expect(store.getSnapshot().count).toBe(1);
+    expect(store.getProxyState().state.count).toBe(1);
   });
 });

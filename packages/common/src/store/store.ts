@@ -1,4 +1,4 @@
-import { proxy, snapshot, type Snapshot } from 'valtio';
+import { proxy } from 'valtio';
 import type { Effect } from './effect.js';
 
 interface Draft<S> {
@@ -6,7 +6,6 @@ interface Draft<S> {
 }
 
 export type Reducer<S, A, R> = (state: Draft<S>, action: A, environment: R) => Effect<A>;
-
 export class Store<S, A, R> {
   private proxyState: Draft<S>;
   private queue: A[] = [];
@@ -20,8 +19,13 @@ export class Store<S, A, R> {
     this.environment = environment;
   }
 
-  public getSnapshot(): Snapshot<S> {
-    return snapshot(this.proxyState).state;
+  public setDependencies(reducer: Reducer<S, A, R>, environment: R) {
+    this.reducer = reducer;
+    this.environment = environment;
+  }
+
+  public getProxyState(): Draft<S> {
+    return this.proxyState;
   }
 
   private drain() {
