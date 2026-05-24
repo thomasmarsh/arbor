@@ -1,0 +1,33 @@
+{
+  "folders": [
+    { "name": "root",        "path": "." },
+    { "name": "common",      "path": "packages/common" },
+    { "name": "ui",          "path": "packages/ui" },
+    { "name": "api",         "path": "packages/api" },
+    { "name": "third_party", "path": "packages/third_party" }
+  ],
+  "settings": {
+    "eslint.workingDirectories": [{ "pattern": "packages/*" }],
+    "eslint.useFlatConfig": true,
+    "[typescript]":     { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+    "[typescriptreact]":{ "editor.defaultFormatter": "esbenp.prettier-vscode" },
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    },
+    "remote.SSH.forwardPorts": [
+      5173,
+      3000,
+      3001
+    ],
+    "js/ts.tsdk.path": "root/node_modules/typescript/lib"
+  },
+  "extensions": {
+    "recommendations": [
+      "dbaeumer.vscode-eslint",
+      "esbenp.prettier-vscode",
+      "ms-vscode.vscode-typescript-next",
+      "ms-vscode-remote.remote-ssh"
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@arbo/common",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types":  "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build":     "tsc -b",
+    "dev":       "tsc -b --watch",
+    "typecheck": "tsc -b --noEmit",
+    "lint":      "eslint src",
+    "clean":     "rm -rf dist *.tsbuildinfo"
+  },
+  "dependencies": {
+    "zod": "^3.23.0"
+  }
+}
