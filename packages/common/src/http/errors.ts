@@ -5,8 +5,10 @@ export class NetworkError extends Data.TaggedError('NetworkError')<{
   message: string;
 }> {}
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export class UnauthorizedError extends Data.TaggedError('UnauthorizedError')<{}> {}
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export class ForbiddenError extends Data.TaggedError('ForbiddenError')<{}> {}
 
 export class StatusError extends Data.TaggedError('StatusError')<{

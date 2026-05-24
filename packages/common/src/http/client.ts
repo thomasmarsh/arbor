@@ -43,18 +43,18 @@ export interface HttpClient {
 }
 
 export function createHttpClient(options: HttpClientOptions): HttpClient {
-  let deferred: Deferred.Deferred<void, never> | null = null;
+  let deferred: Deferred.Deferred<void> | null = null;
 
-  function getOrCreateDeferred(): Deferred.Deferred<void, never> {
+  function getOrCreateDeferred(): Deferred.Deferred<void> {
     if (deferred == null) {
-      deferred = Runtime.runSync(runtime, Deferred.make<void, never>());
+      deferred = Runtime.runSync(runtime, Deferred.make());
       options.onUnauthorized();
     }
     return deferred;
   }
 
   function intercept<T, A>(
-    makeEff: () => Eff.Effect<T, HttpError, never>,
+    makeEff: () => Eff.Effect<T, HttpError>,
     onSuccess: (value: T) => A,
     onError: (error: HttpError) => A,
   ): Effect<A> {

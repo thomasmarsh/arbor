@@ -6,7 +6,8 @@
     "build": "turbo build",
     "dev": "turbo dev",
     "typecheck": "turbo typecheck",
-    "lint": "turbo lint",
+    "lint": "eslint packages/*/src",
+    "lint:fix": "eslint packages/*/src --fix",
     "format": "prettier --write .",
     "clean": "turbo clean && find packages -name 'dist' -type d -prune -exec rm -rf {} +"
   },

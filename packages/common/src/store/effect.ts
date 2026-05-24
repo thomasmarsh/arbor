@@ -15,7 +15,11 @@ export class Effect<A> {
   }
 
   public static of<A>(runner: (send: Send<A>) => void): Effect<A> {
-    return new Effect((send) => Eff.sync(() => runner(send)));
+    return new Effect((send) =>
+      Eff.sync(() => {
+        runner(send);
+      }),
+    );
   }
 
   public unsafeRun(send: Send<A>): void {
@@ -73,7 +77,13 @@ export class Effect<A> {
 
   public static sleep(ms: number): Effect<void> {
     return new Effect((send) =>
-      Eff.sleep(ms).pipe(Eff.andThen(Eff.sync(() => send(undefined as void)))),
+      Eff.sleep(ms).pipe(
+        Eff.andThen(
+          Eff.sync(() => {
+            send(undefined);
+          }),
+        ),
+      ),
     );
   }
 
@@ -89,7 +99,11 @@ export class Effect<A> {
     return new Effect((send) =>
       this.runner(send).pipe(
         Eff.timeout(ms),
-        Eff.catchTag('TimeoutException', () => Eff.sync(() => send(onTimeout))),
+        Eff.catchTag('TimeoutException', () =>
+          Eff.sync(() => {
+            send(onTimeout);
+          }),
+        ),
       ),
     );
   }
@@ -109,11 +123,18 @@ export class Effect<A> {
     );
   }
 
-  public widen<B>(): Effect<A | B> {
-    return this as unknown as Effect<A | B>;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
+  public widen<_>(): this {
+    return this;
   }
 
-  public static fromEff<A>(eff: Eff.Effect<A, never, never>): Effect<A> {
-    return new Effect((send) => Eff.flatMap(eff, (a) => Eff.sync(() => send(a))));
+  public static fromEff<A>(eff: Eff.Effect<A>): Effect<A> {
+    return new Effect((send) =>
+      Eff.flatMap(eff, (a) =>
+        Eff.sync(() => {
+          send(a);
+        }),
+      ),
+    );
   }
 }

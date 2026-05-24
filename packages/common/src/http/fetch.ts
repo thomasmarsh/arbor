@@ -9,18 +9,22 @@ import {
   type HttpError,
 } from './errors.js';
 
-function doFetch(url: string, options?: RequestInit): Eff.Effect<Response, NetworkError, never> {
+function doFetch(url: string, options?: RequestInit): Eff.Effect<Response, NetworkError> {
   return Eff.tryPromise({
-    try: () =>
-      fetch(url, {
+    try: () => {
+      const headers = new Headers(options?.headers);
+      headers.set('content-type', 'application/json');
+
+      return fetch(url, {
         ...options,
-        headers: { 'content-type': 'application/json', ...options?.headers },
-      }),
+        headers,
+      });
+    },
     catch: (e) => new NetworkError({ message: e instanceof Error ? e.message : String(e) }),
   });
 }
 
-function parseResponse<T>(res: Response, schema: z.ZodSchema<T>): Eff.Effect<T, HttpError, never> {
+function parseResponse<T>(res: Response, schema: z.ZodSchema<T>): Eff.Effect<T, HttpError> {
   if (res.status === 401) return Eff.fail(new UnauthorizedError());
   if (res.status === 403) return Eff.fail(new ForbiddenError());
   if (!res.ok) return Eff.fail(new StatusError({ code: res.status, message: res.statusText }));
@@ -37,10 +41,7 @@ function parseResponse<T>(res: Response, schema: z.ZodSchema<T>): Eff.Effect<T, 
   );
 }
 
-export function httpGetRaw<T>(
-  url: string,
-  schema: z.ZodSchema<T>,
-): Eff.Effect<T, HttpError, never> {
+export function httpGetRaw<T>(url: string, schema: z.ZodSchema<T>): Eff.Effect<T, HttpError> {
   return doFetch(url).pipe(Eff.flatMap((res) => parseResponse(res, schema)));
 }
 
@@ -48,7 +49,7 @@ export function httpPostRaw<T>(
   url: string,
   body: unknown,
   schema: z.ZodSchema<T>,
-): Eff.Effect<T, HttpError, never> {
+): Eff.Effect<T, HttpError> {
   return doFetch(url, { method: 'POST', body: JSON.stringify(body) }).pipe(
     Eff.flatMap((res) => parseResponse(res, schema)),
   );
@@ -58,15 +59,12 @@ export function httpPutRaw<T>(
   url: string,
   body: unknown,
   schema: z.ZodSchema<T>,
-): Eff.Effect<T, HttpError, never> {
+): Eff.Effect<T, HttpError> {
   return doFetch(url, { method: 'PUT', body: JSON.stringify(body) }).pipe(
     Eff.flatMap((res) => parseResponse(res, schema)),
   );
 }
 
-export function httpDeleteRaw<T>(
-  url: string,
-  schema: z.ZodSchema<T>,
-): Eff.Effect<T, HttpError, never> {
+export function httpDeleteRaw<T>(url: string, schema: z.ZodSchema<T>): Eff.Effect<T, HttpError> {
   return doFetch(url, { method: 'DELETE' }).pipe(Eff.flatMap((res) => parseResponse(res, schema)));
 }
