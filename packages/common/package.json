@@ -6,17 +6,21 @@
   "exports": {
     ".": {
       "import": "./dist/index.js",
-      "types":  "./dist/index.d.ts"
+      "types": "./dist/index.d.ts"
     }
   },
   "scripts": {
-    "build":     "tsc -b",
-    "dev":       "tsc -b --watch",
+    "build": "tsc -b",
+    "test": "vitest run",
+    "dev": "tsc -b --watch",
     "typecheck": "tsc -b --noEmit",
-    "lint":      "eslint src",
-    "clean":     "rm -rf dist *.tsbuildinfo"
+    "lint": "eslint src",
+    "clean": "rm -rf dist *.tsbuildinfo"
   },
   "dependencies": {
     "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.7"
   }
 }

@@ -1,6 +1,6 @@
 # Arbo Monorepo
 
-```
+```text
 packages/
 ├── common      @arbo/common   — Zod schemas, shared types (UI ↔ API contract)
 ├── ui          @arbo/ui       — Vite + React SPA
@@ -44,10 +44,12 @@ To test **real OIDC auth locally**:
 1. Copy `packages/bff/.env.example` → `packages/bff/.env`
 2. Fill in your IDP credentials and set `ARBO_AUTH_DISABLED=false`
 3. Add a host alias so the IDP redirect URI resolves locally:
-   ```
+
+   ```text
    # /etc/hosts
    127.0.0.1  arbo.local
    ```
+
 4. Register `http://arbo.local:3000/auth/callback` as a redirect URI in your IDP
 5. Set `ARBO_OIDC_REDIRECT_URI=http://arbo.local:3000/auth/callback` in `.env`
 6. Visit `http://arbo.local:3000` (BFF serves UI in this mode via Vite proxy)

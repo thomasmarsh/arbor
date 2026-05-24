@@ -8,12 +8,12 @@ const app = new Hono();
 app.use('*', logger());
 
 // Mount routes
-app.route('/hello', hello);
+app.route('/api/hello', hello);
 
 // Health check (useful for OpenShift liveness/readiness probes)
 app.get('/healthz', (c) => c.json({ status: 'ok' }));
 
-const port = parseInt(process.env['PORT'] ?? '3001', 10);
+const port = parseInt(process.env['PORT'] ?? '3000', 10);
 
 serve({ fetch: app.fetch, port }, (info) => {
   console.log(`API listening on http://localhost:${info.port.toString()}`);
