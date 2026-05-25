@@ -8,6 +8,12 @@
     { "name": "third_party", "path": "packages/third_party" },
   ],
   "settings": {
+    "json.schemas": [
+      {
+        "fileMatch": ["turbo.json"],
+        "url": "https://turbo.build/schema.json",
+      },
+    ],
     "vitest.rootConfig": "vitest.workspace.ts",
     "eslint.workingDirectories": [{ "pattern": "packages/*" }],
     "eslint.useFlatConfig": true,
