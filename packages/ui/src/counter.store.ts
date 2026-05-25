@@ -38,7 +38,7 @@ export const counterReducer: Reducer<CounterState, CounterAction, CounterEnv> = 
     }
     case 'tick': {
       $.state.count += $.state.amount;
-      return Effect.sleep(1000).map(() => ({
+      return env.sleep.map(() => ({
         tag: 'tick',
       }));
     }

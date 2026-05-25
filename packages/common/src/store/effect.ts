@@ -14,6 +14,10 @@ export class Effect<A> {
     this.runner = runner;
   }
 
+  private suspend(send: Send<A>): Eff.Effect<void> {
+    return Eff.suspend(() => this.runner(send));
+  }
+
   public static of<A>(runner: (send: Send<A>) => void): Effect<A> {
     return new Effect((send) =>
       Eff.sync(() => {
@@ -23,7 +27,8 @@ export class Effect<A> {
   }
 
   public unsafeRun(send: Send<A>): void {
-    Runtime.runFork(runtime, this.runner(send));
+    const eff = this.runner(send);
+    Runtime.runFork(runtime, eff);
   }
 
   public static none<A>(): Effect<A> {
@@ -40,9 +45,39 @@ export class Effect<A> {
 
   public map<B>(f: (a: A) => B): Effect<B> {
     return new Effect<B>((send) =>
-      this.runner((a) => {
+      this.suspend((a) => {
         send(f(a));
       }),
+    );
+  }
+
+  public delay(ms: number): Effect<A> {
+    return new Effect((send) => this.suspend(send).pipe(Eff.delay(ms)));
+  }
+
+  public retry(times: number): Effect<A> {
+    return new Effect((send) => this.suspend(send).pipe(Eff.retry(Schedule.recurs(times))));
+  }
+
+  public timeout(ms: number, onTimeout: A): Effect<A> {
+    return new Effect((send) =>
+      this.suspend(send).pipe(
+        Eff.timeout(ms),
+        Eff.catchTag('TimeoutException', () =>
+          Eff.sync(() => {
+            send(onTimeout);
+          }),
+        ),
+      ),
+    );
+  }
+
+  public static merge<A>(...effects: Effect<A>[]): Effect<A> {
+    return new Effect((send) =>
+      Eff.all(
+        effects.map((e) => e.suspend(send)),
+        { concurrency: 'unbounded' },
+      ).pipe(Eff.asVoid),
     );
   }
 
@@ -66,42 +101,12 @@ export class Effect<A> {
     );
   }
 
-  public static merge<A>(...effects: Effect<A>[]): Effect<A> {
-    return new Effect((send) =>
-      Eff.all(
-        effects.map((e) => e.runner(send)),
-        { concurrency: 'unbounded' },
-      ).pipe(Eff.asVoid),
-    );
-  }
-
   public static sleep(ms: number): Effect<void> {
     return new Effect((send) =>
       Eff.sleep(ms).pipe(
         Eff.andThen(
           Eff.sync(() => {
             send(undefined);
-          }),
-        ),
-      ),
-    );
-  }
-
-  public delay(ms: number): Effect<A> {
-    return new Effect((send) => this.runner(send).pipe(Eff.delay(ms)));
-  }
-
-  public retry(times: number): Effect<A> {
-    return new Effect((send) => this.runner(send).pipe(Eff.retry(Schedule.recurs(times))));
-  }
-
-  public timeout(ms: number, onTimeout: A): Effect<A> {
-    return new Effect((send) =>
-      this.runner(send).pipe(
-        Eff.timeout(ms),
-        Eff.catchTag('TimeoutException', () =>
-          Eff.sync(() => {
-            send(onTimeout);
           }),
         ),
       ),

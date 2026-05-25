@@ -2,42 +2,53 @@
 import { useEffect } from 'react';
 import { AuthProvider } from 'react-oidc-context';
 import { authStore } from './auth/auth.store.js';
-import { AuthEnvProvider } from './auth/legacy/AuthEnvProvider.js';
+import { AuthEnvProvider, authMode } from './auth/legacy/AuthEnvProvider.js';
 import { ReauthModal } from './auth/ReauthModal.js';
 import { useAuth } from './auth/useAuth.js';
 import { Counter } from './Counter.js';
+import { uiEnv } from './env.js';
 
 const oidcConfig = {
-  authority: 'https://your-idp.example.com',
-  client_id: 'your-client-id',
-  redirect_uri: window.location.origin,
+  authority: uiEnv.VITE_OIDC_ISSUER,
+  client_id: uiEnv.VITE_OIDC_CLIENT_ID,
+  redirect_uri: uiEnv.VITE_APP_URL,
   scope: 'openid profile email',
+  onSigninCallback: () => {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  },
 };
+
+function Providers({ children }: { children: React.ReactNode }) {
+  if (authMode === 'oidc') {
+    return (
+      <AuthProvider {...oidcConfig}>
+        <AuthEnvProvider>{children}</AuthEnvProvider>
+      </AuthProvider>
+    );
+  }
+  return <AuthEnvProvider>{children}</AuthEnvProvider>;
+}
 
 function App() {
   const { state } = useAuth();
 
   useEffect(() => {
-    authStore.send({ tag: 'load' });
+    if (authMode !== 'bff') {
+      authStore.send({ tag: 'load' });
+    }
   }, []);
-
-  if (state.tag === 'loading') {
-    return <p>Loading...</p>;
-  }
-
-  if (state.tag === 'unauthenticated') {
-    return <p>Please log in.</p>; // or redirect to /auth/login
-  }
 
   return (
     <main>
-      <AuthProvider {...oidcConfig}>
-        <AuthEnvProvider>
-          <h1>Arbo</h1>
+      <h1>Arbo</h1>
+      {state.tag === 'reauthing' && <ReauthModal />}
+      {state.tag === 'loading' && <p>Loading...</p>}
+      {state.tag === 'unauthenticated' && <p>Please log in.</p>}
+      {state.tag === 'authenticated' && (
+        <Providers>
           <Counter />
-          {state.tag === 'reauthing' && <ReauthModal />}
-        </AuthEnvProvider>
-      </AuthProvider>
+        </Providers>
+      )}
     </main>
   );
 }

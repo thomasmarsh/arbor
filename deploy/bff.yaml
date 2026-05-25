@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arbo-bff
+  namespace: wc-apps-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arbo-bff
+  template:
+    metadata:
+      labels:
+        app: arbo-bff
+    spec:
+      containers:
+        - name: arbo-bff
+          image: <sonatype-registry>/arbo-bff:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: ARBO_AUTH_DISABLED
+              value: "false"
+            - name: ARBO_OIDC_ISSUER
+              value: https://your-ad-idp.example.com
+            - name: ARBO_OIDC_CLIENT_ID
+              value: arbo-bff
+            - name: ARBO_OIDC_REDIRECT_URI
+              value: https://arbo.wc-apps-dev.example.com/auth/callback
+            - name: ARBO_APP_URL
+              value: https://arbo.wc-apps-dev.example.com
+            - name: ARBO_BFF_URL
+              value: https://arbo.wc-apps-dev.example.com
+            - name: ARBO_API_URL
+              value: http://arbo-api:3001
+            - name: BFF_PORT
+              value: "3000"
+          envFrom:
+            - secretRef:
+                name: arbo-bff-secrets
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: arbo-bff
+  namespace: wc-apps-dev
+spec:
+  selector:
+    app: arbo-bff
+  ports:
+    - port: 3000
+      targetPort: 3000
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: arbo-bff
+  namespace: wc-apps-dev
+spec:
+  host: arbo.wc-apps-dev.example.com
+  to:
+    kind: Service
+    name: arbo-bff
+  port:
+    targetPort: 3000
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect

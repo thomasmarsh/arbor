@@ -1,11 +1,11 @@
-import { type Effect, type HelloResponse, Result } from '@arbo/common';
+import { Effect, type HelloResponse, Result } from '@arbo/common';
 import { NetworkError } from '@arbo/common/http';
 import { fetchHello } from './api/hello';
 
 export interface CounterEnv {
   fetchHello: Effect<Result<HelloResponse, string>>;
+  sleep: Effect<void>;
 }
-
 
 export const liveCounterEnv: CounterEnv = {
   fetchHello: fetchHello(
@@ -15,4 +15,5 @@ export const liveCounterEnv: CounterEnv = {
         err instanceof NetworkError ? err.message : String(err),
       ),
   ),
+  sleep: Effect.none(), // Effect.sleep(1000),
 };

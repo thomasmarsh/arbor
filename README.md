@@ -1,13 +1,14 @@
 # Arbo Monorepo
 
-```text
-packages/
-├── common      @arbo/common   — Zod schemas, shared types (UI ↔ API contract)
-├── ui          @arbo/ui       — Vite + React SPA
-├── bff         @arbo/bff      — Node BFF: OIDC session layer, proxies to API
-├── api         @arbo/api      — Node API: pgtyped + Oracle
-└── third_party               — Forked/pinned dependencies
-```
+Under `packages/` the code is organized as follows.
+
+| Directory      | Package Name   | Purpose                                       |
+| -------------- | -------------- | --------------------------------------------- |
+| `common/`      | `@arbo/common` | Zod schemas, shared types (UI ↔ API contract) |
+| `ui/`          | `@arbo/ui`     | Vite + React SPA                              |
+| `bff/`         | `@arbo/bff`    | Node BFF: OIDC session layer, proxies to API  |
+| `api/`         | `@arbo/api`    | Node API: pgtyped + Oracle                    |
+| `third_party/` |                | Forked/pinned dependencies                    |
 
 ## Prerequisites
 
@@ -19,6 +20,16 @@ packages/
 ```bash
 pnpm install
 pnpm --filter @arbo/common build   # api/bff/ui all depend on this
+```
+
+## HTTPS setup (dev:staging only)
+
+Required once per machine:
+
+```bash
+brew install mkcert
+mkcert -install
+mkcert -cert-file certs/localhost+2.pem -key-file certs/localhost+2-key.pem localhost 127.0.0.1 ::1
 ```
 
 ## Development

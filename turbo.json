@@ -1,5 +1,23 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "ARBO_API_URL",
+    "ARBO_APP_URL",
+    "ARBO_AUTH_DISABLED",
+    "ARBO_BFF_URL",
+    "ARBO_OIDC_CLIENT_ID",
+    "ARBO_OIDC_CLIENT_SECRET",
+    "ARBO_OIDC_ISSUER",
+    "ARBO_OIDC_REDIRECT_URI",
+    "ARBO_SESSION_SECRET",
+    "NODE_ENV",
+    "PORT",
+    "VITE_APP_URL",
+    "VITE_AUTH_MODE",
+    "VITE_OIDC_CLIENT_ID",
+    "VITE_OIDC_ISSUER",
+    "VITE_USE_HTTPS"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

@@ -4,6 +4,7 @@
     { "name": "common", "path": "packages/common" },
     { "name": "ui", "path": "packages/ui" },
     { "name": "api", "path": "packages/api" },
+    { "name": "bff", "path": "packages/bff" },
     { "name": "third_party", "path": "packages/third_party" },
   ],
   "settings": {

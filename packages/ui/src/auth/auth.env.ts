@@ -1,4 +1,3 @@
-// packages/ui/src/auth/auth.env.ts
 import { Effect, Result } from '@arbo/common';
 import type { HttpError } from '@arbo/common/http';
 import { httpClient } from '../api/auth.interceptor.js';
@@ -10,11 +9,10 @@ export interface User {
   email: string;
 }
 
-// packages/ui/src/auth/auth.store.ts
 export interface AuthEnv {
   getUser: Effect<Result<User, HttpError>>; // ← union
   logout: Effect<never>;
-  openReauthPopup: Effect<never>;
+  openReauthPopup: Effect<unknown>;
   resolveReauth: Effect<never>;
 }
 
@@ -33,6 +31,15 @@ export const mockAuthEnv: AuthEnv = {
   resolveReauth: Effect.none(),
 };
 
+export const testAuthEnv: AuthEnv = {
+  ...mockAuthEnv,
+  openReauthPopup: Effect.of((send) => {
+    window.addEventListener('message', (e: MessageEvent<unknown>) => {
+      send(e.data);
+    });
+  }),
+};
+
 export const liveAuthEnv: AuthEnv = {
   getUser: httpClient.get(
     '/auth/me',
@@ -43,7 +50,14 @@ export const liveAuthEnv: AuthEnv = {
   logout: Effect.of((_send) => {
     window.location.href = '/auth/logout';
   }),
-  openReauthPopup: Effect.none(), // handled by ReauthModal via useEffect
+
+  openReauthPopup: Effect.of((send) => {
+    console.log('openReauthPopup: registering listener');
+    window.addEventListener('message', (e: MessageEvent<unknown>) => {
+      console.log('message received', e.data);
+      send(e.data);
+    });
+  }),
   resolveReauth: Effect.of((_send) => {
     httpClient.resolveReauth();
   }),
