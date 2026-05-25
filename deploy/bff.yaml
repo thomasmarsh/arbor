@@ -22,7 +22,7 @@ spec:
             - name: NODE_ENV
               value: production
             - name: ARBOR_AUTH_DISABLED
-              value: "false"
+              value: 'false'
             - name: ARBOR_OIDC_ISSUER
               value: https://your-ad-idp.example.com
             - name: ARBOR_OIDC_CLIENT_ID
@@ -36,7 +36,7 @@ spec:
             - name: ARBOR_API_URL
               value: http://arbor-api:3001
             - name: BFF_PORT
-              value: "3000"
+              value: '3000'
           envFrom:
             - secretRef:
                 name: arbor-bff-secrets
