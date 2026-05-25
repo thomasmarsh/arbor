@@ -15,6 +15,7 @@ export default defineConfig([
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    ignores: ['**/generated/**'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': [
