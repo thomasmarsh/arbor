@@ -1,6 +1,17 @@
-# BFF Todo
+# BFF
 
-Major outstanding items for BFF.
+Implements the Backend for Frontend (BFF) for this project.
+
+Features:
+
+- Clean functional core / imperative shell split
+- Full test coverage across unit and integration layers
+- Security-conscious - header stripping tested, session validation tested
+- Environment injection makes everything mockable
+- Zod validation on startup with clear error messages
+- Proper PKCE + state cookie CSRF protection on the auth flow
+
+Major outstanding items for BFF follow.
 
 ## Security
 
