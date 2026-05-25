@@ -9,8 +9,11 @@
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint src",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "dotenv -e .env.local -- vitest run",
+    "test:watch": "dotenv -e .env.local -- vitest",
+    "db:migrate": "tsx src/db/migrate.ts",
+    "db:generate": "pgtyped -c pgtyped.config.json",
+    "db:generate:watch": "pgtyped -c pgtyped.config.json -w"
   },
   "dependencies": {
     "@arbo/common": "workspace:*",

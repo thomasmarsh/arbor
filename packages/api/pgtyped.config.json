@@ -1,0 +1,11 @@
+{
+  "transforms": [
+    {
+      "mode": "sql",
+      "include": "repositories/**/*.sql",
+      "emitTemplate": "{{dir}}/generated/{{name}}.queries.ts"
+    }
+  ],
+  "srcDir": "src/",
+  "dbUrl": "postgresql://arbo:arbo@localhost:5433/arbo_dev"
+}

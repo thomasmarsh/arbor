@@ -6,3 +6,4 @@ dist/
 *.local
 .turbo/
 certs/
+packages/api/src/**/generated/
