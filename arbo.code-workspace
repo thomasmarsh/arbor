@@ -19,6 +19,12 @@
     },
     "remote.SSH.forwardPorts": [5173, 3000],
     "js/ts.tsdk.path": "root/node_modules/typescript/lib",
+    "search.exclude": {
+      "**/dist": true,
+    },
+    "files.exclude": {
+      "**/dist": true,
+    },
   },
   "extensions": {
     "recommendations": [
