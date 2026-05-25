@@ -15,5 +15,5 @@ export const liveCounterEnv: CounterEnv = {
         err instanceof NetworkError ? err.message : String(err),
       ),
   ),
-  sleep: Effect.none(), // Effect.sleep(1000),
+  sleep: Effect.sleep(1000),
 };
