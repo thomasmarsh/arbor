@@ -1,41 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BffEnvironment, ProxyRequest } from '../env.js';
-import { mockProcessEnv } from '../env.mock.js';
-import type { Session } from '../session.js';
+import { makeBffEnv, mockBffEnv, mockConfig, mockSession } from '../testing/fixtures.js';
 import { handleCallback, handleLogin, handleProxy, resolveSession } from './core.js';
-
-// ── Shared fixtures ───────────────────────────────────────────────────────────
-
-const mockSession: Session = {
-  sub: 'user-123',
-  name: 'Test User',
-  email: 'test@example.com',
-};
-
-const mockConfig = {} as never; // openid-client Configuration
-
-const mockBffEnv: BffEnvironment = {
-  config: mockProcessEnv,
-  oidc: {
-    discovery: vi.fn().mockResolvedValue(mockConfig),
-    authorizationCodeGrant: vi.fn(),
-    buildEndSessionUrl: vi.fn().mockReturnValue('https://idp/logout'),
-    buildAuthorizationUrl: vi.fn().mockReturnValue(new URL('https://idp/auth?mock=true')),
-    randomState: vi.fn().mockReturnValue('mock-state'),
-    randomPKCECodeVerifier: vi.fn().mockReturnValue('mock-verifier'),
-    calculatePKCECodeChallenge: vi.fn().mockResolvedValue('mock-challenge'),
-  },
-  session: {
-    verify: vi.fn().mockResolvedValue(mockSession),
-    create: vi.fn().mockResolvedValue('mock-token'),
-  },
-  fetch: vi.fn().mockResolvedValue(new Response('{}', { status: 200 })),
-  devIdentity: { sub: 'dev', name: 'Dev User', email: 'dev@localhost' },
-};
-
-function makeBffEnv(overrides: Partial<BffEnvironment> = {}): BffEnvironment {
-  return { ...mockBffEnv, ...overrides };
-}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -156,7 +122,7 @@ describe('handleCallback', () => {
     const result = await handleCallback(env, baseParams);
     expect(result.tag).toBe('success');
     if (result.tag === 'success') {
-      expect(result.sessionToken).toBe('mock-token');
+      expect(result.sessionToken).toBe('mock-session-token');
       expect(result.isPopup).toBe(false);
     }
   });

@@ -1,0 +1,56 @@
+import { vi } from 'vitest';
+import type { BffEnvironment, ProcessEnv } from '../env.js';
+import type { Session } from '../session.js';
+
+export const mockProcessEnv: ProcessEnv = {
+  ARBO_AUTH_DISABLED: false,
+  ARBO_APP_URL: 'http://localhost:5173',
+  ARBO_API_URL: 'http://localhost:3001',
+  ARBO_BFF_URL: 'http://localhost:3000',
+  ARBO_OIDC_REDIRECT_URI: 'http://localhost:3000/auth/callback',
+  NODE_ENV: 'test',
+  BFF_PORT: 3000,
+  VITE_USE_HTTPS: false,
+  ARBO_UI_DIST: undefined,
+  ARBO_OIDC_ISSUER: undefined,
+  ARBO_OIDC_CLIENT_ID: undefined,
+  ARBO_OIDC_CLIENT_SECRET: undefined,
+  ARBO_SESSION_SECRET: 'test-secret-that-is-at-least-32-chars!!',
+};
+
+export const mockSession: Session = {
+  sub: 'user-123',
+  name: 'Test User',
+  email: 'test@example.com',
+};
+
+export const mockConfig = {} as never; // openid-client Configuration
+
+export const mockBffEnv: BffEnvironment = {
+  config: mockProcessEnv,
+  oidc: {
+    discovery: vi.fn().mockResolvedValue(mockConfig),
+    authorizationCodeGrant: vi.fn().mockResolvedValue({
+      claims: () => ({
+        sub: mockSession.sub,
+        name: mockSession.name,
+        email: mockSession.email,
+      }),
+    }),
+    buildEndSessionUrl: vi.fn().mockReturnValue('https://idp/logout'),
+    buildAuthorizationUrl: vi.fn().mockReturnValue(new URL('https://idp/auth?mock=true')),
+    randomState: vi.fn().mockReturnValue('mock-state'),
+    randomPKCECodeVerifier: vi.fn().mockReturnValue('mock-verifier'),
+    calculatePKCECodeChallenge: vi.fn().mockResolvedValue('mock-challenge'),
+  },
+  session: {
+    verify: vi.fn().mockResolvedValue(mockSession),
+    create: vi.fn().mockResolvedValue('mock-session-token'),
+  },
+  fetch: vi.fn().mockResolvedValue(new Response('{}', { status: 200 })),
+  devIdentity: { sub: 'dev', name: 'Dev User', email: 'dev@localhost' },
+};
+
+export function makeBffEnv(overrides: Partial<BffEnvironment> = {}): BffEnvironment {
+  return { ...mockBffEnv, ...overrides };
+}

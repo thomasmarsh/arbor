@@ -1,4 +1,3 @@
-// packages/common/src/http/errors.ts
 import { Data } from 'effect';
 
 export class NetworkError extends Data.TaggedError('NetworkError')<{

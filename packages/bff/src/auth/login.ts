@@ -1,4 +1,3 @@
-// src/auth/login.ts
 import type * as oidc from 'openid-client';
 import type { BffEnvironment, LoginParams } from '../env.js';
 

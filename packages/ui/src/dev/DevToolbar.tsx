@@ -1,4 +1,3 @@
-// packages/ui/src/dev/DevToolbar.tsx
 import { createPortal } from 'react-dom';
 import { useSnapshot } from 'valtio';
 import { authStore } from '../auth/auth.store.js';

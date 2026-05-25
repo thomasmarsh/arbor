@@ -1,5 +1,3 @@
-// packages/common/src/http/client.ts
-
 import { Deferred, Effect as Eff, Runtime } from 'effect';
 import type z from 'zod';
 import { Effect } from '../store/effect.js';

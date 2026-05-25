@@ -1,4 +1,3 @@
-// src/routes/proxy.ts
 import { Hono } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { handleProxy } from '../auth/core.js';

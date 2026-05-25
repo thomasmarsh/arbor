@@ -1,58 +1,19 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { BffEnvironment } from '../env.js';
-import { mockProcessEnv } from '../env.mock.js';
-import type { Session } from '../session.js';
+import { makeBffEnv, mockBffEnv, mockSession } from '../testing/fixtures.js';
 import { createProxyRouter } from './proxy.js';
 
-// ── Shared fixtures ───────────────────────────────────────────────────────────
-
-const mockSession: Session = {
-  sub: 'user-123',
-  name: 'Test User',
-  email: 'test@example.com',
-};
-
-const mockBffEnv: BffEnvironment = {
-  config: mockProcessEnv,
-  oidc: {
-    discovery: vi.fn(),
-    authorizationCodeGrant: vi.fn(),
-    buildEndSessionUrl: vi.fn(),
-    buildAuthorizationUrl: vi.fn().mockReturnValue(new URL('https://idp/auth?mock=true')),
-    randomState: vi.fn(),
-    randomPKCECodeVerifier: vi.fn(),
-    calculatePKCECodeChallenge: vi.fn(),
-  },
-  session: {
-    verify: vi.fn().mockResolvedValue(mockSession),
-    create: vi.fn(),
-  },
-  fetch: vi.fn().mockResolvedValue(new Response('{}', { status: 200 })),
-  devIdentity: { sub: 'dev', name: 'Dev User', email: 'dev@localhost' },
-};
-
-function makeBffEnv(overrides: Partial<BffEnvironment> = {}): BffEnvironment {
-  return { ...mockBffEnv, ...overrides };
+function getLastFetchInit(env: BffEnvironment): RequestInit | undefined {
+  return vi.mocked(env.fetch).mock.calls.at(-1)?.[1];
 }
 
-vi.mock('../env.js', () => ({
-  env: {
-    ARBO_AUTH_DISABLED: false,
-    ARBO_API_URL: 'http://api',
-  },
-}));
+function getLastFetchHeaders(env: BffEnvironment): Record<string, string> {
+  return getLastFetchInit(env)?.headers as Record<string, string>;
+}
 
 // ── ALL /api/* ────────────────────────────────────────────────────────────────
 
 describe('ALL /api/*', () => {
-  function getLastFetchInit(env: BffEnvironment): RequestInit | undefined {
-    return vi.mocked(env.fetch).mock.calls.at(-1)?.[1];
-  }
-
-  function getLastFetchHeaders(env: BffEnvironment): Record<string, string> {
-    return getLastFetchInit(env)?.headers as Record<string, string>;
-  }
-
   const withSession = {
     headers: { cookie: 'arbo_session=valid-token' },
   };
@@ -142,5 +103,45 @@ describe('ALL /api/*', () => {
     const app = createProxyRouter(env);
     const res = await app.request('/hello', withSession);
     expect(await res.json()).toEqual({ message: 'hello' });
+  });
+});
+
+// ── Security ──────────────────────────────────────────────────────────────────
+
+describe('header security', () => {
+  const withSessionAndSpoofedHeaders = {
+    headers: {
+      cookie: 'arbo_session=valid-token',
+      'x-arbo-sub': 'attacker',
+      'x-arbo-name': 'Attacker Name',
+      'x-arbo-email': 'attacker@evil.com',
+    },
+  };
+
+  it('strips inbound x-arbo-sub header from client request', async () => {
+    const app = createProxyRouter(mockBffEnv);
+    await app.request('/hello', withSessionAndSpoofedHeaders);
+    expect(getLastFetchHeaders(mockBffEnv)['x-arbo-sub']).toBe(mockSession.sub);
+  });
+
+  it('strips inbound x-arbo-name header from client request', async () => {
+    const app = createProxyRouter(mockBffEnv);
+    await app.request('/hello', withSessionAndSpoofedHeaders);
+    expect(getLastFetchHeaders(mockBffEnv)['x-arbo-name']).toBe(mockSession.name);
+  });
+
+  it('strips inbound x-arbo-email header from client request', async () => {
+    const app = createProxyRouter(mockBffEnv);
+    await app.request('/hello', withSessionAndSpoofedHeaders);
+    expect(getLastFetchHeaders(mockBffEnv)['x-arbo-email']).toBe(mockSession.email);
+  });
+
+  it('uses session identity not client-supplied headers', async () => {
+    const app = createProxyRouter(mockBffEnv);
+    await app.request('/hello', withSessionAndSpoofedHeaders);
+    const headers = getLastFetchHeaders(mockBffEnv);
+    expect(headers['x-arbo-sub']).not.toBe('attacker');
+    expect(headers['x-arbo-name']).not.toBe('Attacker Name');
+    expect(headers['x-arbo-email']).not.toBe('attacker@evil.com');
   });
 });

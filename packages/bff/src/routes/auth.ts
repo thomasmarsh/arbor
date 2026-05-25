@@ -1,4 +1,3 @@
-// src/routes/auth.ts
 import { Hono } from 'hono';
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie';
 import { handleCallback, handleLogin, resolveSession } from '../auth/core.js';

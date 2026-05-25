@@ -1,58 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { BffEnvironment } from '../env.js';
-import { mockProcessEnv } from '../env.mock.js';
-import type { Session } from '../session.js';
+import { makeBffEnv, mockBffEnv, mockSession } from '../testing/fixtures.js';
 import { createAuthRouter } from './auth.js';
-
-// ── Shared fixtures ───────────────────────────────────────────────────────────
-
-const mockSession: Session = {
-  sub: 'user-123',
-  name: 'Test User',
-  email: 'test@example.com',
-};
-
-const mockConfig = {} as never;
-
-const mockBffEnv: BffEnvironment = {
-  config: mockProcessEnv,
-  oidc: {
-    discovery: vi.fn().mockResolvedValue(mockConfig),
-    authorizationCodeGrant: vi.fn().mockResolvedValue({
-      claims: () => ({
-        sub: mockSession.sub,
-        name: mockSession.name,
-        email: mockSession.email,
-      }),
-    }),
-    buildEndSessionUrl: vi.fn().mockReturnValue('https://idp/logout'),
-    buildAuthorizationUrl: vi.fn().mockReturnValue(new URL('https://idp/auth?mock=true')),
-    randomState: vi.fn().mockReturnValue('mock-state'),
-    randomPKCECodeVerifier: vi.fn().mockReturnValue('mock-verifier'),
-    calculatePKCECodeChallenge: vi.fn().mockResolvedValue('mock-challenge'),
-  },
-  session: {
-    verify: vi.fn().mockResolvedValue(mockSession),
-    create: vi.fn().mockResolvedValue('mock-session-token'),
-  },
-  fetch: vi.fn().mockResolvedValue(new Response('{}', { status: 200 })),
-  devIdentity: { sub: 'dev', name: 'Dev User', email: 'dev@localhost' },
-};
-
-function makeBffEnv(overrides: Partial<BffEnvironment> = {}): BffEnvironment {
-  return { ...mockBffEnv, ...overrides };
-}
-
-// ── Mock env module ───────────────────────────────────────────────────────────
-
-const mockEnv = {
-  ARBO_AUTH_DISABLED: false,
-  ARBO_APP_URL: 'http://localhost:5173',
-  ARBO_OIDC_REDIRECT_URI: 'http://localhost:3000/auth/callback',
-  NODE_ENV: 'test' as const,
-};
-
-vi.mock('../env.js', () => ({ env: mockEnv }));
 
 // ── GET /auth/me ──────────────────────────────────────────────────────────────
 
@@ -161,6 +109,13 @@ describe('GET /auth/callback', () => {
     const app = createAuthRouter(mockBffEnv);
     const res = await app.request(callbackUrl);
     expect(res.status).toBe(400);
+  });
+
+  it('sets session cookie on success', async () => {
+    const app = createAuthRouter(mockBffEnv);
+    const res = await app.request(callbackUrl, withStateCookies);
+    const cookies = res.headers.getSetCookie();
+    expect(cookies.some((c) => c.startsWith('arbo_session=mock-session-token'))).toBe(true);
   });
 
   it('sets session cookie on success', async () => {

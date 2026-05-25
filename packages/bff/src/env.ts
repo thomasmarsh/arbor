@@ -2,7 +2,7 @@ import type * as oidc from 'openid-client';
 import { z } from 'zod';
 import type { Session } from './session.js';
 
-const ProcessEnvSchema = z
+export const ProcessEnvSchema = z
   .object({
     ARBO_AUTH_DISABLED: z
       .enum(['true', 'false'])

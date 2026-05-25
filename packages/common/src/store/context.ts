@@ -1,4 +1,3 @@
-// packages/common/src/store/react/createEnvContext.ts
 import { createContext, useContext } from 'react';
 
 export function createEnvContext<Env>() {

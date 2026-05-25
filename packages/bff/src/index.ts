@@ -1,4 +1,3 @@
-// packages/bff/src/index.ts
 import { serve } from '@hono/node-server';
 import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';

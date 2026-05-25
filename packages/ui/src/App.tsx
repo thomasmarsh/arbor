@@ -1,4 +1,3 @@
-// packages/ui/src/App.tsx
 import { useEffect } from 'react';
 import { AuthProvider } from 'react-oidc-context';
 import { authStore } from './auth/auth.store.js';

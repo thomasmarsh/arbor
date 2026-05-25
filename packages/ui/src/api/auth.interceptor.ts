@@ -1,4 +1,3 @@
-// packages/ui/src/api/auth.interceptor.ts
 import { createHttpClient, type HttpClient } from '@arbo/common/http';
 import { authStore } from '../auth/auth.store.js';
 

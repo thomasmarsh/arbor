@@ -58,7 +58,7 @@ export async function resolveSession(
 }
 
 export async function handleProxy(
-  env: BffEnvironment,  
+  env: BffEnvironment,
   request: ProxyRequest,
   authDisabled: boolean,
 ): Promise<AuthResponse> {
@@ -75,6 +75,8 @@ export async function handleProxy(
 
       const isBodyMethod = request.method !== 'GET' && request.method !== 'HEAD';
 
+      // Explicitly construct headers from session — never forward x-arbo-* from
+      // the incoming request since a client could spoof identity that way.
       const res = await env.fetch(url, {
         method: request.method,
         headers: {
