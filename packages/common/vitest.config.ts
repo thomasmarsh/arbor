@@ -2,6 +2,6 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    projects: ['packages/common', 'packages/ui', 'packages/bff', 'packages/api'],
+    exclude: ['dist/**', '**/node_modules/**'],
   },
 });

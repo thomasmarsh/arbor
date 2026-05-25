@@ -8,7 +8,7 @@
     { "name": "third_party", "path": "packages/third_party" },
   ],
   "settings": {
-    "vitest.rootConfig": "vitest.config.ts",
+    "vitest.rootConfig": "vitest.workspace.ts",
     "eslint.workingDirectories": [{ "pattern": "packages/*" }],
     "eslint.useFlatConfig": true,
     "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },

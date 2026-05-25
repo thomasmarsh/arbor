@@ -70,6 +70,9 @@ importers:
       tsx:
         specifier: ^4.17.0
         version: 4.22.3
+      vitest:
+        specifier: ^4.1.7
+        version: 4.1.7(@types/node@22.19.19)(jsdom@25.0.1)(vite@6.4.2(@types/node@22.19.19)(tsx@4.22.3))
 
   packages/bff:
     dependencies:
@@ -176,7 +179,7 @@ importers:
         specifier: ^6.0.0
         version: 6.4.2(@types/node@22.19.19)(tsx@4.22.3)
       vitest:
-        specifier: ^3.0.0
+        specifier: ^3.2.4
         version: 3.2.4(@types/node@22.19.19)(jsdom@25.0.1)(tsx@4.22.3)
 
 packages:
