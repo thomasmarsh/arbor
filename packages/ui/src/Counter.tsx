@@ -2,7 +2,7 @@ import { withLogging } from '@arbo/common';
 import { useStore } from '@arbo/common/react';
 import { useEffect } from 'react';
 import { liveCounterEnv } from './counter.env';
-import { counterReducer, initialState } from './counter.store';
+import { counterReducer, initialState, type CounterAction } from './counter.store';
 
 export function Counter() {
   console.log('Counter rendering');
@@ -13,33 +13,24 @@ export function Counter() {
     send({ tag: 'fetch' });
   }, []);
 
+  // Avoid some boilerplate in the JSX
+  const wrap = (action: CounterAction): (() => void) => {
+    return () => {
+      send(action);
+    };
+  };
+
+  const actions = {
+    decrement: wrap({ tag: 'decrement' }),
+    increment: wrap({ tag: 'increment' }),
+  };
+
   return (
     <div>
-      <button
-        onClick={() => {
-          send({ tag: 'decrement' });
-        }}
-      >
-        -
-      </button>
+      <button onClick={actions.decrement}>-</button>
       {$.state.count}
-      <button
-        onClick={() => {
-          send({ tag: 'increment' });
-        }}
-      >
-        +
-      </button>
+      <button onClick={actions.increment}>+</button>
       (amount: {$.state.amount}){$.state.loadState.tag === 'loading' && <p> Loading...</p>}
-      {(() => {
-        const ls = $.state.loadState;
-        console.log('loadState tag:', ls.tag);
-        if (ls.tag === 'loaded') {
-          console.log('value:', ls.value);
-          console.log('fold type:', typeof ls.value.fold);
-        }
-        return null;
-      })()}
       {$.state.loadState.tag === 'loaded' &&
         $.state.loadState.value.fold(
           (hello) => (
