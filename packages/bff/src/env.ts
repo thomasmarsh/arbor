@@ -1,6 +1,8 @@
+import type * as oidc from 'openid-client';
 import { z } from 'zod';
+import type { Session } from './session.js';
 
-const EnvSchema = z
+const ProcessEnvSchema = z
   .object({
     ARBO_AUTH_DISABLED: z
       .enum(['true', 'false'])
@@ -38,21 +40,17 @@ const EnvSchema = z
     },
   );
 
-export type Env = z.infer<typeof EnvSchema>;
+export type ProcessEnv = z.infer<typeof ProcessEnvSchema>;
 
-const result = EnvSchema.safeParse(process.env);
-if (!result.success) {
-  console.error('❌ Invalid environment variables:');
-  console.error(result.error.flatten().fieldErrors);
-  process.exit(1);
+export function parseProcessEnv(): ProcessEnv {
+  const result = ProcessEnvSchema.safeParse(process.env);
+  if (!result.success) {
+    console.error('❌ Invalid environment variables:');
+    console.error(result.error.flatten().fieldErrors);
+    process.exit(1);
+  }
+  return result.data;
 }
-export const env = result.data;
-
-// src/bff.env.ts
-import type * as oidc from 'openid-client';
-import type { Session } from './session.js';
-
-// ── Shared types ──────────────────────────────────────────────────────────────
 
 export interface LoginParams {
   state: string;
@@ -97,10 +95,9 @@ export interface ProxyResponse {
 
 export type AuthResponse = { tag: 'unauthorized' } | { tag: 'expired' } | ProxyResponse;
 
-// ── Environment ───────────────────────────────────────────────────────────────
-
 export interface BffEnvironment {
-  // The actual OIDC network calls — these are the effects
+  config: ProcessEnv;
+
   oidc: {
     discovery: () => Promise<oidc.Configuration>;
     authorizationCodeGrant: (
@@ -112,6 +109,7 @@ export interface BffEnvironment {
     randomState: () => string;
     randomPKCECodeVerifier: () => string;
     calculatePKCECodeChallenge: (verifier: string) => Promise<string>;
+    buildAuthorizationUrl: (config: oidc.Configuration, params: Record<string, string>) => URL;
   };
 
   // Session — verifySessionToken hits crypto, createSessionToken hits crypto

@@ -1,6 +1,6 @@
 // src/auth/login.ts
-import * as oidc from 'openid-client';
-import type { LoginParams } from '../env.js';
+import type * as oidc from 'openid-client';
+import type { BffEnvironment, LoginParams } from '../env.js';
 
 export interface LoginUrlResult {
   redirectUrl: string;
@@ -9,8 +9,12 @@ export interface LoginUrlResult {
   isPopup: boolean;
 }
 
-export function buildLoginUrl(config: oidc.Configuration, params: LoginParams): LoginUrlResult {
-  const redirectUrl = oidc.buildAuthorizationUrl(config, {
+export function buildLoginUrl(
+  env: BffEnvironment,
+  config: oidc.Configuration,
+  params: LoginParams,
+): LoginUrlResult {
+  const redirectUrl = env.oidc.buildAuthorizationUrl(config, {
     redirect_uri: params.redirectUri,
     scope: 'openid profile email',
     state: params.state,

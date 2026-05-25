@@ -8,7 +8,9 @@
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint src",
-    "clean": "rm -rf dist *.tsbuildinfo"
+    "clean": "rm -rf dist *.tsbuildinfo",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@arbo/common": "workspace:*",
@@ -20,6 +22,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "tsx": "^4.17.0"
+    "tsx": "^4.17.0",
+    "vitest": "^3.0.0"
   }
 }

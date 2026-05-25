@@ -1,16 +1,15 @@
-import {
-  env,
-  type AuthResponse,
-  type BffEnvironment,
-  type CallbackParams,
-  type CallbackResult,
-  type ProxyRequest,
-  type SessionResult,
+import type {
+  AuthResponse,
+  BffEnvironment,
+  CallbackParams,
+  CallbackResult,
+  ProxyRequest,
+  SessionResult,
 } from '../env.js';
 import { buildLoginUrl } from './login.js';
 
 export async function handleCallback(
-  bffEnv: BffEnvironment,
+  env: BffEnvironment,
   params: CallbackParams,
 ): Promise<CallbackResult> {
   if (params.expectedState == null || params.codeVerifier == null) {
@@ -18,8 +17,8 @@ export async function handleCallback(
   }
 
   try {
-    const config = await bffEnv.oidc.discovery();
-    const tokens = await bffEnv.oidc.authorizationCodeGrant(config, params.currentUrl, {
+    const config = await env.oidc.discovery();
+    const tokens = await env.oidc.authorizationCodeGrant(config, params.currentUrl, {
       pkceCodeVerifier: params.codeVerifier,
       expectedState: params.expectedState,
       idTokenExpected: true,
@@ -37,7 +36,7 @@ export async function handleCallback(
       email: (claims['email'] as string | undefined) ?? '',
     };
 
-    const sessionToken = await bffEnv.session.create(session);
+    const sessionToken = await env.session.create(session);
     return { tag: 'success', sessionToken, isPopup: params.isPopup };
   } catch (error) {
     return { tag: 'oidc-error', error };
@@ -45,25 +44,25 @@ export async function handleCallback(
 }
 
 export async function resolveSession(
-  bffEnv: BffEnvironment,
+  env: BffEnvironment,
   token: string | undefined,
   authDisabled: boolean,
 ): Promise<SessionResult> {
   if (authDisabled) {
-    return { tag: 'authenticated', session: bffEnv.devIdentity };
+    return { tag: 'authenticated', session: env.devIdentity };
   }
   if (token == null) return { tag: 'missing' };
-  const session = await bffEnv.session.verify(token);
+  const session = await env.session.verify(token);
   if (session == null) return { tag: 'expired' };
   return { tag: 'authenticated', session };
 }
 
 export async function handleProxy(
-  bffEnv: BffEnvironment,
+  env: BffEnvironment,  
   request: ProxyRequest,
   authDisabled: boolean,
 ): Promise<AuthResponse> {
-  const sessionResult = await resolveSession(bffEnv, request.sessionToken, authDisabled);
+  const sessionResult = await resolveSession(env, request.sessionToken, authDisabled);
 
   switch (sessionResult.tag) {
     case 'missing':
@@ -72,8 +71,11 @@ export async function handleProxy(
       return { tag: 'expired' };
     case 'authenticated': {
       const { session } = sessionResult;
-      const url = `${env.ARBO_API_URL}${request.path}${request.search}`;
-      const res = await bffEnv.fetch(url, {
+      const url = `${env.config.ARBO_API_URL}${request.path}${request.search}`;
+
+      const isBodyMethod = request.method !== 'GET' && request.method !== 'HEAD';
+
+      const res = await env.fetch(url, {
         method: request.method,
         headers: {
           'content-type': 'application/json',
@@ -81,7 +83,7 @@ export async function handleProxy(
           'x-arbo-name': session.name,
           'x-arbo-email': session.email,
         },
-        ...(request.body != null ? { body: await request.body() } : {}),
+        ...(isBodyMethod && request.body != null ? { body: await request.body() } : {}),
       });
       return {
         tag: 'ok',
@@ -106,15 +108,15 @@ export interface LoginResult {
 }
 
 export async function handleLogin(
-  bffEnv: BffEnvironment,
+  env: BffEnvironment,
   request: LoginRequest,
 ): Promise<LoginResult> {
-  const config = await bffEnv.oidc.discovery();
-  const state = bffEnv.oidc.randomState();
-  const codeVerifier = bffEnv.oidc.randomPKCECodeVerifier();
-  const codeChallenge = await bffEnv.oidc.calculatePKCECodeChallenge(codeVerifier);
+  const config = await env.oidc.discovery();
+  const state = env.oidc.randomState();
+  const codeVerifier = env.oidc.randomPKCECodeVerifier();
+  const codeChallenge = await env.oidc.calculatePKCECodeChallenge(codeVerifier);
 
-  return buildLoginUrl(config, {
+  return buildLoginUrl(env, config, {
     state,
     codeVerifier,
     codeChallenge,
