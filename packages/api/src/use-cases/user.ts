@@ -1,4 +1,4 @@
-import { Result } from '@arbo/common';
+import { Result } from '@arbor/common';
 import z from 'zod';
 import type { User, UserRepository } from '../repositories/users.repository.js';
 

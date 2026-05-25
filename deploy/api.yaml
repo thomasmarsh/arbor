@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: arbo-api
+  name: arbor-api
   namespace: wc-apps-dev
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: arbo-api
+      app: arbor-api
   template:
     metadata:
       labels:
-        app: arbo-api
+        app: arbor-api
     spec:
       containers:
-        - name: arbo-api
-          image: <sonatype-registry>/arbo-api:latest
+        - name: arbor-api
+          image: <sonatype-registry>/arbor-api:latest
           ports:
             - containerPort: 3001
           env:
@@ -25,7 +25,7 @@ spec:
               value: "3001"
           envFrom:
             - secretRef:
-                name: arbo-api-secrets
+                name: arbor-api-secrets
           livenessProbe:
             httpGet:
               path: /healthz
@@ -42,11 +42,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: arbo-api
+  name: arbor-api
   namespace: wc-apps-dev
 spec:
   selector:
-    app: arbo-api
+    app: arbor-api
   ports:
     - port: 3001
       targetPort: 3001

@@ -3,7 +3,7 @@
 //
 // To enable:
 //   1. Install Oracle Instant Client for your platform / container base image
-//   2. pnpm add oracledb @types/oracledb --filter @arbo/api
+//   2. pnpm add oracledb @types/oracledb --filter @arbor/api
 //   3. Uncomment the block below
 //
 // See: https://node-oracledb.readthedocs.io/en/latest/user_guide/installation.html
@@ -15,9 +15,9 @@
 //
 // export async function getOracleConnection(): Promise<oracledb.Connection> {
 //   return oracledb.getConnection({
-//     user:          process.env.ARBO_ORACLE_USER,
-//     password:      process.env.ARBO_ORACLE_PASSWORD,
-//     connectString: process.env.ARBO_ORACLE_CONNECT_STRING,
+//     user:          process.env.ARBOR_ORACLE_USER,
+//     password:      process.env.ARBOR_ORACLE_PASSWORD,
+//     connectString: process.env.ARBOR_ORACLE_CONNECT_STRING,
 //   });
 // }
 //

@@ -11,13 +11,13 @@ export const liveBffEnv: BffEnvironment = {
   oidc: {
     async discovery() {
       if (_config != null) return _config;
-      if (processEnv.ARBO_OIDC_ISSUER == null || processEnv.ARBO_OIDC_CLIENT_ID == null) {
+      if (processEnv.ARBOR_OIDC_ISSUER == null || processEnv.ARBOR_OIDC_CLIENT_ID == null) {
         throw new Error('OIDC not configured');
       }
       _config = await oidc.discovery(
-        new URL(processEnv.ARBO_OIDC_ISSUER),
-        processEnv.ARBO_OIDC_CLIENT_ID,
-        processEnv.ARBO_OIDC_CLIENT_SECRET,
+        new URL(processEnv.ARBOR_OIDC_ISSUER),
+        processEnv.ARBOR_OIDC_CLIENT_ID,
+        processEnv.ARBOR_OIDC_CLIENT_SECRET,
         undefined,
         processEnv.NODE_ENV !== 'production'
           ? // eslint-disable-next-line @typescript-eslint/no-deprecated
@@ -44,8 +44,8 @@ export const liveBffEnv: BffEnvironment = {
   },
 
   session: {
-    verify: (token) => verifySessionToken(processEnv.ARBO_SESSION_SECRET, token),
-    create: (session) => createSessionToken(processEnv.ARBO_SESSION_SECRET, session),
+    verify: (token) => verifySessionToken(processEnv.ARBOR_SESSION_SECRET, token),
+    create: (session) => createSessionToken(processEnv.ARBOR_SESSION_SECRET, session),
   },
 
   fetch: globalThis.fetch,

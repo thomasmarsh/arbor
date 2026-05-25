@@ -1,5 +1,5 @@
 {
-  "name": "@arbo/bff",
+  "name": "@arbor/bff",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -13,7 +13,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@arbo/common": "workspace:*",
+    "@arbor/common": "workspace:*",
     "@hono/node-server": "^1.12.0",
     "hono": "^4.5.0",
     "jose": "^5.6.0",

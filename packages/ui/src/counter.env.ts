@@ -1,5 +1,5 @@
-import { Effect, type HelloResponse, Result } from '@arbo/common';
-import { NetworkError } from '@arbo/common/http';
+import { Effect, type HelloResponse, Result } from '@arbor/common';
+import { NetworkError } from '@arbor/common/http';
 import { fetchHello } from './api/hello';
 
 export interface CounterEnv {

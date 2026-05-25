@@ -1,4 +1,4 @@
-import { Result } from '@arbo/common';
+import { Result } from '@arbor/common';
 import z from 'zod';
 import type { Pool } from '../db/pg.js';
 import { createUser, findAllUsers, findUserById } from './generated/users.queries.js';

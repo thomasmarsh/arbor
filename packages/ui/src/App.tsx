@@ -39,7 +39,7 @@ function App() {
 
   return (
     <main>
-      <h1>Arbo</h1>
+      <h1>Arbor</h1>
       {state.tag === 'reauthing' && <ReauthModal />}
       {state.tag === 'loading' && <p>Loading...</p>}
       {state.tag === 'unauthenticated' && <p>Please log in.</p>}

@@ -11,9 +11,9 @@ describe('GET /auth/me', () => {
     expect(res.status).toBe(401);
   });
 
-  it('returns dev user when ARBO_AUTH_DISABLED=true', async () => {
+  it('returns dev user when ARBOR_AUTH_DISABLED=true', async () => {
     const env = makeBffEnv({
-      config: { ...mockBffEnv.config, ARBO_AUTH_DISABLED: true },
+      config: { ...mockBffEnv.config, ARBOR_AUTH_DISABLED: true },
     });
     const app = createAuthRouter(env);
     const res = await app.request('/me');
@@ -27,16 +27,16 @@ describe('GET /auth/me', () => {
     });
     const app = createAuthRouter(env);
     const res = await app.request('/me', {
-      headers: { cookie: 'arbo_session=expired-token' },
+      headers: { cookie: 'arbor_session=expired-token' },
     });
     expect(res.status).toBe(401);
-    expect(res.headers.get('set-cookie')).toContain('arbo_session=;');
+    expect(res.headers.get('set-cookie')).toContain('arbor_session=;');
   });
 
   it('returns session when token valid', async () => {
     const app = createAuthRouter(mockBffEnv);
     const res = await app.request('/me', {
-      headers: { cookie: `arbo_session=valid-token` },
+      headers: { cookie: `arbor_session=valid-token` },
     });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual(mockSession);
@@ -46,38 +46,38 @@ describe('GET /auth/me', () => {
 // ── GET /auth/login ───────────────────────────────────────────────────────────
 
 describe('GET /auth/login', () => {
-  it('redirects to ARBO_APP_URL when auth disabled', async () => {
+  it('redirects to ARBOR_APP_URL when auth disabled', async () => {
     const env = makeBffEnv({
-      config: { ...mockBffEnv.config, ARBO_AUTH_DISABLED: true },
+      config: { ...mockBffEnv.config, ARBOR_AUTH_DISABLED: true },
     });
     const app = createAuthRouter(env);
     const res = await app.request('/login');
     expect(res.status).toBe(302);
-    expect(res.headers.get('location')).toBe(mockBffEnv.config.ARBO_APP_URL);
+    expect(res.headers.get('location')).toBe(mockBffEnv.config.ARBOR_APP_URL);
   });
 
-  it('sets arbo_state cookie', async () => {
+  it('sets arbor_state cookie', async () => {
     const app = createAuthRouter(mockBffEnv);
     const res = await app.request('/login');
-    expect(res.headers.get('set-cookie')).toContain('arbo_state=mock-state');
+    expect(res.headers.get('set-cookie')).toContain('arbor_state=mock-state');
   });
 
-  it('sets arbo_pkce cookie', async () => {
+  it('sets arbor_pkce cookie', async () => {
     const app = createAuthRouter(mockBffEnv);
     const res = await app.request('/login');
-    expect(res.headers.get('set-cookie')).toContain('arbo_pkce=mock-verifier');
+    expect(res.headers.get('set-cookie')).toContain('arbor_pkce=mock-verifier');
   });
 
-  it('sets arbo_popup cookie when ?popup=true', async () => {
+  it('sets arbor_popup cookie when ?popup=true', async () => {
     const app = createAuthRouter(mockBffEnv);
     const res = await app.request('/login?popup=true');
-    expect(res.headers.get('set-cookie')).toContain('arbo_popup=true');
+    expect(res.headers.get('set-cookie')).toContain('arbor_popup=true');
   });
 
-  it('does not set arbo_popup cookie when ?popup absent', async () => {
+  it('does not set arbor_popup cookie when ?popup absent', async () => {
     const app = createAuthRouter(mockBffEnv);
     const res = await app.request('/login');
-    expect(res.headers.get('set-cookie')).not.toContain('arbo_popup');
+    expect(res.headers.get('set-cookie')).not.toContain('arbor_popup');
   });
 
   it('redirects to OIDC authorization URL', async () => {
@@ -95,13 +95,13 @@ describe('GET /auth/callback', () => {
 
   const withStateCookies = {
     headers: {
-      cookie: 'arbo_state=mock-state; arbo_pkce=mock-verifier',
+      cookie: 'arbor_state=mock-state; arbor_pkce=mock-verifier',
     },
   };
 
   const withPopupCookies = {
     headers: {
-      cookie: 'arbo_state=mock-state; arbo_pkce=mock-verifier; arbo_popup=true',
+      cookie: 'arbor_state=mock-state; arbor_pkce=mock-verifier; arbor_popup=true',
     },
   };
 
@@ -115,16 +115,16 @@ describe('GET /auth/callback', () => {
     const app = createAuthRouter(mockBffEnv);
     const res = await app.request(callbackUrl, withStateCookies);
     const cookies = res.headers.getSetCookie();
-    expect(cookies.some((c) => c.startsWith('arbo_session=mock-session-token'))).toBe(true);
+    expect(cookies.some((c) => c.startsWith('arbor_session=mock-session-token'))).toBe(true);
   });
 
   it('sets session cookie on success', async () => {
     const app = createAuthRouter(mockBffEnv);
     const res = await app.request(callbackUrl, withStateCookies);
-    expect(res.headers.get('set-cookie')).toContain('arbo_session=mock-session-token');
+    expect(res.headers.get('set-cookie')).toContain('arbor_session=mock-session-token');
   });
 
-  it('returns popup HTML when arbo_popup cookie set', async () => {
+  it('returns popup HTML when arbor_popup cookie set', async () => {
     const app = createAuthRouter(mockBffEnv);
     const res = await app.request(callbackUrl, withPopupCookies);
     expect(res.status).toBe(200);
@@ -133,19 +133,19 @@ describe('GET /auth/callback', () => {
     expect(body).toContain('window.close()');
   });
 
-  it('redirects to ARBO_APP_URL on success', async () => {
+  it('redirects to ARBOR_APP_URL on success', async () => {
     const app = createAuthRouter(mockBffEnv);
     const res = await app.request(callbackUrl, withStateCookies);
     expect(res.status).toBe(302);
-    expect(res.headers.get('location')).toBe(mockBffEnv.config.ARBO_APP_URL);
+    expect(res.headers.get('location')).toBe(mockBffEnv.config.ARBOR_APP_URL);
   });
 
   it('clears transient cookies after callback', async () => {
     const app = createAuthRouter(mockBffEnv);
     const res = await app.request(callbackUrl, withStateCookies);
     const cookies = res.headers.getSetCookie();
-    expect(cookies.some((c) => c.startsWith('arbo_state=;'))).toBe(true);
-    expect(cookies.some((c) => c.startsWith('arbo_pkce=;'))).toBe(true);
+    expect(cookies.some((c) => c.startsWith('arbor_state=;'))).toBe(true);
+    expect(cookies.some((c) => c.startsWith('arbor_pkce=;'))).toBe(true);
   });
 });
 
@@ -155,20 +155,20 @@ describe('GET /auth/logout', () => {
   it('clears session cookie', async () => {
     const app = createAuthRouter(mockBffEnv);
     const res = await app.request('/logout', {
-      headers: { cookie: 'arbo_session=some-token' },
+      headers: { cookie: 'arbor_session=some-token' },
     });
     const cookies = res.headers.getSetCookie();
-    expect(cookies.some((c) => c.startsWith('arbo_session=;'))).toBe(true);
+    expect(cookies.some((c) => c.startsWith('arbor_session=;'))).toBe(true);
   });
 
-  it('redirects to ARBO_APP_URL when auth disabled', async () => {
+  it('redirects to ARBOR_APP_URL when auth disabled', async () => {
     const env = makeBffEnv({
-      config: { ...mockBffEnv.config, ARBO_AUTH_DISABLED: true },
+      config: { ...mockBffEnv.config, ARBOR_AUTH_DISABLED: true },
     });
     const app = createAuthRouter(env);
     const res = await app.request('/logout');
     expect(res.status).toBe(302);
-    expect(res.headers.get('location')).toBe(mockBffEnv.config.ARBO_APP_URL);
+    expect(res.headers.get('location')).toBe(mockBffEnv.config.ARBOR_APP_URL);
   });
 
   it('redirects to OIDC end session URL when auth enabled', async () => {

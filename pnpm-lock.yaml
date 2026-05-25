@@ -39,7 +39,7 @@ importers:
 
   packages/api:
     dependencies:
-      '@arbo/common':
+      '@arbor/common':
         specifier: workspace:*
         version: link:../common
       '@hono/node-server':
@@ -76,7 +76,7 @@ importers:
 
   packages/bff:
     dependencies:
-      '@arbo/common':
+      '@arbor/common':
         specifier: workspace:*
         version: link:../common
       '@hono/node-server':
@@ -132,7 +132,7 @@ importers:
 
   packages/ui:
     dependencies:
-      '@arbo/common':
+      '@arbor/common':
         specifier: workspace:*
         version: link:../common
       oidc-client-ts:

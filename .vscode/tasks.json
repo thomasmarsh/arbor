@@ -4,7 +4,7 @@
     {
       "label": "Watch common",
       "type": "shell",
-      "command": "pnpm --filter @arbo/common dev",
+      "command": "pnpm --filter @arbor/common dev",
       "isBackground": true,
       "problemMatcher": "$tsc-watch",
       "runOptions": { "runOn": "folderOpen" }

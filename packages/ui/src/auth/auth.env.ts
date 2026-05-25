@@ -1,5 +1,5 @@
-import { Effect, Result } from '@arbo/common';
-import type { HttpError } from '@arbo/common/http';
+import { Effect, Result } from '@arbor/common';
+import type { HttpError } from '@arbor/common/http';
 import { httpClient } from '../api/auth.interceptor.js';
 import { UserSchema } from './auth.schemas.js';
 

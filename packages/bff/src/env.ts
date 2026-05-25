@@ -4,21 +4,21 @@ import type { Session } from './session.js';
 
 export const ProcessEnvSchema = z
   .object({
-    ARBO_AUTH_DISABLED: z
+    ARBOR_AUTH_DISABLED: z
       .enum(['true', 'false'])
       .default('false')
       .transform((v) => v === 'true'),
-    ARBO_OIDC_ISSUER: z.string().url().optional(),
-    ARBO_OIDC_CLIENT_ID: z.string().optional(),
-    ARBO_OIDC_CLIENT_SECRET: z.string().optional(),
-    ARBO_OIDC_REDIRECT_URI: z.string().url().optional(),
-    ARBO_SESSION_SECRET: z.string().min(32).optional(),
-    ARBO_UI_DIST: z.string().optional(),
+    ARBOR_OIDC_ISSUER: z.string().url().optional(),
+    ARBOR_OIDC_CLIENT_ID: z.string().optional(),
+    ARBOR_OIDC_CLIENT_SECRET: z.string().optional(),
+    ARBOR_OIDC_REDIRECT_URI: z.string().url().optional(),
+    ARBOR_SESSION_SECRET: z.string().min(32).optional(),
+    ARBOR_UI_DIST: z.string().optional(),
     BFF_PORT: z.coerce.number().default(3000),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    ARBO_APP_URL: z.string().url().default('http://localhost:5173'),
-    ARBO_BFF_URL: z.string().url().default('http://localhost:3000'),
-    ARBO_API_URL: z.string().url().default('http://localhost:3001'),
+    ARBOR_APP_URL: z.string().url().default('http://localhost:5173'),
+    ARBOR_BFF_URL: z.string().url().default('http://localhost:3000'),
+    ARBOR_API_URL: z.string().url().default('http://localhost:3001'),
     VITE_USE_HTTPS: z
       .enum(['true', 'false'])
       .default('false')
@@ -26,17 +26,17 @@ export const ProcessEnvSchema = z
   })
   .refine(
     (e) =>
-      e.ARBO_AUTH_DISABLED ||
-      (e.ARBO_OIDC_ISSUER != null &&
-        e.ARBO_OIDC_CLIENT_ID != null &&
-        e.ARBO_OIDC_CLIENT_SECRET != null &&
-        e.ARBO_OIDC_REDIRECT_URI != null &&
-        e.ARBO_SESSION_SECRET != null),
+      e.ARBOR_AUTH_DISABLED ||
+      (e.ARBOR_OIDC_ISSUER != null &&
+        e.ARBOR_OIDC_CLIENT_ID != null &&
+        e.ARBOR_OIDC_CLIENT_SECRET != null &&
+        e.ARBOR_OIDC_REDIRECT_URI != null &&
+        e.ARBOR_SESSION_SECRET != null),
     {
       message:
-        'ARBO_OIDC_ISSUER, ARBO_OIDC_CLIENT_ID, ARBO_OIDC_CLIENT_SECRET, ' +
-        'ARBO_OIDC_REDIRECT_URI, and ARBO_SESSION_SECRET are required when ARBO_AUTH_DISABLED=false',
-      path: ['ARBO_AUTH_DISABLED'],
+        'ARBOR_OIDC_ISSUER, ARBOR_OIDC_CLIENT_ID, ARBOR_OIDC_CLIENT_SECRET, ' +
+        'ARBOR_OIDC_REDIRECT_URI, and ARBOR_SESSION_SECRET are required when ARBOR_AUTH_DISABLED=false',
+      path: ['ARBOR_AUTH_DISABLED'],
     },
   );
 

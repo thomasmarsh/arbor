@@ -1,14 +1,14 @@
-# Arbo Project
+# Arbor Project
 
 `packages/` the code is organized as follows.
 
-| Directory      | Package Name   | Purpose                                       |
-| -------------- | -------------- | --------------------------------------------- |
-| `common/`      | `@arbo/common` | Zod schemas, shared types (UI ↔ API contract) |
-| `ui/`          | `@arbo/ui`     | Vite + React SPA                              |
-| `bff/`         | `@arbo/bff`    | Node BFF: OIDC session layer, proxies to API  |
-| `api/`         | `@arbo/api`    | Node API: pgtyped + Oracle                    |
-| `third_party/` |                | Forked/pinned dependencies                    |
+| Directory      | Package Name    | Purpose                                       |
+| -------------- | --------------- | --------------------------------------------- |
+| `common/`      | `@arbor/common` | Zod schemas, shared types (UI ↔ API contract) |
+| `ui/`          | `@arbor/ui`     | Vite + React SPA                              |
+| `bff/`         | `@arbor/bff`    | Node BFF: OIDC session layer, proxies to API  |
+| `api/`         | `@arbor/api`    | Node API: pgtyped + Oracle                    |
+| `third_party/` |                 | Forked/pinned dependencies                    |
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@
 
 ```bash
 pnpm install
-pnpm --filter @arbo/common build   # api/bff/ui all depend on this
+pnpm --filter @arbor/common build   # api/bff/ui all depend on this
 ```
 
 ## Auth modes
@@ -43,10 +43,10 @@ pnpm dev:mock
 pnpm dev:bff
 
 # Individual packages
-pnpm --filter @arbo/common dev
-pnpm --filter @arbo/bff    dev     # http://localhost:3000
-pnpm --filter @arbo/api    dev     # http://localhost:3001
-pnpm --filter @arbo/ui     dev     # http://localhost:5173
+pnpm --filter @arbor/common dev
+pnpm --filter @arbor/bff    dev     # http://localhost:3000
+pnpm --filter @arbor/api    dev     # http://localhost:3001
+pnpm --filter @arbor/ui     dev     # http://localhost:5173
 ```
 
 ## Local Keycloak (dev:bff and dev:oidc)
@@ -61,9 +61,9 @@ docker run -p 8080:8080 \
 
 Then:
 
-1. Create realm `arbo`
-2. Create confidential client `arbo-bff` (for `dev:bff`)
-3. Create public client `arbo-ui` (for `dev:oidc`)
+1. Create realm `arbor`
+2. Create confidential client `arbor-bff` (for `dev:bff`)
+3. Create public client `arbor-ui` (for `dev:oidc`)
 4. Create a test user with a password
 5. Copy `packages/bff/.env.example` → `packages/bff/.env.local` and fill in credentials
 
@@ -98,12 +98,12 @@ turbo test --force
 pnpm -r test
 
 # Watch mode (per package)
-pnpm --filter @arbo/bff test:watch
+pnpm --filter @arbor/bff test:watch
 ```
 
 ## Remote SSH development
 
-Port forwarding is pre-configured in `arbo.code-workspace` (ports 5173, 3000, 3001).
+Port forwarding is pre-configured in `arbor.code-workspace` (ports 5173, 3000, 3001).
 VS Code's Remote SSH extension will forward them automatically when you open the workspace.
 
 ## Building for production

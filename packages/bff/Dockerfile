@@ -15,9 +15,9 @@ COPY packages/bff    ./packages/bff
 COPY packages/ui     ./packages/ui
 COPY tsconfig.base.json ./
 
-RUN pnpm --filter @arbo/common build
-RUN pnpm --filter @arbo/ui     build
-RUN pnpm --filter @arbo/bff    build
+RUN pnpm --filter @arbor/common build
+RUN pnpm --filter @arbor/ui     build
+RUN pnpm --filter @arbor/bff    build
 
 # Runtime stage
 FROM node:22-alpine AS runtime
@@ -34,7 +34,7 @@ COPY --from=builder /app/packages/bff/dist    ./packages/bff/dist
 COPY --from=builder /app/packages/ui/dist     ./packages/ui/dist
 
 ENV NODE_ENV=production
-ENV ARBO_UI_DIST=/app/packages/ui/dist
+ENV ARBOR_UI_DIST=/app/packages/ui/dist
 
 EXPOSE 3000
 CMD ["node", "packages/bff/dist/index.js"]

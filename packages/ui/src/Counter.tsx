@@ -1,5 +1,5 @@
-import { withLogging } from '@arbo/common';
-import { useStore } from '@arbo/common/react';
+import { withLogging } from '@arbor/common';
+import { useStore } from '@arbor/common/react';
 import { useEffect } from 'react';
 import { liveCounterEnv } from './counter.env';
 import { counterReducer, initialState, type CounterAction } from './counter.store';

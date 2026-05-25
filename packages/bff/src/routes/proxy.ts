@@ -18,7 +18,7 @@ export function createProxyRouter(env: BffEnvironment) {
         body:
           c.req.method !== 'GET' && c.req.method !== 'HEAD' ? () => c.req.arrayBuffer() : undefined,
       },
-      env.config.ARBO_AUTH_DISABLED,
+      env.config.ARBOR_AUTH_DISABLED,
     );
 
     switch (result.tag) {

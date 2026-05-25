@@ -25,7 +25,7 @@ app.get('/healthz', (c) => c.json({ status: 'ok' }));
 // In production, the BFF serves the built UI directly.
 
 if (env.config.NODE_ENV === 'production') {
-  const uiDist = env.config.ARBO_UI_DIST ?? path.resolve(import.meta.dirname, '../../../ui/dist');
+  const uiDist = env.config.ARBOR_UI_DIST ?? path.resolve(import.meta.dirname, '../../../ui/dist');
 
   app.use('/*', serveStatic({ root: uiDist }));
   app.get('*', serveStatic({ path: path.join(uiDist, 'index.html') }));
@@ -49,7 +49,7 @@ serve(
     const scheme = env.config.VITE_USE_HTTPS ? 'https' : 'http';
     console.log(
       `BFF listening on ${scheme}://localhost:${String(env.config.BFF_PORT)}` +
-        (env.config.ARBO_AUTH_DISABLED ? '  [AUTH DISABLED]' : ''),
+        (env.config.ARBOR_AUTH_DISABLED ? '  [AUTH DISABLED]' : ''),
     );
   },
 );

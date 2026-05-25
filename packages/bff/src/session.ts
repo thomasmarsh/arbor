@@ -13,13 +13,13 @@ export type Session = z.infer<typeof SessionSchema>;
 
 // ── Cookie name ───────────────────────────────────────────────────────────────
 
-export const SESSION_COOKIE = 'arbo_session';
+export const SESSION_COOKIE = 'arbor_session';
 
 // ── Secret ───────────────────────────────────────────────────────────────────
 
 function secret(sessionSecret: string | undefined): Uint8Array {
   if (sessionSecret == null) {
-    throw new Error('ARBO_SESSION_SECRET is not set');
+    throw new Error('ARBOR_SESSION_SECRET is not set');
   }
   return new TextEncoder().encode(sessionSecret);
 }

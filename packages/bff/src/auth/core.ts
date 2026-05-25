@@ -71,19 +71,19 @@ export async function handleProxy(
       return { tag: 'expired' };
     case 'authenticated': {
       const { session } = sessionResult;
-      const url = `${env.config.ARBO_API_URL}${request.path}${request.search}`;
+      const url = `${env.config.ARBOR_API_URL}${request.path}${request.search}`;
 
       const isBodyMethod = request.method !== 'GET' && request.method !== 'HEAD';
 
-      // Explicitly construct headers from session — never forward x-arbo-* from
+      // Explicitly construct headers from session — never forward x-arbor-* from
       // the incoming request since a client could spoof identity that way.
       const res = await env.fetch(url, {
         method: request.method,
         headers: {
           'content-type': 'application/json',
-          'x-arbo-sub': session.sub,
-          'x-arbo-name': session.name,
-          'x-arbo-email': session.email,
+          'x-arbor-sub': session.sub,
+          'x-arbor-name': session.name,
+          'x-arbor-email': session.email,
         },
         ...(isBodyMethod && request.body != null ? { body: await request.body() } : {}),
       });

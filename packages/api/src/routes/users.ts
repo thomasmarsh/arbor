@@ -1,4 +1,4 @@
-import type { Result } from '@arbo/common';
+import type { Result } from '@arbor/common';
 import { Hono, type Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { z } from 'zod';

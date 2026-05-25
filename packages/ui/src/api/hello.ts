@@ -1,6 +1,6 @@
-import type { Effect } from '@arbo/common';
-import { HelloResponseSchema, type HelloResponse } from '@arbo/common';
-import type { HttpError } from '@arbo/common/http';
+import type { Effect } from '@arbor/common';
+import { HelloResponseSchema, type HelloResponse } from '@arbor/common';
+import type { HttpError } from '@arbor/common/http';
 import { httpClient } from '../api/auth.interceptor.js';
 
 export function fetchHello<A>(

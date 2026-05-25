@@ -12,7 +12,7 @@ const app = new Hono<{ Variables: { env: ApiEnv } }>();
 app.use('*', logger());
 
 const config = parseProcessEnv();
-const env = liveEnv(makePool(config.ARBO_PG_URL));
+const env = liveEnv(makePool(config.ARBOR_PG_URL));
 
 app.use('*', (c, next) => {
   c.set('env', env);

@@ -5,7 +5,7 @@
 - `podman` or `docker`
 - `oc` CLI logged into the OpenShift cluster
 - Access to Sonatype image registry
-- AD IDP client credentials for `arbo-bff`
+- AD IDP client credentials for `arbor-bff`
 
 ## IDP Registration
 
@@ -28,17 +28,17 @@ Create once per namespace. These are never stored in source control.
 
 ```shell
 # BFF secrets
-oc create secret generic arbo-bff-secrets \
-  --from-literal=ARBO_OIDC_CLIENT_SECRET= \
-  --from-literal=ARBO_SESSION_SECRET=<32-char-minimum-random-string> \
+oc create secret generic arbor-bff-secrets \
+  --from-literal=ARBOR_OIDC_CLIENT_SECRET= \
+  --from-literal=ARBOR_SESSION_SECRET=<32-char-minimum-random-string> \
   -n wc-apps-dev
 
 # API secrets
-oc create secret generic arbo-api-secrets \
-  --from-literal=ARBO_PG_URL= \
-  --from-literal=ARBO_ORACLE_USER= \
-  --from-literal=ARBO_ORACLE_PASSWORD= \
-  --from-literal=ARBO_ORACLE_CONNECT_STRING= \
+oc create secret generic arbor-api-secrets \
+  --from-literal=ARBOR_PG_URL= \
+  --from-literal=ARBOR_ORACLE_USER= \
+  --from-literal=ARBOR_ORACLE_PASSWORD= \
+  --from-literal=ARBOR_ORACLE_CONNECT_STRING= \
   -n wc-apps-dev
 ```
 
@@ -55,12 +55,12 @@ EOF
 
 ```shell
 # Build images from monorepo root
-podman build -f packages/bff/Dockerfile -t /arbo-bff:latest .
-podman build -f packages/api/Dockerfile -t /arbo-api:latest .
+podman build -f packages/bff/Dockerfile -t /arbor-bff:latest .
+podman build -f packages/api/Dockerfile -t /arbor-api:latest .
 
 # Push to Sonatype
-podman push /arbo-bff:latest
-podman push /arbo-api:latest
+podman push /arbor-bff:latest
+podman push /arbor-api:latest
 ```
 
 ## Deploy
@@ -71,8 +71,8 @@ oc apply -f deploy/bff.yaml -n wc-apps-dev
 oc apply -f deploy/api.yaml -n wc-apps-dev
 
 # Watch rollout
-oc rollout status deployment/arbo-bff -n wc-apps-dev
-oc rollout status deployment/arbo-api -n wc-apps-dev
+oc rollout status deployment/arbor-bff -n wc-apps-dev
+oc rollout status deployment/arbor-api -n wc-apps-dev
 ```
 
 ## Promotion
@@ -90,8 +90,8 @@ oc apply -f deploy/api.yaml -n wc-apps-prod
 ## Rollback
 
 ```shell
-oc rollout undo deployment/arbo-bff -n wc-apps-dev
-oc rollout undo deployment/arbo-api -n wc-apps-dev
+oc rollout undo deployment/arbor-bff -n wc-apps-dev
+oc rollout undo deployment/arbor-api -n wc-apps-dev
 ```
 
 ## Health checks
@@ -101,7 +101,7 @@ oc rollout undo deployment/arbo-api -n wc-apps-dev
 curl https://<hostname>/healthz
 
 # API (internal only — exec into BFF pod)
-oc exec -n wc-apps-dev deployment/arbo-bff -- curl http://arbo-api:3001/healthz
+oc exec -n wc-apps-dev deployment/arbor-bff -- curl http://arbor-api:3001/healthz
 ```
 
 ## TODO

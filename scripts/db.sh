@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CONTAINER=arbo-postgres
-VOLUME=arbo-postgres-data
+CONTAINER=arbor-postgres
+VOLUME=arbor-postgres-data
 IMAGE=postgres:16-alpine
 
 case "${1:-}" in
@@ -12,15 +12,15 @@ case "${1:-}" in
     else
       podman run -d \
         --name "$CONTAINER" \
-        -e POSTGRES_DB=arbo_dev \
-        -e POSTGRES_USER=arbo \
-        -e POSTGRES_PASSWORD=arbo \
+        -e POSTGRES_DB=arbor_dev \
+        -e POSTGRES_USER=arbor \
+        -e POSTGRES_PASSWORD=arbor \
         -p 5433:5432 \
         "$IMAGE"
     fi
 
     echo "Waiting for postgres..."
-    until podman exec "$CONTAINER" pg_isready -U arbo -d arbo_dev -q; do
+    until podman exec "$CONTAINER" pg_isready -U arbor -d arbor_dev -q; do
       sleep 1
     done
     echo "Postgres ready."

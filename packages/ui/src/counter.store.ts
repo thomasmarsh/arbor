@@ -1,4 +1,4 @@
-import { Effect, type HelloResponse, type Reducer, type Result } from '@arbo/common';
+import { Effect, type HelloResponse, type Reducer, type Result } from '@arbor/common';
 import type { CounterEnv } from './counter.env';
 
 export interface CounterState {

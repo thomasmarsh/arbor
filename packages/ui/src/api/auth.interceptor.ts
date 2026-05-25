@@ -1,4 +1,4 @@
-import { createHttpClient, type HttpClient } from '@arbo/common/http';
+import { createHttpClient, type HttpClient } from '@arbor/common/http';
 import { authStore } from '../auth/auth.store.js';
 
 export const httpClient: HttpClient = createHttpClient({

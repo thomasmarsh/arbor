@@ -1,4 +1,4 @@
-import type { HelloResponse } from '@arbo/common';
+import type { HelloResponse } from '@arbor/common';
 import { Hono } from 'hono';
 
 const hello = new Hono();
@@ -9,7 +9,7 @@ const hello = new Hono();
 // trusting headers blindly (this is only safe inside a private cluster network).
 
 hello.get('/', (c) => {
-  const callerSub = c.req.header('x-arbo-sub') ?? 'unknown';
+  const callerSub = c.req.header('x-arbor-sub') ?? 'unknown';
 
   const response: HelloResponse = {
     message: `Hello from API (caller: ${callerSub})`,

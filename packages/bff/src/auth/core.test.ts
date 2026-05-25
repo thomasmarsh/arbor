@@ -273,9 +273,9 @@ describe('handleProxy', () => {
   it('forwards session identity headers', async () => {
     await handleProxy(mockBffEnv, baseRequest, false);
     const headers = getLastFetchHeaders(mockBffEnv);
-    expect(headers['x-arbo-sub']).toBe(mockSession.sub);
-    expect(headers['x-arbo-name']).toBe(mockSession.name);
-    expect(headers['x-arbo-email']).toBe(mockSession.email);
+    expect(headers['x-arbor-sub']).toBe(mockSession.sub);
+    expect(headers['x-arbor-name']).toBe(mockSession.name);
+    expect(headers['x-arbor-email']).toBe(mockSession.email);
   });
 
   it('includes body for POST requests', async () => {

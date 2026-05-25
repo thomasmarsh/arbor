@@ -23,16 +23,16 @@ export function createAuthRouter(env: BffEnvironment) {
   } as const;
 
   auth.get('/login', async (c) => {
-    if (env.config.ARBO_AUTH_DISABLED) return c.redirect(env.config.ARBO_APP_URL);
+    if (env.config.ARBOR_AUTH_DISABLED) return c.redirect(env.config.ARBOR_APP_URL);
 
     const result = await handleLogin(env, {
       isPopup: c.req.query('popup') === 'true',
-      redirectUri: env.config.ARBO_OIDC_REDIRECT_URI ?? '',
+      redirectUri: env.config.ARBOR_OIDC_REDIRECT_URI ?? '',
     });
 
-    setCookie(c, 'arbo_state', result.state, TRANSIENT_OPTS);
-    setCookie(c, 'arbo_pkce', result.codeVerifier, TRANSIENT_OPTS);
-    if (result.isPopup) setCookie(c, 'arbo_popup', 'true', TRANSIENT_OPTS);
+    setCookie(c, 'arbor_state', result.state, TRANSIENT_OPTS);
+    setCookie(c, 'arbor_pkce', result.codeVerifier, TRANSIENT_OPTS);
+    if (result.isPopup) setCookie(c, 'arbor_popup', 'true', TRANSIENT_OPTS);
 
     return c.redirect(result.redirectUrl);
   });
@@ -40,14 +40,14 @@ export function createAuthRouter(env: BffEnvironment) {
   auth.get('/callback', async (c) => {
     const result = await handleCallback(env, {
       currentUrl: new URL(c.req.url),
-      expectedState: getCookie(c, 'arbo_state'),
-      codeVerifier: getCookie(c, 'arbo_pkce'),
-      isPopup: getCookie(c, 'arbo_popup') === 'true',
+      expectedState: getCookie(c, 'arbor_state'),
+      codeVerifier: getCookie(c, 'arbor_pkce'),
+      isPopup: getCookie(c, 'arbor_popup') === 'true',
     });
 
-    deleteCookie(c, 'arbo_state', { path: '/' });
-    deleteCookie(c, 'arbo_pkce', { path: '/' });
-    deleteCookie(c, 'arbo_popup', { path: '/' });
+    deleteCookie(c, 'arbor_state', { path: '/' });
+    deleteCookie(c, 'arbor_pkce', { path: '/' });
+    deleteCookie(c, 'arbor_popup', { path: '/' });
 
     switch (result.tag) {
       case 'missing-state':
@@ -62,22 +62,22 @@ export function createAuthRouter(env: BffEnvironment) {
           ? c.html(
               `<script>window.opener?.postMessage({tag:'reauth-complete'},window.origin);window.close();</script>`,
             )
-          : c.redirect(env.config.ARBO_APP_URL);
+          : c.redirect(env.config.ARBOR_APP_URL);
     }
   });
 
   auth.get('/logout', async (c) => {
     deleteCookie(c, SESSION_COOKIE, { path: '/' });
-    if (env.config.ARBO_AUTH_DISABLED) return c.redirect(env.config.ARBO_APP_URL);
+    if (env.config.ARBOR_AUTH_DISABLED) return c.redirect(env.config.ARBOR_APP_URL);
 
     const config = await env.oidc.discovery();
-    const logoutUrl = env.oidc.buildEndSessionUrl(config, env.config.ARBO_APP_URL);
+    const logoutUrl = env.oidc.buildEndSessionUrl(config, env.config.ARBOR_APP_URL);
     return c.redirect(logoutUrl);
   });
 
   auth.get('/me', async (c) => {
     const token = getCookie(c, SESSION_COOKIE);
-    const result = await resolveSession(env, token, env.config.ARBO_AUTH_DISABLED);
+    const result = await resolveSession(env, token, env.config.ARBOR_AUTH_DISABLED);
 
     switch (result.tag) {
       case 'missing':

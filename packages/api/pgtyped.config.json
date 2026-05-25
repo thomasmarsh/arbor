@@ -7,5 +7,5 @@
     }
   ],
   "srcDir": "src/",
-  "dbUrl": "postgresql://arbo:arbo@localhost:5433/arbo_dev"
+  "dbUrl": "postgresql://arbor:arbor@localhost:5433/arbor_dev"
 }

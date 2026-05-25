@@ -12,8 +12,8 @@ COPY packages/common ./packages/common
 COPY packages/api    ./packages/api
 COPY tsconfig.base.json ./
 
-RUN pnpm --filter @arbo/common build
-RUN pnpm --filter @arbo/api    build
+RUN pnpm --filter @arbor/common build
+RUN pnpm --filter @arbor/api    build
 
 FROM node:22-alpine AS runtime
 RUN npm install -g pnpm

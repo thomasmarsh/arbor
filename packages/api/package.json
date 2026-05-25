@@ -1,5 +1,5 @@
 {
-  "name": "@arbo/api",
+  "name": "@arbor/api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "db:generate:watch": "pgtyped -c pgtyped.config.json -w"
   },
   "dependencies": {
-    "@arbo/common": "workspace:*",
+    "@arbor/common": "workspace:*",
     "@hono/node-server": "^1.12.0",
     "hono": "^4.5.0",
     "pg": "^8.12.0",

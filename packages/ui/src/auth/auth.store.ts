@@ -1,4 +1,4 @@
-import { Effect, Store, withLogging, type Reducer } from '@arbo/common';
+import { Effect, Store, withLogging, type Reducer } from '@arbor/common';
 import { liveAuthEnv, type AuthEnv, type User } from './auth.env.js';
 import { PopupMessageSchema } from './auth.schemas.js';
 

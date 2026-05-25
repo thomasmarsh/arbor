@@ -5,7 +5,7 @@ import type { UserRepository } from './repositories/users.repository.js';
 
 const ApiProcessEnvSchema = z.object({
   API_PORT: z.coerce.number().default(3001),
-  ARBO_PG_URL: z.url(),
+  ARBOR_PG_URL: z.url(),
 });
 
 type ApiProcessEnv = z.infer<typeof ApiProcessEnvSchema>;

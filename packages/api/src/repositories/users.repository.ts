@@ -1,4 +1,4 @@
-import type { Result } from '@arbo/common';
+import type { Result } from '@arbor/common';
 import { z } from 'zod';
 
 export const UserSchema = z.object({
