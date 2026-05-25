@@ -5,13 +5,15 @@ Forked or locally-patched dependencies live here as workspace packages.
 ## Adding a fork
 
 1. Copy the upstream package source into a subdirectory:
-   ```
+
+   ```text
    packages/third_party/some-lib/
    ├── package.json   ← keep the original "name" field
    └── src/
    ```
 
 2. Declare it as a workspace dependency in any package that needs it:
+
    ```json
    // packages/api/package.json
    { "dependencies": { "some-lib": "workspace:*" } }
