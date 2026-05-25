@@ -21,9 +21,15 @@
     "js/ts.tsdk.path": "root/node_modules/typescript/lib",
     "search.exclude": {
       "**/dist": true,
+      "**/node_modules": true,
+      "**/*.tsbuildinfo": true,
+      "**/.turbo": true,
     },
     "files.exclude": {
       "**/dist": true,
+      "**/node_modules": true,
+      "**/*.tsbuildinfo": true,
+      "**/.turbo": true,
     },
   },
   "extensions": {
