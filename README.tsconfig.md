@@ -18,7 +18,7 @@ The split exists because TypeScript needs different compiler settings for differ
 
 - `noEmit: true` - these files don't need compiled output
 - `module: NodeNext` - these run in Node, not the browser
-  Can't be in tsconfig.app.json because config files are outside src/
+  Can't be in `tsconfig.app.json` because config files are outside `src/`
 
 `tsconfig.json` - solution file:
 
@@ -31,5 +31,4 @@ Without the split, you get one of two problems:
 - Put config files in `tsconfig.app.json` → they get compiled into `dist/` and the `rootDir` constraint breaks
 - Leave config files out → ESLint and VS Code can't find their types, giving "not found by project service" errors
 
-The alternative is a single tsconfig.json with allowDefaultProject in ESLint config, but that has its own set of issues.
-    
+The alternative is a single `tsconfig.json` with `allowDefaultProject` in ESLint config, but that has its own set of issues.
