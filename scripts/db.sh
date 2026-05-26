@@ -21,7 +21,7 @@ case "${1:-}" in
     fi
 
     echo "Waiting for postgres..."
-    until podman exec "$CONTAINER" pg_isready -U arbor -d arbor_dev -q; do
+    until podman exec "$CONTAINER" psql -U arbor -d arbor_dev -c "SELECT 1" -q &>/dev/null 2>&1; do
       sleep 1
     done
     echo "Postgres ready."
@@ -37,8 +37,22 @@ case "${1:-}" in
     "$0" up
     ;;
 
+  status)
+    if podman container exists "$CONTAINER"; then
+      STATUS=$(podman inspect "$CONTAINER" --format '{{.State.Status}}')
+      echo "Container: $CONTAINER ($STATUS)"
+      if [ "$STATUS" = "running" ]; then
+        podman exec "$CONTAINER" psql -U arbor -d arbor_dev -c "
+          SELECT name, applied_at FROM schema_migrations ORDER BY name;
+        " 2>/dev/null || echo "No migrations table yet"
+      fi
+    else
+      echo "Container: $CONTAINER (not found)"
+    fi
+    ;;
+
   *)
-    echo "Usage: $0 {up|down|reset}"
+    echo "Usage: $0 {up|down|reset|status}"
     exit 1
     ;;
 esac
