@@ -23,6 +23,14 @@ export class Result<out T, out E = Error> {
     return !this.result.ok;
   }
 
+  public getOrThrow(): T {
+    if (this.result.ok) {
+      return this.result.value;
+    }
+
+    throw new Error(`force unwrap expected succes, but was: ${JSON.stringify(this.result)}`);
+  }
+
   public getOrElse(fallback: T): T {
     return this.result.ok ? this.result.value : fallback;
   }
