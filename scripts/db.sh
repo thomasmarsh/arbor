@@ -12,6 +12,7 @@ case "${1:-}" in
     else
       podman run -d \
         --name "$CONTAINER" \
+        -v "$VOLUME":/var/lib/postgresql/data  \
         -e POSTGRES_DB=arbor_dev \
         -e POSTGRES_USER=arbor \
         -e POSTGRES_PASSWORD=arbor \
