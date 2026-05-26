@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "setup": "scripts/setup.sh",
     "build": "turbo build",
     "dev": "dotenv -e packages/bff/.env.local -e packages/api/.env.local -e .env.mock -- turbo dev",
     "dev:mock": "dotenv -e packages/bff/.env.local -e packages/api/.env.local -e .env.mock -- turbo dev",
