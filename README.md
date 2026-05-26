@@ -14,14 +14,16 @@
 
 - Node >= 22
 - pnpm >= 9 (`npm i -g pnpm`)
-- podman or docker (for local Keycloak)
+- podman or docker (for local Postgres and Keycloak)
 
 ## First-time setup
 
 ```bash
-pnpm install
-pnpm --filter @arbor/common build   # api/bff/ui all depend on this
+pnpm setup
 ```
+
+Then follow the instructions after that script exits. Note: you will need `postman`
+to run the Postgres database.
 
 ## Auth modes
 
