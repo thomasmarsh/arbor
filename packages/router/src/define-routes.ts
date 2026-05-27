@@ -212,8 +212,8 @@ export function matchSegments(
  * property) and Zod v4 (shape as function).
  * @internal
  */
-function getShape(schema: z.ZodObject<any, any>): Record<string, z.ZodTypeAny> {
-  const s = schema.shape as Record<string, z.ZodTypeAny> | (() => Record<string, z.ZodTypeAny>);
+function getShape(schema: z.ZodObject<any, any>): Record<string, z.z.ZodType> {
+  const s = schema.shape as Record<string, z.z.ZodType> | (() => Record<string, z.z.ZodType>);
   return typeof s === 'function' ? s() : s;
 }
 
@@ -591,11 +591,12 @@ export function defineRoutes<C extends RouteNode<unknown, unknown, any>[] = []>(
      * Parses a `URL` into a `Route` object.
      * Returns `Result.failure` if no route in the tree matches the URL.
      */
+
     parse(url: URL): Result<Route, string> {
       const segments = url.pathname.split('/').filter(Boolean);
       const raw = walkParse(nodes, segments, url.searchParams);
       if (!raw) return Result.failure(`no route: ${url.pathname}`);
-      return Result.success(raw as Route);
+      return Result.success(raw) as Result<Route, string>;
     },
 
     /**

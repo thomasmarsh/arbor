@@ -8,17 +8,17 @@ export const ProcessEnvSchema = z
       .enum(['true', 'false'])
       .default('false')
       .transform((v) => v === 'true'),
-    ARBOR_OIDC_ISSUER: z.string().url().optional(),
+    ARBOR_OIDC_ISSUER: z.url().optional(),
     ARBOR_OIDC_CLIENT_ID: z.string().optional(),
     ARBOR_OIDC_CLIENT_SECRET: z.string().optional(),
-    ARBOR_OIDC_REDIRECT_URI: z.string().url().optional(),
+    ARBOR_OIDC_REDIRECT_URI: z.url().optional(),
     ARBOR_SESSION_SECRET: z.string().min(32).optional(),
     ARBOR_UI_DIST: z.string().optional(),
     BFF_PORT: z.coerce.number().default(3000),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    ARBOR_APP_URL: z.string().url().default('http://localhost:5173'),
-    ARBOR_BFF_URL: z.string().url().default('http://localhost:3000'),
-    ARBOR_API_URL: z.string().url().default('http://localhost:3001'),
+    ARBOR_APP_URL: z.url().default('http://localhost:5173'),
+    ARBOR_BFF_URL: z.url().default('http://localhost:3000'),
+    ARBOR_API_URL: z.url().default('http://localhost:3001'),
     VITE_USE_HTTPS: z
       .enum(['true', 'false'])
       .default('false')
@@ -46,7 +46,7 @@ export function parseProcessEnv(): ProcessEnv {
   const result = ProcessEnvSchema.safeParse(process.env);
   if (!result.success) {
     console.error('❌ Invalid environment variables:');
-    console.error(result.error.flatten().fieldErrors);
+    console.error(z.treeifyError(result.error).errors);
     process.exit(1);
   }
   return result.data;

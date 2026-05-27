@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unnecessary-type-arguments */
+
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import {
@@ -17,7 +17,7 @@ import {
   type Flatten,
   type InferRoute,
   type RouteNode,
-} from './define-routes';
+} from './define-routes.js';
 
 describe('Flatten', () => {
   it('cleans up an intersection', () => {
@@ -143,12 +143,12 @@ describe('parseSegments', () => {
 
 describe('Derive', () => {
   it('leaf node — no child field', () => {
-    type N = RouteNode<{ tag: 'user'; id: string }, never, []>;
+    type N = RouteNode<{ tag: 'user'; id: string }, never>;
     expectTypeOf<Derive<N>>().toEqualTypeOf<{ tag: 'user'; id: string }>();
   });
 
   it('tagged node with children — optional child', () => {
-    type N = RouteNode<{ tag: 'users' }, { tag: 'user'; id: string }, []>;
+    type N = RouteNode<{ tag: 'users' }, { tag: 'user'; id: string }>;
     expectTypeOf<Derive<N>>().toEqualTypeOf<{
       tag: 'users';
       child?: { tag: 'user'; id: string };
@@ -156,14 +156,14 @@ describe('Derive', () => {
   });
 
   it('section node — required child', () => {
-    type N = RouteNode<never, { tag: 'user'; id: string }, []>;
+    type N = RouteNode<never, { tag: 'user'; id: string }>;
     expectTypeOf<Derive<N>>().toEqualTypeOf<{
       child: { tag: 'user'; id: string };
     }>();
   });
 
   it('section node — child cannot be undefined', () => {
-    type N = RouteNode<never, { tag: 'user'; id: string }, []>;
+    type N = RouteNode<never, { tag: 'user'; id: string }>;
     type D = Derive<N>;
     interface Key {
       child: { tag: 'user'; id: string };
@@ -176,17 +176,14 @@ describe('Derive', () => {
 
 describe('ChildUnion', () => {
   it('union of two leaves', () => {
-    type C = [
-      RouteNode<{ tag: 'users' }, never, []>,
-      RouteNode<{ tag: 'org'; orgId: string }, never, []>,
-    ];
+    type C = [RouteNode<{ tag: 'users' }, never>, RouteNode<{ tag: 'org'; orgId: string }, never>];
     expectTypeOf<ChildUnion<C>>().toEqualTypeOf<{ tag: 'users' } | { tag: 'org'; orgId: string }>();
   });
 
   it('union including a section', () => {
     type C = [
-      RouteNode<never, { tag: 'user'; id: string }, []>,
-      RouteNode<{ tag: 'org'; orgId: string }, never, []>,
+      RouteNode<never, { tag: 'user'; id: string }>,
+      RouteNode<{ tag: 'org'; orgId: string }, never>,
     ];
     expectTypeOf<ChildUnion<C>>().toEqualTypeOf<
       { child: { tag: 'user'; id: string } } | { tag: 'org'; orgId: string }

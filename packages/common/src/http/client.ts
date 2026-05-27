@@ -13,27 +13,27 @@ export interface HttpClientOptions {
 export interface HttpClient {
   get<T, A>(
     url: string,
-    schema: z.ZodSchema<T>,
+    schema: z.ZodType<T>,
     onSuccess: (value: T) => A,
     onError: (error: HttpError) => A,
   ): Effect<A>;
   post<T, A>(
     url: string,
     body: unknown,
-    schema: z.ZodSchema<T>,
+    schema: z.z.ZodType<T>,
     onSuccess: (value: T) => A,
     onError: (error: HttpError) => A,
   ): Effect<A>;
   put<T, A>(
     url: string,
     body: unknown,
-    schema: z.ZodSchema<T>,
+    schema: z.z.ZodType<T>,
     onSuccess: (value: T) => A,
     onError: (error: HttpError) => A,
   ): Effect<A>;
   delete<T, A>(
     url: string,
-    schema: z.ZodSchema<T>,
+    schema: z.z.ZodType<T>,
     onSuccess: (value: T) => A,
     onError: (error: HttpError) => A,
   ): Effect<A>;
