@@ -68,7 +68,7 @@ export interface RouteNode<R, Child, C extends RouteNode<unknown, unknown, any>[
   /** @internal Phantom type carrier — always `undefined` at runtime */
   _child: Child;
   /** Zod schema for this node's own params and tag. `null` for {@link section} nodes. */
-  schema: z.ZodObject<any, any, any> | null;
+  schema: z.ZodObject<any, any> | null;
   /** The path string for this node e.g. `users/`, `:id/`, `#projectId/` */
   path: string;
   /** Child nodes — preserved as a typed tuple for composition */
@@ -212,7 +212,7 @@ export function matchSegments(
  * property) and Zod v4 (shape as function).
  * @internal
  */
-function getShape(schema: z.ZodObject<any, any, any>): Record<string, z.ZodTypeAny> {
+function getShape(schema: z.ZodObject<any, any>): Record<string, z.ZodTypeAny> {
   const s = schema.shape as Record<string, z.ZodTypeAny> | (() => Record<string, z.ZodTypeAny>);
   return typeof s === 'function' ? s() : s;
 }
@@ -222,7 +222,7 @@ function getShape(schema: z.ZodObject<any, any, any>): Record<string, z.ZodTypeA
  * Returns `undefined` if the schema has no `tag` field or it is not a literal.
  * @internal
  */
-function getTag(schema: z.ZodObject<any, any, any>): string | undefined {
+function getTag(schema: z.ZodObject<any, any>): string | undefined {
   const tag = getShape(schema)['tag'];
   return tag instanceof z.ZodLiteral ? (tag.value as string) : undefined;
 }
@@ -471,7 +471,7 @@ export function buildUrl(
  *               derive the full nested {@link InferRoute} union statically
  */
 export function route<
-  S extends z.ZodObject<any, any, any>,
+  S extends z.ZodObject<any, any>,
   C extends RouteNode<unknown, unknown, any>[] = [],
 >(
   schema: S,
