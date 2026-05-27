@@ -31,9 +31,9 @@
     "prettier": "^3.3.0",
     "prettier-plugin-organize-imports": "^4.0.0",
     "turbo": "^2.0.0",
-    "typescript": "^5.5.0",
+    "typescript": "catalog:",
     "typescript-eslint": "^8.0.0",
-    "vitest": "^4.1.7"
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=22",

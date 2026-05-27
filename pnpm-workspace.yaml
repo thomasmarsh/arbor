@@ -1,5 +1,9 @@
 packages:
   - 'packages/*'
+catalog:
+  zod: ^4.4.3
+  vitest: ^4.1.7
+  typescript: ^5.5.0
 allowBuilds:
   '@scarf/scarf': false
   esbuild: true

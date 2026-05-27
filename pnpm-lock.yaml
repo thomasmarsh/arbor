@@ -4,6 +4,18 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    typescript:
+      specifier: ^5.5.0
+      version: 5.9.3
+    vitest:
+      specifier: ^4.1.7
+      version: 4.1.7
+    zod:
+      specifier: ^4.4.3
+      version: 4.4.3
+
 importers:
 
   .:
@@ -24,13 +36,13 @@ importers:
         specifier: ^2.0.0
         version: 2.9.14
       typescript:
-        specifier: ^5.5.0
+        specifier: 'catalog:'
         version: 5.9.3
       typescript-eslint:
         specifier: ^8.0.0
         version: 8.59.4(eslint@9.39.4)(typescript@5.9.3)
       vitest:
-        specifier: ^4.1.7
+        specifier: 'catalog:'
         version: 4.1.7(@types/node@22.19.19)(jsdom@25.0.1)(vite@6.4.2(@types/node@22.19.19)(tsx@4.22.3))
 
   packages/api:
@@ -48,7 +60,7 @@ importers:
         specifier: ^8.12.0
         version: 8.21.0
       zod:
-        specifier: ^4.4.3
+        specifier: 'catalog:'
         version: 4.4.3
     devDependencies:
       '@pgtyped/cli':
@@ -70,7 +82,7 @@ importers:
         specifier: ^4.17.0
         version: 4.22.3
       vitest:
-        specifier: ^4.1.7
+        specifier: 'catalog:'
         version: 4.1.7(@types/node@22.19.19)(jsdom@25.0.1)(vite@6.4.2(@types/node@22.19.19)(tsx@4.22.3))
 
   packages/bff:
@@ -91,7 +103,7 @@ importers:
         specifier: ^6.1.0
         version: 6.8.4
       zod:
-        specifier: ^4.4.3
+        specifier: 'catalog:'
         version: 4.4.3
     devDependencies:
       '@types/node':
@@ -101,7 +113,7 @@ importers:
         specifier: ^4.17.0
         version: 4.22.3
       vitest:
-        specifier: ^4.1.7
+        specifier: 'catalog:'
         version: 4.1.7(@types/node@22.19.19)(jsdom@25.0.1)(vite@6.4.2(@types/node@22.19.19)(tsx@4.22.3))
 
   packages/common:
@@ -113,7 +125,7 @@ importers:
         specifier: ^2.3.2
         version: 2.3.2(@types/react@19.2.15)(react@19.2.6)
       zod:
-        specifier: ^4.4.3
+        specifier: 'catalog:'
         version: 4.4.3
     devDependencies:
       '@effect/platform-browser':
@@ -129,7 +141,7 @@ importers:
         specifier: ^19.0.0
         version: 19.2.6
       vitest:
-        specifier: ^4.1.7
+        specifier: 'catalog:'
         version: 4.1.7(@types/node@22.19.19)(jsdom@25.0.1)(vite@6.4.2(@types/node@22.19.19)(tsx@4.22.3))
 
   packages/router:
@@ -138,17 +150,17 @@ importers:
         specifier: workspace:*
         version: link:../common
       zod:
-        specifier: ^4.4.3
+        specifier: 'catalog:'
         version: 4.4.3
     devDependencies:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.19
       typescript:
-        specifier: ^5.5.0
+        specifier: 'catalog:'
         version: 5.9.3
       vitest:
-        specifier: ^4.1.7
+        specifier: 'catalog:'
         version: 4.1.7(@types/node@22.19.19)(jsdom@25.0.1)(vite@6.4.2(@types/node@22.19.19)(tsx@4.22.3))
 
   packages/ui:
@@ -175,7 +187,7 @@ importers:
         specifier: ^2.3.2
         version: 2.3.2(@types/react@19.2.15)(react@19.2.6)
       zod:
-        specifier: ^4.4.3
+        specifier: 'catalog:'
         version: 4.4.3
     devDependencies:
       '@testing-library/react':
@@ -203,7 +215,7 @@ importers:
         specifier: ^6.0.0
         version: 6.4.2(@types/node@22.19.19)(tsx@4.22.3)
       vitest:
-        specifier: ^4.1.7
+        specifier: 'catalog:'
         version: 4.1.7(@types/node@22.19.19)(jsdom@25.0.1)(vite@6.4.2(@types/node@22.19.19)(tsx@4.22.3))
 
 packages:

@@ -40,8 +40,8 @@ mkdir -p packages/<name>/src
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript":  "^5.5.0",
-    "vitest":      "^4.1.7"
+    "typescript":  "catalog:",
+    "vitest":      "catalog:"
   }
 }
 ```

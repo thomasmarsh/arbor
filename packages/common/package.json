@@ -28,14 +28,14 @@
   "dependencies": {
     "@effect/platform": "^0.96.1",
     "valtio": "^2.3.2",
-    "zod": "^4.4.3"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@effect/platform-browser": "^0.76.0",
     "@types/react": "^19.0.0",
     "effect": "^3.21.2",
     "react": "^19.0.0",
-    "vitest": "^4.1.7"
+    "vitest": "catalog:"
   },
   "peerDependencies": {
     "@effect/platform-browser": "^0.76.0",

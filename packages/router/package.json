@@ -22,11 +22,11 @@
   },
   "dependencies": {
     "@arbor/common": "workspace:*",
-    "zod": "^4.4.3"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript": "^5.5.0",
-    "vitest": "^4.1.7"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
