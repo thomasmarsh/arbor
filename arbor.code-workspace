@@ -6,7 +6,7 @@
     { "name": "api", "path": "packages/api" },
     { "name": "bff", "path": "packages/bff" },
     { "name": "router", "path": "packages/router" },
-    { "name": "third_party", "path": "packages/third_party" },
+    { "name": "third_party", "path": "third_party" },
   ],
   "settings": {
     "json.schemas": [
