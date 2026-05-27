@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -b",
     "dev": "tsx watch src/index.ts",
-    "typecheck": "tsc -b --noEmit",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "clean": "rm -rf dist *.tsbuildinfo",
     "test": "dotenv -e .env.local -- vitest run",

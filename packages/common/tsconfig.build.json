@@ -2,14 +2,13 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
+    "noEmit": false,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "target": "ES2022",
     "outDir": "dist",
     "rootDir": "src",
-    "tsBuildInfoFile": "tsconfig.app.tsbuildinfo"
+    "tsBuildInfoFile": "tsconfig.build.tsbuildinfo"
   },
-  "files": [],
-  "references": [{ "path": "../common/tsconfig.app.json" }],
   "include": ["src"]
 }
