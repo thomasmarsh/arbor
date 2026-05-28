@@ -12,7 +12,7 @@ export function getShape(schema: z.ZodObject<any, any>): Record<string, z.z.ZodT
 }
 
 export function getTag(schema: z.ZodObject<any, any>): string | undefined {
-  const tag = getShape(schema).tag;
+  const tag = getShape(schema)['tag'];
   return tag instanceof z.ZodLiteral ? (tag.value as string) : undefined;
 }
 
@@ -88,13 +88,13 @@ export function walkPrint(
     const paramNames = new Set([...accumulated.paramNames, ...collectPathParamNames(node.segments)]);
     const path = { segments: [...accumulated.segments, ...node.segments], paramNames };
 
-    const tagMatches = node.schema !== null && getTag(node.schema) === route.tag;
+    const tagMatches = node.schema !== null && getTag(node.schema) === route['tag'];
 
     if (tagMatches) {
-      if (route.child) {
+      if (route['child']) {
         const found = walkPrint(
           node.children as WalkNode[],
-          route.child as Record<string, unknown>,
+          route['child'] as Record<string, unknown>,
           path,
         );
         if (found) return found;
@@ -118,7 +118,7 @@ export function buildUrl(
   let current: Record<string, unknown> | undefined = route;
   while (current) {
     Object.assign(allParams, current);
-    current = current.child as Record<string, unknown> | undefined;
+    current = current['child'] as Record<string, unknown> | undefined;
   }
 
   const path =

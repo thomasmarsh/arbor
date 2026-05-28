@@ -102,33 +102,33 @@ describe('generateSpec', () => {
   const spec = generateSpec(router, { title: 'Test API', version: '1.0.0' });
 
   it('has correct top-level structure', () => {
-    expect(spec.openapi).toBe('3.1.0');
-    expect(spec.info).toEqual({ title: 'Test API', version: '1.0.0' });
-    expect(spec.paths).toBeDefined();
+    expect(spec['openapi']).toBe('3.1.0');
+    expect(spec['info']).toEqual({ title: 'Test API', version: '1.0.0' });
+    expect(spec['paths']).toBeDefined();
   });
 
   it('generates correct paths', () => {
-    const paths = spec.paths as Record<string, unknown>;
+    const paths = spec['paths'] as Record<string, unknown>;
     expect(Object.keys(paths)).toContain('/users/{id}');
     expect(Object.keys(paths)).toContain('/users');
   });
 
   describe('GET /users/{id}', () => {
-    const paths = spec.paths as Record<string, Record<string, Record<string, unknown>>>;
-    const op = paths['/users/{id}']!.get!;
+    const paths = spec['paths'] as Record<string, Record<string, Record<string, unknown>>>;
+    const op = paths['/users/{id}']!['get']!;
 
     it('has correct operationId', () => {
-      expect(op.operationId).toBe('get-user');
+      expect(op['operationId']).toBe('get-user');
     });
 
     it('has summary and tags from meta', () => {
-      expect(op.summary).toBe('Get user by ID');
-      expect(op.tags).toEqual(['users']);
+      expect(op['summary']).toBe('Get user by ID');
+      expect(op['tags']).toEqual(['users']);
     });
 
     it('has path parameter', () => {
-      const params = op.parameters as Record<string, unknown>[];
-      const idParam = params.find((p) => p.name === 'id');
+      const params = op['parameters'] as Record<string, unknown>[];
+      const idParam = params.find((p) => p['name'] === 'id');
       expect(idParam).toEqual({
         name: 'id',
         in: 'path',
@@ -138,14 +138,14 @@ describe('generateSpec', () => {
     });
 
     it('has response schemas', () => {
-      const responses = op.responses as Record<string, Record<string, unknown>>;
+      const responses = op['responses'] as Record<string, Record<string, unknown>>;
       expect(responses['200']).toBeDefined();
       expect(responses['404']).toBeDefined();
 
-      const ok = responses['200']!.content as Record<string, Record<string, unknown>>;
-      const schema = ok['application/json']!.schema as Record<string, unknown>;
-      expect(schema.type).toBe('object');
-      expect(schema.properties).toEqual({
+      const ok = responses['200']!['content'] as Record<string, Record<string, unknown>>;
+      const schema = ok['application/json']!['schema'] as Record<string, unknown>;
+      expect(schema['type']).toBe('object');
+      expect(schema['properties']).toEqual({
         id: { type: 'string' },
         email: { type: 'string' },
       });
@@ -153,27 +153,27 @@ describe('generateSpec', () => {
   });
 
   describe('POST /users', () => {
-    const paths = spec.paths as Record<string, Record<string, Record<string, unknown>>>;
-    const op = paths['/users']!.post!;
+    const paths = spec['paths'] as Record<string, Record<string, Record<string, unknown>>>;
+    const op = paths['/users']!['post']!;
 
     it('has correct operationId', () => {
-      expect(op.operationId).toBe('create-user');
+      expect(op['operationId']).toBe('create-user');
     });
 
     it('has request body schema', () => {
-      const reqBody = op.requestBody as Record<string, unknown>;
-      expect(reqBody.required).toBe(true);
-      const content = reqBody.content as Record<string, Record<string, unknown>>;
-      const schema = content['application/json']!.schema as Record<string, unknown>;
-      expect(schema.type).toBe('object');
-      expect(schema.properties).toEqual({
+      const reqBody = op['requestBody'] as Record<string, unknown>;
+      expect(reqBody['required']).toBe(true);
+      const content = reqBody['content'] as Record<string, Record<string, unknown>>;
+      const schema = content['application/json']!['schema'] as Record<string, unknown>;
+      expect(schema['type']).toBe('object');
+      expect(schema['properties']).toEqual({
         name: { type: 'string' },
         email: { type: 'string' },
       });
     });
 
     it('has response schema', () => {
-      const responses = op.responses as Record<string, Record<string, unknown>>;
+      const responses = op['responses'] as Record<string, Record<string, unknown>>;
       expect(responses['201']).toBeDefined();
     });
   });
@@ -199,16 +199,16 @@ describe('generateSpec', () => {
     const nestedSpec = generateSpec(nestedRouter, { title: 'Nested API', version: '1.0.0' });
 
     it('accumulates path segments through sections', () => {
-      const paths = nestedSpec.paths as Record<string, unknown>;
+      const paths = nestedSpec['paths'] as Record<string, unknown>;
       expect(Object.keys(paths)).toContain('/orgs/{orgId}/projects');
       expect(Object.keys(paths)).toContain('/orgs/{orgId}/projects/{projectId}');
     });
 
     it('includes section path params', () => {
-      const paths = nestedSpec.paths as Record<string, Record<string, Record<string, unknown>>>;
-      const op = paths['/orgs/{orgId}/projects']!.get!;
-      const params = op.parameters as Record<string, unknown>[];
-      const orgParam = params.find((p) => p.name === 'orgId');
+      const paths = nestedSpec['paths'] as Record<string, Record<string, Record<string, unknown>>>;
+      const op = paths['/orgs/{orgId}/projects']!['get']!;
+      const params = op['parameters'] as Record<string, unknown>[];
+      const orgParam = params.find((p) => p['name'] === 'orgId');
       expect(orgParam).toEqual({
         name: 'orgId',
         in: 'path',
@@ -228,8 +228,8 @@ describe('generateSpec', () => {
       ]);
 
       const s = generateSpec(r, { title: 'Test', version: '1.0.0' });
-      const paths = s.paths as Record<string, Record<string, Record<string, unknown>>>;
-      expect(paths['/users/{id}']!.get!.operationId).toBe('fetchUser');
+      const paths = s['paths'] as Record<string, Record<string, Record<string, unknown>>>;
+      expect(paths['/users/{id}']!['get']!['operationId']).toBe('fetchUser');
     });
   });
 });

@@ -26,7 +26,7 @@ export function createServer<Route, Map extends Record<string, HttpContext<any, 
     async handle(url: URL, body?: unknown): Promise<{ status: number; body: unknown }> {
       return router.parse(url).fold(
         (route) => {
-          const tag = (route as Record<string, unknown>).tag as string;
+          const tag = (route as Record<string, unknown>)['tag'] as string;
           const handler = (
             handlers as Record<
               string,

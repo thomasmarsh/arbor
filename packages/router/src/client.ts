@@ -53,7 +53,7 @@ export function createClient<Route, Map extends Record<string, HttpContext<any, 
       route: Extract<Route, { tag: Tag }>,
       ...args: BodyArgs<Map[Tag]>
     ): Promise<ResponseUnion<Map[Tag]['response']>> {
-      const tag = (route as Record<string, unknown>).tag as string;
+      const tag = (route as Record<string, unknown>)['tag'] as string;
       const method = methodMap[tag] ?? 'GET';
       const path = router.print(route);
       const url = `${baseUrl.replace(/\/$/, '')}${path}`;

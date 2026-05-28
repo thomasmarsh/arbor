@@ -103,7 +103,7 @@ function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
       }
     }
     const result: Record<string, unknown> = { type: 'object', properties };
-    if (required.length > 0) result.required = required;
+    if (required.length > 0) result['required'] = required;
     return result;
   }
   return {};
@@ -173,18 +173,18 @@ function walkSpec(
       // Build operation
       const operation: Record<string, unknown> = {};
       if (ctx.meta?.operationId) {
-        operation.operationId = ctx.meta.operationId;
+        operation['operationId'] = ctx.meta.operationId;
       } else if (tag) {
-        operation.operationId = tag;
+        operation['operationId'] = tag;
       }
-      if (ctx.meta?.summary) operation.summary = ctx.meta.summary;
-      if (ctx.meta?.description) operation.description = ctx.meta.description;
-      if (ctx.meta?.tags) operation.tags = ctx.meta.tags;
-      if (parameters.length > 0) operation.parameters = parameters;
+      if (ctx.meta?.summary) operation['summary'] = ctx.meta.summary;
+      if (ctx.meta?.description) operation['description'] = ctx.meta.description;
+      if (ctx.meta?.tags) operation['tags'] = ctx.meta.tags;
+      if (parameters.length > 0) operation['parameters'] = parameters;
 
       // Request body
       if (ctx.bodySchema) {
-        operation.requestBody = {
+        operation['requestBody'] = {
           required: true,
           content: {
             'application/json': {
@@ -206,7 +206,7 @@ function walkSpec(
           },
         };
       }
-      operation.responses = responses;
+      operation['responses'] = responses;
 
       paths[path] ??= {};
       paths[path][method] = operation;
