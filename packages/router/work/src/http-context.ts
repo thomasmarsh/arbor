@@ -40,6 +40,7 @@ export function httpRoute<
     _child: undefined as never,
     _context: undefined as never,
     schema,
+    method,
     path,
     children: (children ?? []) as [...C],
   };

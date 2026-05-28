@@ -4,14 +4,14 @@ import z from 'zod';
 import type { RouteNode } from './route-node.js';
 import { type Segment, matchSegments, parseSegments } from './segments.js';
 
-type WalkNode = RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any>[], any>;
+export type WalkNode = RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any>[], any>;
 
 function getShape(schema: z.ZodObject<any, any>): Record<string, z.z.ZodType> {
   const s = schema.shape as Record<string, z.z.ZodType> | (() => Record<string, z.z.ZodType>);
   return typeof s === 'function' ? s() : s;
 }
 
-function getTag(schema: z.ZodObject<any, any>): string | undefined {
+export function getTag(schema: z.ZodObject<any, any>): string | undefined {
   const tag = getShape(schema).tag;
   return tag instanceof z.ZodLiteral ? (tag.value as string) : undefined;
 }

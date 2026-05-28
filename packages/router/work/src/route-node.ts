@@ -18,6 +18,7 @@ export interface RouteNode<
   _child: Child;
   _context: Context;
   schema: z.ZodObject<any, any> | null;
+  method?: string;
   path: string;
   children: C;
 }
