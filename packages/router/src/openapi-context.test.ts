@@ -218,6 +218,50 @@ describe('generateSpec', () => {
     });
   });
 
+  describe('schema types the old hand-rolled converter could not handle', () => {
+    const ListTags = z.object({ tag: z.literal('list-tags') });
+    const TagResp = z.object({ tags: z.array(z.string()) });
+    const SearchResult = z.object({
+      result: z.union([z.object({ id: z.string() }), z.object({ error: z.string() })]),
+    });
+    const SearchRoute = z.object({ tag: z.literal('search') });
+
+    const extRouter = defineRoutes([
+      openApiRoute(ListTags, 'GET', 'tags/', {
+        response: { 200: TagResp },
+      }),
+      openApiRoute(SearchRoute, 'GET', 'search/', {
+        response: { 200: SearchResult },
+      }),
+    ]);
+
+    const extSpec = generateSpec(extRouter, { title: 'Extended', version: '1.0.0' });
+    const paths = extSpec['paths'] as Record<string, Record<string, Record<string, unknown>>>;
+
+    it('handles z.array() in response schemas', () => {
+      const responses = paths['/tags']!['get']!['responses'] as Record<
+        string,
+        Record<string, unknown>
+      >;
+      const schema = (responses['200']!['content'] as any)['application/json']['schema'];
+      expect(schema['type']).toBe('object');
+      expect(schema['properties']['tags']).toEqual({
+        type: 'array',
+        items: { type: 'string' },
+      });
+    });
+
+    it('handles z.union() in response schemas', () => {
+      const responses = paths['/search']!['get']!['responses'] as Record<
+        string,
+        Record<string, unknown>
+      >;
+      const schema = (responses['200']!['content'] as any)['application/json']['schema'];
+      expect(schema['properties']['result']['anyOf']).toBeDefined();
+      expect(schema['properties']['result']['anyOf']).toHaveLength(2);
+    });
+  });
+
   describe('operationId override', () => {
     it('uses meta.operationId over tag when provided', () => {
       const r = defineRoutes([

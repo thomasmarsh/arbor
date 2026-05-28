@@ -71,42 +71,11 @@ export function openApiRoute<
   };
 }
 
-// --- Zod → JSON Schema (minimal) ---
+// --- Zod → JSON Schema ---
 
 function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
-  if (schema instanceof z.ZodString) return { type: 'string' };
-  if (schema instanceof z.ZodNumber) return { type: 'number' };
-  if (schema instanceof z.ZodBoolean) return { type: 'boolean' };
-  if (schema instanceof z.ZodLiteral) {
-    // Zod v4: .value exists at runtime on ZodLiteral
-    return { const: (schema as unknown as { value: unknown }).value };
-  }
-  if (schema instanceof z.ZodEnum) {
-    // Zod v4: .options is readonly array at runtime
-    return { type: 'string', enum: [...(schema as unknown as { options: string[] }).options] };
-  }
-  if (schema instanceof z.ZodOptional) {
-    // Zod v4: _def.innerType holds the unwrapped type
-    return zodToJsonSchema((schema as unknown as { _def: { innerType: z.ZodType } })._def.innerType);
-  }
-  if (schema instanceof z.ZodDefault) {
-    return zodToJsonSchema((schema as unknown as { _def: { innerType: z.ZodType } })._def.innerType);
-  }
-  if (schema instanceof z.ZodObject) {
-    const shape = getShape(schema);
-    const properties: Record<string, unknown> = {};
-    const required: string[] = [];
-    for (const [key, val] of Object.entries(shape)) {
-      properties[key] = zodToJsonSchema(val);
-      if (!(val instanceof z.ZodOptional) && !(val instanceof z.ZodDefault)) {
-        required.push(key);
-      }
-    }
-    const result: Record<string, unknown> = { type: 'object', properties };
-    if (required.length > 0) result['required'] = required;
-    return result;
-  }
-  return {};
+  const { $schema: _, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
+  return rest;
 }
 
 // --- Path conversion ---
