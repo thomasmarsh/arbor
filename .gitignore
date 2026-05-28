@@ -7,3 +7,4 @@ dist/
 .turbo/
 certs/
 packages/api/src/**/generated/
+.DS_store
