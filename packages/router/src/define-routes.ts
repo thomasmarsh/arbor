@@ -15,8 +15,6 @@ export {
   type InferRoute,
   type RouteNode,
 } from './route-node.js';
-export { matchSegments, parseSegments, type Segment } from './segments.js';
-export { buildUrl, walkParse, walkPrint } from './walk.js';
 
 export function route<
   S extends z.ZodObject<any, any>,
