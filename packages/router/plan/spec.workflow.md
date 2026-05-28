@@ -5,29 +5,39 @@
 Work through numbered plans in this sequence. Complete each fully (tests passing, typecheck clean) before starting the next.
 
 ```text
-...15 → 11 → 12 → 13 → 16 → 17...
+19 → 21 → 20 → 22 → 23 → 24
 ```
 
 Rationale for ordering:
 
-- **14 first**: The barrel smoke test is a safety net. It catches accidental export regressions introduced by any subsequent plan.
-- **15 second**: Section-nesting and adjacent-optional-segment tests are bug hunts. Running them before adding features ensures the baseline is solid and reveals real bugs to fix before new code layers over them.
-- **11 → 12 → 13**: Diagnostics, client validation, and OpenAPI wildcard are independent improvements. They can be done in any order but diagnostics first is preferable since it aids debugging the others.
-- **16 onward**: New features that expand the public API surface. Only start after the above hygiene is complete.
+- **19 first**: Phantom/runtime context split. Eliminates the root `as unknown as` casts and makes `_ctx` accessible without casting everywhere downstream. Unblocks 22 and 23.
+- **21 next**: Smallest plan — just adds `Route extends { tag: string }` bound. Independent, low-risk, good warm-up.
+- **20 after 21**: Section params in `print()`. Depends on decisions in `questions.md` (Q1). If full phantom threading, do it here while the type machinery is fresh from 19.
+- **22 after 19**: Server DI context. Needs `_ctx` (from 19) to read schemas cast-free. Blocked on Q2 answer.
+- **23 after 19+22**: OpenAPI generator. Builds on the clean `_ctx` access from 19 and the unified handler shape from 22.
+- **24 (spike) any time**: TanStack bridge feasibility — read-only research, can run in parallel with any plan above.
 
 ## Phase Mapping (Plans → Roadmap)
 
-Plans 11-16 correspond to **spec.enhancements.md Phase 1** ("Client & Server Core Enhancements"):
+| Plan | Roadmap item                                       |
+| ---- | -------------------------------------------------- |
+| 18   | Eliminate unjustified casts (done)                 |
+| 19   | Phantom/runtime context split                      |
+| 20   | Type-safe section params in `print()`              |
+| 21   | `Route extends { tag: string }` constraint         |
+| 22   | Server handler DI context (enhancements Ph.2 #1)   |
+| 23   | OpenAPI spec generator (enhancements Ph.3 #1)      |
+| 24   | TanStack bridge spike (spec.tanstack-bridge.md)    |
 
-| Plan | Roadmap item                                                            |
-| ---- | ----------------------------------------------------------------------- |
-| 12   | Parse-don't-validate on client responses                                |
-| 16   | Query Parameter Schema Engine                                           |
-| 16   | Compile-Time Variable Substitution (already done — enforced by `print`) |
+After plan 23, the next natural phases are:
 
-After plan 16, the next natural phase is server-side DI (passing validated query + body + path params as a single typed context to handlers), which maps to **Phase 2** of `spec.enhancements.md`.
-
-The items in **spec.roadmap.md** (CORS, CSRF, JWT, RBAC, loaders, TanStack bridge) are future phases that require the foundation from plans 11-16 to be solid first. Do not start those until the current numbered plans are done.
+- **spec.enhancements.md Phase 2, items 2–3**: Type-safe middleware pipelines,
+  pluggable error mapping. These depend on the DI shape settled in plan 22.
+- **spec.roadmap.md Phase SEC1–SEC2**: CORS/CSRF, JWT/Session contracts.
+  Require middleware pipeline from Phase 2 to be in place.
+- **spec.roadmap.md Phase C1–C3**: Client-side loaders, lifecycle tracking,
+  search param inheritance. TanStack bridge spike (24) informs whether to build
+  natively or via adapter.
 
 ## TDD Workflow Per Plan
 
