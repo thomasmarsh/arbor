@@ -119,4 +119,40 @@ describe('httpRoute', () => {
       404: { error: string };
     }>();
   });
+
+  it('infers query as never when not provided', () => {
+    const r = httpRoute(GetUser, 'GET', ':id/', {
+      response: { 200: UserResponse },
+    });
+
+    type T = InferContext<typeof r>;
+    expectTypeOf<T['query']>().toEqualTypeOf<never>();
+    expect(true).toBe(true);
+  });
+
+  it('infers query type from Zod schema', () => {
+    const ListUsers = z.object({ tag: z.literal('list-users') });
+    const QuerySchema = z.object({ page: z.number(), search: z.string().optional() });
+
+    const r = httpRoute(ListUsers, 'GET', 'users/', {
+      query: QuerySchema,
+      response: { 200: UserResponse },
+    });
+
+    type T = InferContext<typeof r>;
+    expectTypeOf<T['query']>().toEqualTypeOf<{ page: number; search?: string | undefined }>();
+    expect(r.context).toBeDefined();
+  });
+
+  it('stores querySchema in context at runtime', () => {
+    const ListUsers = z.object({ tag: z.literal('list-users') });
+    const QuerySchema = z.object({ page: z.number() });
+
+    const r = httpRoute(ListUsers, 'GET', 'users/', {
+      query: QuerySchema,
+      response: { 200: UserResponse },
+    });
+
+    expect((r.context as unknown as Record<string, unknown>)['querySchema']).toBe(QuerySchema);
+  });
 });

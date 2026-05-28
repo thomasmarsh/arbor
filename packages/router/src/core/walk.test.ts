@@ -162,6 +162,57 @@ describe('walkParse', () => {
     });
   });
 
+  describe('explicit querySchema', () => {
+    const SearchSchema = z.object({ tag: z.literal('search') });
+    const QuerySchema = z.object({
+      page: z.coerce.number().default(1),
+      limit: z.coerce.number().optional(),
+    });
+
+    const searchNodes: RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any>[], any>[] = [
+      {
+        _type: undefined,
+        _child: undefined,
+        schema: SearchSchema,
+        path: 'search/',
+        segments: parseSegments('search/'),
+        children: [],
+        context: { querySchema: QuerySchema },
+      },
+    ];
+
+    it('returns query sub-object with coerced values', () => {
+      expect(walkParse(searchNodes, ['search'], q('page=3'), {})).toEqual({
+        tag: 'search',
+        query: { page: 3 },
+      });
+    });
+
+    it('applies query schema defaults', () => {
+      expect(walkParse(searchNodes, ['search'], q(), {})).toEqual({
+        tag: 'search',
+        query: { page: 1 },
+      });
+    });
+
+    it('includes optional query field when provided', () => {
+      expect(walkParse(searchNodes, ['search'], q('limit=20'), {})).toEqual({
+        tag: 'search',
+        query: { page: 1, limit: 20 },
+      });
+    });
+
+    it('returns null when query schema validation fails', () => {
+      expect(walkParse(searchNodes, ['search'], q('page=abc'), {})).toBeNull();
+    });
+
+    it('does not mix query params into main schema result', () => {
+      const result = walkParse(searchNodes, ['search'], q('page=2'), {});
+      expect(result).not.toBeNull();
+      expect(Object.keys(result!)).not.toContain('page');
+    });
+  });
+
   describe('section nodes', () => {
     const sectionNodes: RouteNode<
       unknown,
@@ -519,6 +570,39 @@ describe('walkPrint', () => {
       const result = walkPrint(nodes, route, empty);
       expect(result).not.toBeNull();
       expect(buildUrl(result!, route)).not.toContain('status');
+    });
+  });
+
+  describe('explicit query sub-object in buildUrl', () => {
+    it('serializes query sub-object keys as URL query params', () => {
+      const result = { segments: [{ kind: 'lit' as const, value: 'items' }], paramNames: new Set<string>() };
+      const route = { tag: 'search', query: { page: 3, limit: 20 } };
+      const url = buildUrl(result, route);
+      expect(url).toContain('/items');
+      expect(url).toContain('page=3');
+      expect(url).toContain('limit=20');
+    });
+
+    it('omits undefined values from query sub-object', () => {
+      const result = { segments: [{ kind: 'lit' as const, value: 'items' }], paramNames: new Set<string>() };
+      const route = { tag: 'search', query: { page: 1, limit: undefined } };
+      const url = buildUrl(result, route);
+      expect(url).toContain('page=1');
+      expect(url).not.toContain('limit');
+    });
+
+    it('does not serialize query key itself as a param', () => {
+      const result = { segments: [{ kind: 'lit' as const, value: 'items' }], paramNames: new Set<string>() };
+      const route = { tag: 'search', query: { page: 3 } };
+      expect(buildUrl(result, route)).not.toContain('query=');
+    });
+
+    it('mixes top-level and query sub-object params', () => {
+      const result = { segments: [{ kind: 'lit' as const, value: 'items' }], paramNames: new Set<string>() };
+      const route = { tag: 'search', sort: 'asc', query: { page: 2 } };
+      const url = buildUrl(result, route);
+      expect(url).toContain('sort=asc');
+      expect(url).toContain('page=2');
     });
   });
 

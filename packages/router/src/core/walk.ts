@@ -62,11 +62,38 @@ export function walkParse(
     if (node.schema === null) continue;
 
     const shape = getShape(node.schema);
-
     const raw: Record<string, unknown> = {
       ...nextParams,
       tag: getTag(node.schema),
     };
+
+    const contextQuerySchema = (node.context as { querySchema?: z.ZodObject<any, any> } | undefined)?.querySchema;
+
+    if (contextQuerySchema) {
+      const rawQuery: Record<string, unknown> = {};
+      for (const key of Object.keys(getShape(contextQuerySchema))) {
+        const vals = query.getAll(key);
+        if (vals.length > 1) rawQuery[key] = vals;
+        else if (vals.length === 1) rawQuery[key] = vals[0];
+      }
+
+      const queryResult = contextQuerySchema.safeParse(rawQuery);
+      if (!queryResult.success) {
+        diag?.push({ kind: 'schema-error', path: node.path, issues: queryResult.error.issues });
+        continue;
+      }
+
+      const result = node.schema.safeParse(raw);
+      if (!result.success) {
+        diag?.push({ kind: 'schema-error', path: node.path, issues: result.error.issues });
+        continue;
+      }
+
+      return {
+        ...Object.fromEntries(Object.entries(result.data).filter(([, v]) => v !== undefined)),
+        query: queryResult.data,
+      };
+    }
 
     for (const key of Object.keys(shape)) {
       if (key === 'tag' || key in raw) continue;
@@ -152,12 +179,21 @@ export function buildUrl(
       )
       .join('/');
 
-  const query = Object.entries(allParams)
-    .filter(
-      ([k, v]) => k !== 'tag' && k !== 'child' && !result.paramNames.has(k) && v !== undefined,
-    )
-    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-    .join('&');
+  const toParam = ([k, v]: [string, unknown]) =>
+    `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`;
 
-  return query ? `${path}?${query}` : path;
+  const topLevel = Object.entries(allParams)
+    .filter(([k, v]) => k !== 'tag' && k !== 'child' && k !== 'query' && !result.paramNames.has(k) && v !== undefined)
+    .map(toParam);
+
+  const querySubObj = allParams['query'];
+  const fromQuery =
+    querySubObj !== null && typeof querySubObj === 'object'
+      ? Object.entries(querySubObj as Record<string, unknown>)
+          .filter(([, v]) => v !== undefined)
+          .map(toParam)
+      : [];
+
+  const queryStr = [...topLevel, ...fromQuery].join('&');
+  return queryStr ? `${path}?${queryStr}` : path;
 }

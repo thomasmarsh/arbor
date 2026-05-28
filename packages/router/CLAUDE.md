@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Ready to begin `plan/16.client-response-validation.md`.
-- **Current Status**: Plans 16, 17, and 18 remaining. See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Ready to begin `plan/17.cleanup-client-creation.md`.
+- **Current Status**: Plan 17, 18 remaining. See `plan/spec.workflow.md` for execution order. (to be updated soon)
 
 ## Strict System Rules (Zero Preamble)
 

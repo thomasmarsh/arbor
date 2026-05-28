@@ -6,7 +6,7 @@ import type { HttpContext, HttpContextData } from '../contexts/http-context.js';
 import type { ResponseUnion, RouteNode } from '../core/route-node.js';
 import { getTag, type WalkNode } from '../core/walk.js';
 
-type BodyArgs<Ctx extends HttpContext<any, any, any>> = [Ctx['body']] extends [never]
+type BodyArgs<Ctx extends HttpContext<any, any, any, any>> = [Ctx['body']] extends [never]
   ? []
   : [body: Ctx['body']];
 
@@ -20,7 +20,7 @@ export type FetchLike = (
 
 interface RouterArg<Route> {
   _type: Route;
-  _ctxMap: Record<string, HttpContext<any, any, any>>;
+  _ctxMap: Record<string, HttpContext<any, any, any, any>>;
   print(route: Route): string;
   children: RouteNode<unknown, unknown, any, any>[];
 }
@@ -55,7 +55,7 @@ function buildResponseSchemaMap(nodes: WalkNode[]): Record<string, Record<number
   return map;
 }
 
-export function createClient<Route, Map extends Record<string, HttpContext<any, any, any>>>(
+export function createClient<Route, Map extends Record<string, HttpContext<any, any, any, any>>>(
   baseUrl: string,
   router: RouterArg<Route> & { _ctxMap: Map },
   options: { fetch?: FetchLike; validate: true },
@@ -65,7 +65,7 @@ export function createClient<Route, Map extends Record<string, HttpContext<any, 
     ...args: BodyArgs<Map[Tag]>
   ): Promise<Result<ResponseUnion<Map[Tag]['response']>, z.ZodError>>;
 };
-export function createClient<Route, Map extends Record<string, HttpContext<any, any, any>>>(
+export function createClient<Route, Map extends Record<string, HttpContext<any, any, any, any>>>(
   baseUrl: string,
   router: RouterArg<Route> & { _ctxMap: Map },
   options?: { fetch?: FetchLike; validate?: false },
@@ -75,7 +75,7 @@ export function createClient<Route, Map extends Record<string, HttpContext<any, 
     ...args: BodyArgs<Map[Tag]>
   ): Promise<ResponseUnion<Map[Tag]['response']>>;
 };
-export function createClient<Route, Map extends Record<string, HttpContext<any, any, any>>>(
+export function createClient<Route, Map extends Record<string, HttpContext<any, any, any, any>>>(
   baseUrl: string,
   router: RouterArg<Route> & { _ctxMap: Map },
   options?: { fetch?: FetchLike; validate?: boolean },

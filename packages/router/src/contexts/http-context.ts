@@ -10,16 +10,19 @@ export interface HttpContextData {
   method: HttpMethod;
   bodySchema?: z.ZodType;
   responseSchemas: Record<number, z.ZodType>;
+  querySchema?: z.ZodObject<any, any>;
 }
 
 export interface HttpContext<
   Method extends HttpMethod,
   Body,
   Response extends Record<number, unknown>,
+  Query = never,
 > {
   method: Method;
   body: Body;
   response: Response;
+  query: Query;
 }
 
 type InferResponseMap<R extends Record<number, z.ZodType>> = {
@@ -32,17 +35,18 @@ export function httpRoute<
   C extends RouteNode<unknown, unknown, any, any>[] = [],
   Body = never,
   Res extends Record<number, z.ZodType> = Record<number, z.ZodType>,
+  Q extends z.ZodObject<any, any> | undefined = undefined,
 >(
   schema: S,
   method: Method,
   path: string,
-  options: { body?: z.ZodType<Body>; response: Res },
+  options: { body?: z.ZodType<Body>; response: Res; query?: Q },
   children?: [...C],
 ): RouteNode<
-  z.infer<S>,
+  z.infer<S> & (Q extends z.ZodObject<any, any> ? { query: z.infer<Q> } : unknown),
   [ChildUnion<C>] extends [never] ? never : ChildUnion<C>,
   [...C],
-  HttpContext<Method, Body, InferResponseMap<Res>>
+  HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never>
 > {
   return {
     _type: undefined as never,
@@ -54,7 +58,8 @@ export function httpRoute<
     context: {
       method,
       ...(options.body ? { bodySchema: options.body } : {}),
+      ...(options.query ? { querySchema: options.query } : {}),
       responseSchemas: options.response,
-    } as unknown as HttpContext<Method, Body, InferResponseMap<Res>>,
+    } as unknown as HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never>,
   };
 }

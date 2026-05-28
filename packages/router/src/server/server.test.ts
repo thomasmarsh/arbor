@@ -7,9 +7,12 @@ import { createServer } from './server.js';
 describe('createServer', () => {
   const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
   const CreateUser = z.object({ tag: z.literal('create-user') });
+  const SearchItems = z.object({ tag: z.literal('search-items') });
   const UserResp = z.object({ id: z.string(), email: z.string() });
   const ErrorResp = z.object({ error: z.string() });
   const CreateBody = z.object({ name: z.string(), email: z.string() });
+  const SearchQuery = z.object({ page: z.coerce.number().default(1) });
+  const SearchResp = z.object({ count: z.number() });
 
   const router = defineRoutes([
     httpRoute(GetUser, 'GET', 'users/:id/', {
@@ -18,6 +21,10 @@ describe('createServer', () => {
     httpRoute(CreateUser, 'POST', 'users/', {
       body: CreateBody,
       response: { 201: UserResp },
+    }),
+    httpRoute(SearchItems, 'GET', 'items/', {
+      query: SearchQuery,
+      response: { 200: SearchResp },
     }),
   ]);
 
@@ -30,6 +37,9 @@ describe('createServer', () => {
     },
     'create-user': (_route, body) => {
       return Promise.resolve({ status: 201 as const, body: { id: '1', email: body.email } });
+    },
+    'search-items': (_route, _body, query) => {
+      return Promise.resolve({ status: 200 as const, body: { count: query.page } });
     },
   });
 
@@ -48,7 +58,30 @@ describe('createServer', () => {
           expectTypeOf(body).toEqualTypeOf<{ name: string; email: string }>();
           return Promise.resolve({ status: 201 as const, body: { id: '1', email: body.email } });
         },
+        'search-items': (route, _body, query) => {
+          expectTypeOf(route).toEqualTypeOf<{ tag: 'search-items'; query: { page: number } }>();
+          expectTypeOf(query).toEqualTypeOf<{ page: number }>();
+          return Promise.resolve({ status: 200 as const, body: { count: query.page } });
+        },
       });
+    });
+
+    it('query is never for routes without explicit query schema', () => {
+      createServer(router, {
+        'get-user': (_route, _body, query) => {
+          expectTypeOf(query).toEqualTypeOf<never>();
+          return Promise.resolve({ status: 200 as const, body: { id: '1', email: '' } });
+        },
+        'create-user': (_route, _body, query) => {
+          expectTypeOf(query).toEqualTypeOf<never>();
+          return Promise.resolve({ status: 201 as const, body: { id: '1', email: '' } });
+        },
+        'search-items': (_route, _body, query) => {
+          expectTypeOf(query).toEqualTypeOf<{ page: number }>();
+          return Promise.resolve({ status: 200 as const, body: { count: query.page } });
+        },
+      });
+      expect(true).toBe(true);
     });
   });
 
@@ -80,6 +113,16 @@ describe('createServer', () => {
     it('returns 405 for POST to a GET-only route', async () => {
       const result = await server.handle(new URL('https://example.com/users/123'), 'POST');
       expect(result).toEqual({ status: 405, body: { error: 'method not allowed' } });
+    });
+
+    it('passes coerced query params to handler', async () => {
+      const result = await server.handle(new URL('https://example.com/items?page=5'), 'GET');
+      expect(result).toEqual({ status: 200, body: { count: 5 } });
+    });
+
+    it('applies query schema defaults when no params provided', async () => {
+      const result = await server.handle(new URL('https://example.com/items'), 'GET');
+      expect(result).toEqual({ status: 200, body: { count: 1 } });
     });
   });
 });

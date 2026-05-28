@@ -8,9 +8,12 @@ import { createClient, type FetchLike } from './fetch-client.js';
 describe('createClient', () => {
   const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
   const CreateUser = z.object({ tag: z.literal('create-user') });
+  const SearchItems = z.object({ tag: z.literal('search-items') });
   const UserResp = z.object({ id: z.string(), email: z.string() });
   const ErrorResp = z.object({ error: z.string() });
   const CreateBody = z.object({ name: z.string(), email: z.string() });
+  const SearchQuery = z.object({ page: z.number().default(1) });
+  const SearchResp = z.object({ count: z.number() });
 
   const router = defineRoutes([
     httpRoute(GetUser, 'GET', 'users/:id/', {
@@ -19,6 +22,10 @@ describe('createClient', () => {
     httpRoute(CreateUser, 'POST', 'users/', {
       body: CreateBody,
       response: { 201: UserResp },
+    }),
+    httpRoute(SearchItems, 'GET', 'items/', {
+      query: SearchQuery,
+      response: { 200: SearchResp },
     }),
   ]);
 
@@ -85,6 +92,32 @@ describe('createClient', () => {
       await client.fetch({ tag: 'create-user' }, { name: 'Alice', email: 'alice@test.com' });
 
       expect(capturedUrl).toBe('https://example.com/users');
+    });
+
+    it('serializes explicit query sub-object as URL query params', async () => {
+      let capturedUrl = '';
+      const fetchFn = mockFetch((url) => {
+        capturedUrl = url;
+        return { status: 200, body: { count: 5 } };
+      });
+
+      const client = createClient('https://example.com', router, { fetch: fetchFn });
+      await client.fetch({ tag: 'search-items', query: { page: 5 } });
+
+      expect(capturedUrl).toBe('https://example.com/items?page=5');
+    });
+
+    it('applies query schema defaults (page=1) when not specified', async () => {
+      let capturedUrl = '';
+      const fetchFn = mockFetch((url) => {
+        capturedUrl = url;
+        return { status: 200, body: { count: 1 } };
+      });
+
+      const client = createClient('https://example.com', router, { fetch: fetchFn });
+      await client.fetch({ tag: 'search-items', query: { page: 1 } });
+
+      expect(capturedUrl).toBe('https://example.com/items?page=1');
     });
 
     it('strips trailing slash from base URL', async () => {
