@@ -56,5 +56,13 @@ describe('createServer', () => {
       const result = await server.handle(new URL('https://example.com/unknown'));
       expect(result.status).toBe(404);
     });
+
+    it('forwards body to POST handler', async () => {
+      const result = await server.handle(
+        new URL('https://example.com/users'),
+        { name: 'Alice', email: 'alice@test.com' },
+      );
+      expect(result).toEqual({ status: 201, body: { id: '1', email: 'alice@test.com' } });
+    });
   });
 });

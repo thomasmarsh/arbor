@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { Result } from '@arbor/common';
 import type { HttpContext } from './http-context.js';
 
 type ResponseUnion<Resp> = {
@@ -17,7 +18,7 @@ export function createServer<Route, Map extends Record<string, HttpContext<any, 
   router: {
     _type: Route;
     _ctxMap: Map;
-    parse(url: URL): { fold<A>(onSuccess: (v: Route) => A, onFailure: (e: string) => A): A };
+    parse(url: URL): Result<Route, string>;
   },
   handlers: HandlerMap<Map, Route>,
 ) {
