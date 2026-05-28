@@ -5,14 +5,13 @@ type ResponseUnion<Resp> = {
 }[keyof Resp];
 
 export type HandlerMap<CtxMap extends Record<string, HttpContext<any, any, any>>, Routes> = {
-  [Tag in keyof CtxMap & string]:
-    (route: Extract<Routes, { tag: Tag }>, body: CtxMap[Tag]['body']) => Promise<ResponseUnion<CtxMap[Tag]['response']>>;
+  [Tag in keyof CtxMap & string]: (
+    route: Extract<Routes, { tag: Tag }>,
+    body: CtxMap[Tag]['body'],
+  ) => Promise<ResponseUnion<CtxMap[Tag]['response']>>;
 };
 
-export function createServer<
-  Route,
-  Map extends Record<string, HttpContext<any, any, any>>,
->(
+export function createServer<Route, Map extends Record<string, HttpContext<any, any, any>>>(
   router: {
     _type: Route;
     _ctxMap: Map;
@@ -24,9 +23,12 @@ export function createServer<
     async handle(url: URL, body?: unknown): Promise<{ status: number; body: unknown }> {
       return router.parse(url).fold(
         (route) => {
-          const tag = (route as Record<string, unknown>)['tag'] as string;
+          const tag = (route as Record<string, unknown>).tag as string;
           const handler = (
-            handlers as Record<string, (r: unknown, b: unknown) => Promise<{ status: number; body: unknown }>>
+            handlers as Record<
+              string,
+              (r: unknown, b: unknown) => Promise<{ status: number; body: unknown }>
+            >
           )[tag];
           if (!handler) {
             return Promise.resolve({ status: 404, body: { error: `no handler for tag: ${tag}` } });

@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import { type InferContext } from './define-routes.js';
+import type { InferContext } from './define-routes.js';
 import { httpRoute, type HttpContext, type HttpMethod } from './http-context.js';
 
 describe('HttpMethod', () => {
@@ -30,9 +30,16 @@ describe('HttpContext', () => {
   });
 
   it('supports multiple response status codes', () => {
-    type Update = HttpContext<'PUT', { name: string }, { 200: { id: string }; 404: { error: string } }>;
+    type Update = HttpContext<
+      'PUT',
+      { name: string },
+      { 200: { id: string }; 404: { error: string } }
+    >;
 
-    expectTypeOf<Update['response']>().toEqualTypeOf<{ 200: { id: string }; 404: { error: string } }>();
+    expectTypeOf<Update['response']>().toEqualTypeOf<{
+      200: { id: string };
+      404: { error: string };
+    }>();
     expect(true).toBe(true);
   });
 });
