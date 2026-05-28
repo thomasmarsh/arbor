@@ -63,6 +63,7 @@ describe('httpRoute', () => {
     const r = httpRoute(GetUser, 'GET', ':id/', {
       response: { 200: UserResponse },
     });
+    expect(r._context).toBeUndefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['method']>().toEqualTypeOf<'GET'>();
@@ -72,6 +73,7 @@ describe('httpRoute', () => {
     const r = httpRoute(GetUser, 'GET', ':id/', {
       response: { 200: UserResponse },
     });
+    expect(r._context).toBeUndefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['body']>().toEqualTypeOf<never>();
@@ -81,6 +83,7 @@ describe('httpRoute', () => {
     const r = httpRoute(GetUser, 'GET', ':id/', {
       response: { 200: UserResponse },
     });
+    expect(r._context).toBeUndefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['response']>().toEqualTypeOf<{ 200: { id: string; email: string } }>();
@@ -94,6 +97,7 @@ describe('httpRoute', () => {
       body: BodySchema,
       response: { 201: UserResponse },
     });
+    expect(r._context).toBeUndefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['method']>().toEqualTypeOf<'POST'>();
@@ -107,6 +111,7 @@ describe('httpRoute', () => {
     const r = httpRoute(GetUser, 'GET', ':id/', {
       response: { 200: UserResponse, 404: ErrorResponse },
     });
+    expect(r._context).toBeUndefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['response']>().toEqualTypeOf<{

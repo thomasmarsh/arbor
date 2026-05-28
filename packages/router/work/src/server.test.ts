@@ -22,25 +22,25 @@ describe('createServer', () => {
   ]);
 
   const server = createServer(router, {
-    'get-user': async (route) => {
-      return { status: 200 as const, body: { id: route.id, email: 'test@test.com' } };
+    'get-user': (route) => {
+      return Promise.resolve({ status: 200 as const, body: { id: route.id, email: 'test@test.com' } });
     },
-    'create-user': async (_route, body) => {
-      return { status: 201 as const, body: { id: '1', email: body.email } };
+    'create-user': (_route, body) => {
+      return Promise.resolve({ status: 201 as const, body: { id: '1', email: body.email } });
     },
   });
 
   describe('type inference', () => {
     it('handler receives correct route param types', () => {
       createServer(router, {
-        'get-user': async (route) => {
+        'get-user': (route) => {
           expectTypeOf(route).toEqualTypeOf<{ tag: 'get-user'; id: string }>();
-          return { status: 200 as const, body: { id: route.id, email: 'a@b.com' } };
+          return Promise.resolve({ status: 200 as const, body: { id: route.id, email: 'a@b.com' } });
         },
-        'create-user': async (route, body) => {
+        'create-user': (route, body) => {
           expectTypeOf(route).toEqualTypeOf<{ tag: 'create-user' }>();
           expectTypeOf(body).toEqualTypeOf<{ name: string; email: string }>();
-          return { status: 201 as const, body: { id: '1', email: body.email } };
+          return Promise.resolve({ status: 201 as const, body: { id: '1', email: body.email } });
         },
       });
     });

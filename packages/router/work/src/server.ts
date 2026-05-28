@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import type { HttpContext } from './http-context.js';
 
 type ResponseUnion<Resp> = {

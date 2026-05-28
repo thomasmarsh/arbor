@@ -24,12 +24,12 @@ describe('createClient', () => {
   function mockFetch(
     handler: (url: string, init: { method: string; body?: string }) => { status: number; body: unknown },
   ): FetchLike {
-    return async (url, init) => {
+    return (url, init) => {
       const result = handler(url, init);
-      return {
+      return Promise.resolve({
         status: result.status,
-        json: async () => result.body,
-      };
+        json: () => Promise.resolve(result.body),
+      });
     };
   }
 
@@ -130,10 +130,10 @@ describe('createClient', () => {
     it('sends JSON body for POST requests', async () => {
       let capturedBody = '';
       let capturedHeaders: Record<string, string> = {};
-      const fetchFn: FetchLike = async (_url, init) => {
+      const fetchFn: FetchLike = (_url, init) => {
         capturedBody = init.body ?? '';
         capturedHeaders = init.headers ?? {};
-        return { status: 201, json: async () => ({ id: '1', email: 'alice@test.com' }) };
+        return Promise.resolve({ status: 201, json: () => Promise.resolve({ id: '1', email: 'alice@test.com' }) });
       };
 
       const client = createClient('https://example.com', router, { fetch: fetchFn });
@@ -148,9 +148,9 @@ describe('createClient', () => {
 
     it('does not send body for GET requests', async () => {
       let capturedBody: string | undefined;
-      const fetchFn: FetchLike = async (_url, init) => {
+      const fetchFn: FetchLike = (_url, init) => {
         capturedBody = init.body;
-        return { status: 200, json: async () => ({ id: '1', email: 'test@test.com' }) };
+        return Promise.resolve({ status: 200, json: () => Promise.resolve({ id: '1', email: 'test@test.com' }) });
       };
 
       const client = createClient('https://example.com', router, { fetch: fetchFn });

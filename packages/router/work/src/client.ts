@@ -12,12 +12,13 @@ type BodyArgs<Ctx extends HttpContext<any, any, any>> = [Ctx['body']] extends [n
   ? []
   : [body: Ctx['body']];
 
-export interface FetchLike {
-  (url: string, init: { method: string; headers?: Record<string, string>; body?: string }): Promise<{
-    status: number;
-    json(): Promise<unknown>;
-  }>;
-}
+export type FetchLike = (
+  url: string,
+  init: { method: string; headers?: Record<string, string>; body?: string },
+) => Promise<{
+  status: number;
+  json(): Promise<unknown>;
+}>;
 
 function buildMethodMap(nodes: WalkNode[]): Record<string, string> {
   const map: Record<string, string> = {};
@@ -44,7 +45,7 @@ export function createClient<Route, Map extends Record<string, HttpContext<any, 
   options?: { fetch?: FetchLike },
 ) {
   const methodMap = buildMethodMap(router.children as WalkNode[]);
-  const fetchFn: FetchLike = options?.fetch ?? (globalThis.fetch as unknown as FetchLike);
+  const fetchFn: FetchLike = options?.fetch ?? (globalThis.fetch);
 
   return {
     async fetch<Tag extends keyof Map & string>(
@@ -53,7 +54,7 @@ export function createClient<Route, Map extends Record<string, HttpContext<any, 
     ): Promise<ResponseUnion<Map[Tag]['response']>> {
       const tag = (route as Record<string, unknown>).tag as string;
       const method = methodMap[tag] ?? 'GET';
-      const path = router.print(route as Route);
+      const path = router.print(route);
       const url = `${baseUrl.replace(/\/$/, '')}${path}`;
 
       const body = args[0];

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import type z from 'zod';
 import type { ChildUnion, RouteNode } from './define-routes.js';
 
