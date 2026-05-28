@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import z from 'zod';
 import type { RouteNode } from './route-node.js';
+import { parseSegments } from './segments.js';
 import { buildUrl, walkParse, walkPrint } from './walk.js';
 
 describe('walkParse', () => {
@@ -26,6 +27,7 @@ describe('walkParse', () => {
 
       schema: Users,
       path: 'users/',
+      segments: parseSegments('users/'),
       children: [
         {
           _type: undefined,
@@ -33,6 +35,7 @@ describe('walkParse', () => {
     
           schema: User,
           path: ':id/',
+          segments: parseSegments(':id/'),
           children: [
             {
               _type: undefined,
@@ -40,6 +43,7 @@ describe('walkParse', () => {
         
               schema: Settings,
               path: 'settings/',
+              segments: parseSegments('settings/'),
               children: [],
             },
           ],
@@ -52,6 +56,7 @@ describe('walkParse', () => {
 
       schema: Org,
       path: 'orgs/:orgId/',
+      segments: parseSegments('orgs/:orgId/'),
       children: [
         {
           _type: undefined,
@@ -59,6 +64,7 @@ describe('walkParse', () => {
     
           schema: Project,
           path: '#projectId/',
+          segments: parseSegments('#projectId/'),
           children: [
             {
               _type: undefined,
@@ -66,6 +72,7 @@ describe('walkParse', () => {
         
               schema: Issue,
               path: ':issueId/',
+              segments: parseSegments(':issueId/'),
               children: [],
             },
           ],
@@ -168,13 +175,15 @@ describe('walkParse', () => {
   
         schema: null,
         path: 'orgs/:orgId/',
+        segments: parseSegments('orgs/:orgId/'),
         children: [
           {
             _type: undefined,
             _child: undefined,
-      
+
             schema: Project,
             path: '#projectId/',
+            segments: parseSegments('#projectId/'),
             children: [],
           },
         ],
@@ -227,6 +236,7 @@ describe('walkPrint', () => {
 
       schema: Users,
       path: 'users/',
+      segments: parseSegments('users/'),
       children: [
         {
           _type: undefined,
@@ -234,6 +244,7 @@ describe('walkPrint', () => {
     
           schema: User,
           path: ':id/',
+          segments: parseSegments(':id/'),
           children: [
             {
               _type: undefined,
@@ -241,6 +252,7 @@ describe('walkPrint', () => {
         
               schema: Settings,
               path: 'settings/',
+              segments: parseSegments('settings/'),
               children: [],
             },
           ],
@@ -253,6 +265,7 @@ describe('walkPrint', () => {
 
       schema: Org,
       path: 'orgs/:orgId/',
+      segments: parseSegments('orgs/:orgId/'),
       children: [
         {
           _type: undefined,
@@ -260,6 +273,7 @@ describe('walkPrint', () => {
     
           schema: Project,
           path: '#projectId/',
+          segments: parseSegments('#projectId/'),
           children: [
             {
               _type: undefined,
@@ -267,6 +281,7 @@ describe('walkPrint', () => {
         
               schema: Issue,
               path: ':issueId/',
+              segments: parseSegments(':issueId/'),
               children: [],
             },
           ],

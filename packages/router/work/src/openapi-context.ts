@@ -3,7 +3,8 @@
 import z from 'zod';
 import type { ChildUnion, RouteNode } from './define-routes.js';
 import type { HttpContext, HttpMethod } from './http-context.js';
-import { parseSegments, type Segment } from './segments.js';
+import { parseSegments } from './segments.js';
+import type { Segment } from './segments.js';
 import { getShape, getTag, type WalkNode } from './walk.js';
 
 interface OpenApiContextData {
@@ -59,6 +60,7 @@ export function openApiRoute<
     _child: undefined as never,
     schema,
     path,
+    segments: parseSegments(path),
     children: (children ?? []) as [...C],
     context: {
       method,
@@ -138,7 +140,7 @@ function walkSpec(
   paths: Record<string, Record<string, unknown>>,
 ): void {
   for (const node of nodes) {
-    const segments = [...parentSegments, ...parseSegments(node.path)];
+    const segments = [...parentSegments, ...node.segments];
 
     // Only include nodes with context (openApiRoute / httpRoute nodes)
     const ctx = node.context as OpenApiContextData | undefined;

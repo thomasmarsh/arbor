@@ -2,7 +2,7 @@
 
 import z from 'zod';
 import type { RouteNode } from './route-node.js';
-import { type Segment, matchSegments, parseSegments } from './segments.js';
+import { type Segment, matchSegments } from './segments.js';
 
 export type WalkNode = RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any>[], any>;
 
@@ -23,7 +23,7 @@ export function walkParse(
   params: Record<string, unknown> = {},
 ): Record<string, unknown> | null {
   for (const node of nodes) {
-    const match = matchSegments(parseSegments(node.path), urlSegments, params);
+    const match = matchSegments(node.segments, urlSegments, params);
     if (!match) continue;
 
     const { params: nextParams, rest } = match;
@@ -85,9 +85,8 @@ export function walkPrint(
   accumulated: { segments: Segment[]; paramNames: Set<string> },
 ): { segments: Segment[]; paramNames: Set<string> } | null {
   for (const node of nodes) {
-    const segments = parseSegments(node.path);
-    const paramNames = new Set([...accumulated.paramNames, ...collectPathParamNames(segments)]);
-    const path = { segments: [...accumulated.segments, ...segments], paramNames };
+    const paramNames = new Set([...accumulated.paramNames, ...collectPathParamNames(node.segments)]);
+    const path = { segments: [...accumulated.segments, ...node.segments], paramNames };
 
     const tagMatches = node.schema !== null && getTag(node.schema) === route.tag;
 

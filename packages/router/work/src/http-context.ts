@@ -2,6 +2,7 @@
 
 import type z from 'zod';
 import type { ChildUnion, RouteNode } from './define-routes.js';
+import { parseSegments } from './segments.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -48,6 +49,7 @@ export function httpRoute<
     _child: undefined as never,
     schema,
     path,
+    segments: parseSegments(path),
     children: (children ?? []) as [...C],
     context: {
       method,

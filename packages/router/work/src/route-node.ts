@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type z from 'zod';
+import type { Segment } from './segments.js';
 
 export type Flatten<T> = { [K in keyof T]: T[K] };
 
@@ -19,6 +20,7 @@ export interface RouteNode<
   _child: Child;
   schema: z.ZodObject<any, any> | null;
   path: string;
+  segments: Segment[];
   children: C;
   context?: Context;
 }

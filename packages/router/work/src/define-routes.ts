@@ -3,6 +3,7 @@
 import { Result } from '@arbor/common';
 import type z from 'zod';
 import type { ChildUnion, CtxMap, RouteNode } from './route-node.js';
+import { parseSegments } from './segments.js';
 import { buildUrl, walkParse, walkPrint } from './walk.js';
 
 export {
@@ -31,6 +32,7 @@ export function route<
 
     schema,
     path,
+    segments: parseSegments(path),
     children: (children ?? []) as [...C],
   };
 }
@@ -45,6 +47,7 @@ export function section<C extends RouteNode<unknown, unknown, any, any>[]>(
 
     schema: null,
     path,
+    segments: parseSegments(path),
     children,
   };
 }
