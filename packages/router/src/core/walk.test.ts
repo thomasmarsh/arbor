@@ -419,4 +419,27 @@ describe('walkPrint', () => {
       expect(walkPrint(nodes, { tag: 'unknown' }, empty)).toBeNull();
     });
   });
+
+  describe('encoding', () => {
+    it('encodes spaces in path params', () => {
+      const r = { tag: 'users', child: { tag: 'user', id: 'hello world' } };
+      const result = walkPrint(nodes, r, empty);
+      expect(result).not.toBeNull();
+      expect(buildUrl(result!, r)).toBe('/users/hello%20world');
+    });
+
+    it('encodes slashes in path params', () => {
+      const r = { tag: 'users', child: { tag: 'user', id: 'a/b' } };
+      const result = walkPrint(nodes, r, empty);
+      expect(result).not.toBeNull();
+      expect(buildUrl(result!, r)).toBe('/users/a%2Fb');
+    });
+
+    it('encodes unicode in path params', () => {
+      const r = { tag: 'users', child: { tag: 'user', id: '日本語' } };
+      const result = walkPrint(nodes, r, empty);
+      expect(result).not.toBeNull();
+      expect(buildUrl(result!, r)).toBe('/users/%E6%97%A5%E6%9C%AC%E8%AA%9E');
+    });
+  });
 });

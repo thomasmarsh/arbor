@@ -130,6 +130,20 @@ describe('defineRoutes', () => {
       expect(reparsed).toMatchObject({ child: { child: { page: 1 } } });
     });
 
+    it('roundtrip: param with spaces survives encode/decode', () => {
+      const printed = router.print({ tag: 'users', child: { tag: 'user', id: 'hello world' } });
+      expect(printed).toBe('/users/hello%20world');
+      const reparsed = router.parse(new URL(`https://example.com${printed}`)).getOrThrow();
+      expect(reparsed).toEqual({ tag: 'users', child: { tag: 'user', id: 'hello world' } });
+    });
+
+    it('roundtrip: param with unicode survives encode/decode', () => {
+      const printed = router.print({ tag: 'users', child: { tag: 'user', id: '日本語' } });
+      expect(printed).toBe('/users/%E6%97%A5%E6%9C%AC%E8%AA%9E');
+      const reparsed = router.parse(new URL(`https://example.com${printed}`)).getOrThrow();
+      expect(reparsed).toEqual({ tag: 'users', child: { tag: 'user', id: '日本語' } });
+    });
+
     it('roundtrip: /orgs/acme/42/7?page=3 explicit page survives', () => {
       const parsed = router.parse(url('/orgs/acme/42/7?page=3')).getOrThrow();
       expect(parsed).toMatchObject({ child: { child: { page: 3 } } });

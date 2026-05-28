@@ -2,7 +2,7 @@
 
 ## Active Focus
 
-- **Current Task**: Implementing `plan/08.server-method-check.md`
+- **Current Task**: Implementing `plan/09.encode-path-segments.md`
 - **Current Status**: Setting up test fixtures.
 
 ## Strict System Rules (Zero Preamble)

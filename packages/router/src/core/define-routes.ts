@@ -102,7 +102,7 @@ export function defineRoutes<C extends RouteNode<unknown, unknown, any, any>[] =
     methodMap,
 
     parse(url: URL): Result<Route, string> {
-      const segments = url.pathname.split('/').filter(Boolean);
+      const segments = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
       const raw = walkParse(nodes, segments, url.searchParams);
       if (!raw) return Result.failure(`no route: ${url.pathname}`);
       return Result.success(raw) as Result<Route, string>;

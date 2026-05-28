@@ -124,7 +124,7 @@ export function buildUrl(
   const path =
     '/' +
     result.segments
-      .map((seg) => (seg.kind === 'lit' ? seg.value : String(allParams[seg.name])))
+      .map((seg) => (seg.kind === 'lit' ? seg.value : encodeURIComponent(String(allParams[seg.name]))))
       .join('/');
 
   const query = Object.entries(allParams)
