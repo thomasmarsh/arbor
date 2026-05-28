@@ -1,30 +1,31 @@
-import {
-  defineRoutes,
-  route,
-  section,
-  httpRoute,
-  createServer,
-  createClient,
-  openApiRoute,
-  generateSpec,
-} from './index.js';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { expect, expectTypeOf, it } from 'vitest';
 import type {
-  RouteNode,
-  InferRoute,
-  InferContext,
   ChildUnion,
   CtxMap,
   Derive,
+  FetchLike,
   Flatten,
-  ResponseUnion,
+  HandlerMap,
   HttpContext,
   HttpMethod,
-  HandlerMap,
-  FetchLike,
+  InferContext,
+  InferRoute,
   OpenApiContext,
   OpenApiMeta,
+  ResponseUnion,
+  RouteNode,
 } from './index.js';
-import { expect, expectTypeOf, it } from 'vitest';
+import {
+  createClient,
+  createServer,
+  defineRoutes,
+  generateSpec,
+  httpRoute,
+  openApiRoute,
+  route,
+  section,
+} from './index.js';
 
 it('exports all public functions as functions', () => {
   expect(typeof defineRoutes).toBe('function');
