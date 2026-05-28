@@ -5,7 +5,7 @@
 Work through numbered plans in this sequence. Complete each fully (tests passing, typecheck clean) before starting the next.
 
 ```text
-14 → 15 → 11 → 12 → 13 → 16 → ...
+...15 → 11 → 12 → 13 → 16 → 17...
 ```
 
 Rationale for ordering:
@@ -19,11 +19,11 @@ Rationale for ordering:
 
 Plans 11-16 correspond to **spec.enhancements.md Phase 1** ("Client & Server Core Enhancements"):
 
-| Plan | Roadmap item |
-| ---- | ------------ |
-| 12 | Parse-don't-validate on client responses |
-| 16 | Query Parameter Schema Engine |
-| 16 | Compile-Time Variable Substitution (already done — enforced by `print`) |
+| Plan | Roadmap item                                                            |
+| ---- | ----------------------------------------------------------------------- |
+| 12   | Parse-don't-validate on client responses                                |
+| 16   | Query Parameter Schema Engine                                           |
+| 16   | Compile-Time Variable Substitution (already done — enforced by `print`) |
 
 After plan 16, the next natural phase is server-side DI (passing validated query + body + path params as a single typed context to handlers), which maps to **Phase 2** of `spec.enhancements.md`.
 

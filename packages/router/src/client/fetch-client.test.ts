@@ -1,3 +1,4 @@
+import type { Result } from '@arbor/common';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { httpRoute } from '../contexts/http-context.js';
@@ -194,6 +195,87 @@ describe('createClient', () => {
         status: 404,
         body: { error: 'user not found' },
       });
+    });
+  });
+
+  describe('validate option', () => {
+    it('returns Result.success wrapping response when body matches schema', async () => {
+      const fetchFn = mockFetch(() => ({
+        status: 200,
+        body: { id: '123', email: 'test@test.com' },
+      }));
+
+      const client = createClient('https://example.com', router, {
+        fetch: fetchFn,
+        validate: true,
+      });
+      const result = await client.fetch({ tag: 'get-user', id: '123' });
+
+      expect(result.isSuccess()).toBe(true);
+      expect(result.getOrThrow()).toEqual({
+        status: 200,
+        body: { id: '123', email: 'test@test.com' },
+      });
+    });
+
+    it('returns Result.failure when body does not match schema', async () => {
+      const fetchFn = mockFetch(() => ({
+        status: 200,
+        body: { wrong: 'shape' },
+      }));
+
+      const client = createClient('https://example.com', router, {
+        fetch: fetchFn,
+        validate: true,
+      });
+      const result = await client.fetch({ tag: 'get-user', id: '123' });
+
+      expect(result.isFailure()).toBe(true);
+    });
+
+    it('returns Result.success when status has no schema (unvalidated passthrough)', async () => {
+      const fetchFn = mockFetch(() => ({
+        status: 500,
+        body: { anything: true },
+      }));
+
+      const client = createClient('https://example.com', router, {
+        fetch: fetchFn,
+        validate: true,
+      });
+      const result = await client.fetch({ tag: 'get-user', id: '123' });
+
+      expect(result.isSuccess()).toBe(true);
+    });
+
+    it('infers Result return type when validate is true', () => {
+      const fetchFn = mockFetch(() => ({ status: 200, body: {} }));
+      const client = createClient('https://example.com', router, {
+        fetch: fetchFn,
+        validate: true,
+      });
+
+      expectTypeOf(client.fetch({ tag: 'get-user', id: '1' })).toEqualTypeOf<
+        Promise<
+          Result<
+            | { status: 200; body: { id: string; email: string } }
+            | { status: 404; body: { error: string } },
+            z.ZodError
+          >
+        >
+      >();
+    });
+
+    it('infers plain ResponseUnion return type when validate is false (default)', () => {
+      const fetchFn = mockFetch(() => ({ status: 200, body: {} }));
+      const client = createClient('https://example.com', router, { fetch: fetchFn });
+
+      expectTypeOf(client.fetch({ tag: 'get-user', id: '1' })).toEqualTypeOf<
+        Promise<
+          | { status: 200; body: { id: string; email: string } }
+          | { status: 404; body: { error: string } }
+        >
+      >();
     });
   });
 });
