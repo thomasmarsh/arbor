@@ -2,10 +2,7 @@
 
 import type { Result } from '@arbor/common';
 import type { HttpContext } from '../contexts/http-context.js';
-
-type ResponseUnion<Resp> = {
-  [S in keyof Resp]: { status: S; body: Resp[S] };
-}[keyof Resp];
+import type { ResponseUnion } from '../core/route-node.js';
 
 export type HandlerMap<CtxMap extends Record<string, HttpContext<any, any, any>>, Routes> = {
   [Tag in keyof CtxMap & string]: (

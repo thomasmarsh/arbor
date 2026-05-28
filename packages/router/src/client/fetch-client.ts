@@ -1,12 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type { HttpContext, HttpContextData } from '../contexts/http-context.js';
-import type { RouteNode } from '../core/route-node.js';
+import type { ResponseUnion, RouteNode } from '../core/route-node.js';
 import { getTag, type WalkNode } from '../core/walk.js';
-
-type ResponseUnion<Resp> = {
-  [S in keyof Resp]: { status: S; body: Resp[S] };
-}[keyof Resp];
 
 type BodyArgs<Ctx extends HttpContext<any, any, any>> = [Ctx['body']] extends [never]
   ? []

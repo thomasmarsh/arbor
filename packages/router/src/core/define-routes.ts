@@ -13,6 +13,7 @@ export {
   type Flatten,
   type InferContext,
   type InferRoute,
+  type ResponseUnion,
   type RouteNode,
 } from './route-node.js';
 

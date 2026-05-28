@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Implementing `plan/09.encode-path-segments.md`
-- **Current Status**: Setting up test fixtures.
+- **Current Task**: `plan/10.extract-response-union.md` complete.
+- **Current Status**: All plans up to 10 implemented.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -24,6 +24,8 @@
 - Test suite: `npm test`
 - Type checking: `npm run typecheck`
 - Verification chain: `npm test && npm run typecheck`
+
+NOTE: Path structure described in `plan/spec.topology.md`
 
 ## Architecture & Core Shapes
 

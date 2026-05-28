@@ -38,6 +38,10 @@ export type ChildUnion<C extends RouteNode<unknown, unknown, any, any>[]> = {
   [K in keyof C]: Derive<C[K]>;
 }[number];
 
+export type ResponseUnion<Resp> = {
+  [S in keyof Resp]: { status: S; body: Resp[S] };
+}[keyof Resp];
+
 export type CtxMap<C extends RouteNode<unknown, unknown, any, any>[]> = {
   [N in C[number] as N extends RouteNode<{ tag: infer T extends string }, any, any, any>
     ? T

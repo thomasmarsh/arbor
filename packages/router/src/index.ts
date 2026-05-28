@@ -9,6 +9,7 @@ export {
   type Flatten,
   type InferContext,
   type InferRoute,
+  type ResponseUnion,
   type RouteNode,
 } from './core/define-routes.js';
 
