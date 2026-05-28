@@ -1,3 +1,6 @@
+import z from 'zod';
+import { type ChildUnion, type RouteNode } from './define-routes.js';
+
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export type HttpContext<
@@ -9,3 +12,30 @@ export type HttpContext<
   body: Body;
   response: Response;
 };
+
+type InferResponseMap<R extends Record<number, z.ZodType>> = {
+  [K in keyof R]: z.infer<R[K]>;
+};
+
+export function httpRoute<
+  S extends z.ZodObject<any, any>,
+  Method extends HttpMethod,
+  C extends RouteNode<unknown, unknown, any, any>[] = [],
+  Body = never,
+  Res extends Record<number, z.ZodType> = Record<number, z.ZodType>,
+>(
+  schema: S,
+  method: Method,
+  path: string,
+  options: { body?: z.ZodType<Body>; response: Res },
+  children?: [...C],
+): RouteNode<z.infer<S>, [ChildUnion<C>] extends [never] ? never : ChildUnion<C>, [...C], HttpContext<Method, Body, InferResponseMap<Res>>> {
+  return {
+    _type: undefined as never,
+    _child: undefined as never,
+    _context: undefined as never,
+    schema,
+    path,
+    children: (children ?? []) as [...C],
+  };
+}
