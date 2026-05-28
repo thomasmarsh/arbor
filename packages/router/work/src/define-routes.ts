@@ -28,7 +28,7 @@ export function route<
   return {
     _type: undefined as never,
     _child: undefined as never,
-    _context: undefined as never,
+
     schema,
     path,
     children: (children ?? []) as [...C],
@@ -42,7 +42,7 @@ export function section<C extends RouteNode<unknown, unknown, any, any>[]>(
   return {
     _type: undefined as never,
     _child: undefined as never,
-    _context: undefined as never,
+
     schema: null,
     path,
     children,

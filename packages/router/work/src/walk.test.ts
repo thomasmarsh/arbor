@@ -23,21 +23,21 @@ describe('walkParse', () => {
     {
       _type: undefined,
       _child: undefined,
-      _context: undefined,
+
       schema: Users,
       path: 'users/',
       children: [
         {
           _type: undefined,
           _child: undefined,
-          _context: undefined,
+    
           schema: User,
           path: ':id/',
           children: [
             {
               _type: undefined,
               _child: undefined,
-              _context: undefined,
+        
               schema: Settings,
               path: 'settings/',
               children: [],
@@ -49,21 +49,21 @@ describe('walkParse', () => {
     {
       _type: undefined,
       _child: undefined,
-      _context: undefined,
+
       schema: Org,
       path: 'orgs/:orgId/',
       children: [
         {
           _type: undefined,
           _child: undefined,
-          _context: undefined,
+    
           schema: Project,
           path: '#projectId/',
           children: [
             {
               _type: undefined,
               _child: undefined,
-              _context: undefined,
+        
               schema: Issue,
               path: ':issueId/',
               children: [],
@@ -165,14 +165,14 @@ describe('walkParse', () => {
       {
         _type: undefined,
         _child: undefined,
-        _context: undefined,
+  
         schema: null,
         path: 'orgs/:orgId/',
         children: [
           {
             _type: undefined,
             _child: undefined,
-            _context: undefined,
+      
             schema: Project,
             path: '#projectId/',
             children: [],
@@ -224,21 +224,21 @@ describe('walkPrint', () => {
     {
       _type: undefined,
       _child: undefined,
-      _context: undefined,
+
       schema: Users,
       path: 'users/',
       children: [
         {
           _type: undefined,
           _child: undefined,
-          _context: undefined,
+    
           schema: User,
           path: ':id/',
           children: [
             {
               _type: undefined,
               _child: undefined,
-              _context: undefined,
+        
               schema: Settings,
               path: 'settings/',
               children: [],
@@ -250,21 +250,21 @@ describe('walkPrint', () => {
     {
       _type: undefined,
       _child: undefined,
-      _context: undefined,
+
       schema: Org,
       path: 'orgs/:orgId/',
       children: [
         {
           _type: undefined,
           _child: undefined,
-          _context: undefined,
+    
           schema: Project,
           path: '#projectId/',
           children: [
             {
               _type: undefined,
               _child: undefined,
-              _context: undefined,
+        
               schema: Issue,
               path: ':issueId/',
               children: [],

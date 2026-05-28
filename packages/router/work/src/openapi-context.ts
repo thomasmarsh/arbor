@@ -6,6 +6,13 @@ import type { HttpContext, HttpMethod } from './http-context.js';
 import { parseSegments, type Segment } from './segments.js';
 import { getShape, getTag, type WalkNode } from './walk.js';
 
+interface OpenApiContextData {
+  method: HttpMethod;
+  bodySchema?: z.ZodType;
+  responseSchemas: Record<string, z.ZodType>;
+  meta?: OpenApiMeta;
+}
+
 // --- Types ---
 
 export interface OpenApiMeta {
@@ -50,14 +57,15 @@ export function openApiRoute<
   return {
     _type: undefined as never,
     _child: undefined as never,
-    _context: undefined as never,
     schema,
-    method,
-    ...(options.meta ? { meta: options.meta } : {}),
-    ...(options.body ? { bodySchema: options.body } : {}),
-    responseSchemas: options.response,
     path,
     children: (children ?? []) as [...C],
+    context: {
+      method,
+      ...(options.meta ? { meta: options.meta } : {}),
+      ...(options.body ? { bodySchema: options.body } : {}),
+      responseSchemas: options.response,
+    } as unknown as OpenApiContext<Method, Body, InferResponseMap<Res>>,
   };
 }
 
@@ -132,10 +140,11 @@ function walkSpec(
   for (const node of nodes) {
     const segments = [...parentSegments, ...parseSegments(node.path)];
 
-    // Only include nodes with response schemas (openApiRoute nodes)
-    if (node.schema !== null && node.method && node.responseSchemas) {
+    // Only include nodes with context (openApiRoute / httpRoute nodes)
+    const ctx = node.context as OpenApiContextData | undefined;
+    if (node.schema !== null && ctx?.method && ctx.responseSchemas) {
       const tag = getTag(node.schema);
-      const method = node.method.toLowerCase();
+      const method = ctx.method.toLowerCase();
       const path = '/' + segments.map(segmentToOpenApi).join('/');
 
       // Path params
@@ -161,23 +170,23 @@ function walkSpec(
 
       // Build operation
       const operation: Record<string, unknown> = {};
-      if (node.meta?.operationId) {
-        operation.operationId = node.meta.operationId;
+      if (ctx.meta?.operationId) {
+        operation.operationId = ctx.meta.operationId;
       } else if (tag) {
         operation.operationId = tag;
       }
-      if (node.meta?.summary) operation.summary = node.meta.summary;
-      if (node.meta?.description) operation.description = node.meta.description;
-      if (node.meta?.tags) operation.tags = node.meta.tags;
+      if (ctx.meta?.summary) operation.summary = ctx.meta.summary;
+      if (ctx.meta?.description) operation.description = ctx.meta.description;
+      if (ctx.meta?.tags) operation.tags = ctx.meta.tags;
       if (parameters.length > 0) operation.parameters = parameters;
 
       // Request body
-      if (node.bodySchema) {
+      if (ctx.bodySchema) {
         operation.requestBody = {
           required: true,
           content: {
             'application/json': {
-              schema: zodToJsonSchema(node.bodySchema),
+              schema: zodToJsonSchema(ctx.bodySchema),
             },
           },
         };
@@ -185,7 +194,7 @@ function walkSpec(
 
       // Responses
       const responses: Record<string, unknown> = {};
-      for (const [status, respSchema] of Object.entries(node.responseSchemas)) {
+      for (const [status, respSchema] of Object.entries(ctx.responseSchemas)) {
         responses[status] = {
           description: 'Response',
           content: {

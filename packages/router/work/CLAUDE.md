@@ -31,9 +31,10 @@ These rules are non-negotiable. Follow them on every change:
    Don't paper over type errors with `as any` unless there is a documented
    reason in a comment.
 
-6. **Phantom types are intentional.** `_type`, `_child`, `_context` fields are
+6. **Phantom types are intentional.** `_type` and `_child` fields are
    always `undefined as never` at runtime. They exist only for type inference.
-   Never assign real values to them.
+   Never assign real values to them. `context` is concrete and optional —
+   it carries runtime data (e.g. HTTP method, schemas) when present.
 
 7. **Preserve existing tests.** No phase should break a test from a previous
    phase. If a refactor breaks a test, fix the test or fix the refactor —
@@ -58,10 +59,10 @@ interface RouteNode
 > {
   _type:    R;        // phantom
   _child:   Child;    // phantom
-  _context: Context;  // phantom
   schema:   z.ZodObject<any, any> | null;  // null for section()
   path:     string;
   children: C;
+  context?: Context;  // concrete — carries runtime data (HTTP method, schemas, meta)
 }
 
 // Derives the nested Route type from a tuple of RouteNodes

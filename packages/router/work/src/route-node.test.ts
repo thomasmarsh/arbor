@@ -59,7 +59,7 @@ describe('InferRoute', () => {
 describe('InferContext', () => {
   it('extracts never from a route() node', () => {
     const node = route(z.object({ tag: z.literal('user'), id: z.string() }), ':id/');
-    expect(node._context).toBeUndefined();
+    expect(node.context).toBeUndefined();
     expectTypeOf<InferContext<typeof node>>().toEqualTypeOf<never>();
   });
 

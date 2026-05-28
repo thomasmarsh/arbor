@@ -6,7 +6,8 @@ export type Flatten<T> = { [K in keyof T]: T[K] };
 
 export type InferRoute<R extends { _type: unknown }> = R['_type'];
 
-export type InferContext<N extends { _context: unknown }> = N['_context'];
+export type InferContext<N extends { context?: unknown }> =
+  N extends { context?: infer C } ? C : never;
 
 export interface RouteNode<
   R,
@@ -16,14 +17,10 @@ export interface RouteNode<
 > {
   _type: R;
   _child: Child;
-  _context: Context;
   schema: z.ZodObject<any, any> | null;
-  method?: string;
-  meta?: { summary?: string; description?: string; operationId?: string; tags?: string[] };
-  bodySchema?: z.ZodType;
-  responseSchemas?: Record<string, z.ZodType>;
   path: string;
   children: C;
+  context?: Context;
 }
 
 export type Derive<N> =

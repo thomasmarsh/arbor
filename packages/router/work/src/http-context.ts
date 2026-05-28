@@ -5,6 +5,12 @@ import type { ChildUnion, RouteNode } from './define-routes.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+export interface HttpContextData {
+  method: HttpMethod;
+  bodySchema?: z.ZodType;
+  responseSchemas: Record<number, z.ZodType>;
+}
+
 export interface HttpContext<
   Method extends HttpMethod,
   Body,
@@ -40,10 +46,13 @@ export function httpRoute<
   return {
     _type: undefined as never,
     _child: undefined as never,
-    _context: undefined as never,
     schema,
-    method,
     path,
     children: (children ?? []) as [...C],
+    context: {
+      method,
+      ...(options.body ? { bodySchema: options.body } : {}),
+      responseSchemas: options.response,
+    } as unknown as HttpContext<Method, Body, InferResponseMap<Res>>,
   };
 }

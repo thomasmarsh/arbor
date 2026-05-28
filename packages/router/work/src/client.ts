@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { HttpContext } from './http-context.js';
+import type { HttpContext, HttpContextData } from './http-context.js';
 import type { RouteNode } from './route-node.js';
 import { getTag, type WalkNode } from './walk.js';
 
@@ -23,9 +23,10 @@ export type FetchLike = (
 function buildMethodMap(nodes: WalkNode[]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const node of nodes) {
-    if (node.schema !== null && node.method) {
+    const ctx = node.context as HttpContextData | undefined;
+    if (node.schema !== null && ctx?.method) {
       const tag = getTag(node.schema);
-      if (tag) map[tag] = node.method;
+      if (tag) map[tag] = ctx.method;
     }
     if (node.children.length > 0) {
       Object.assign(map, buildMethodMap(node.children as WalkNode[]));
