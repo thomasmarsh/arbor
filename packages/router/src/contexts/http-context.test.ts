@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import type { InferContext } from './define-routes.js';
+import type { InferContext } from '../core/define-routes.js';
 import { httpRoute, type HttpContext, type HttpMethod } from './http-context.js';
 
 describe('HttpMethod', () => {

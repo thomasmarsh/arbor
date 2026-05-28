@@ -1,112 +1,71 @@
-# arbor-router
+# CLAUDE.md 🪐
 
-A URL router with full TypeScript type inference. No codegen. No manual type declarations.
-The `Route` type is a nested discriminated union derived statically via phantom types.
+## Active Focus
 
-## Working style
+- **Current Task**: Implementing `plan/08.server-method-check.md`
+- **Current Status**: Setting up test fixtures.
 
-These rules are non-negotiable. Follow them on every change:
+## Strict System Rules (Zero Preamble)
 
-1. **Smallest possible change.** One thing at a time. If a change feels big, find
-   a smaller version of it. A one-line change with a test is better than a
-   ten-line change without one.
+- **Format**: Output raw `SEARCH/REPLACE` blocks immediately. The first byte of your reply must be the markdown code fence. Zero conversational introductions, filler, or conclusions.
+- **Diff Structure**: Include 2-3 lines of matching context buffer code inside the `SEARCH` block. Never rewrite entire files.
+- **Example Style**:
 
-2. **Test first or alongside.** Every change to `define-routes.ts` needs a
-   corresponding test. Type-level changes use `expectTypeOf`. Runtime changes
-   use `expect`. Both count.
+  ```diff
+  <<<<<<< SEARCH
+  export type Derive<N> = N extends RouteNode<infer R, infer Child, any, any>
+  =======
+  export type Derive<N> = N extends RouteNode<infer R, infer Child, any, any, infer Query>
+  >>>>>>> REPLACE
+  ```
 
-3. **Always verify before moving on.** After every change run:
-```bash
-   npm test && npm run typecheck
-```
-   Do not proceed if either fails. Fix it first.
+## Working Commands
 
-4. **Correct by construction.** Prefer making illegal states unrepresentable
-   in the type system over runtime checks. If something can be wrong, make it
-   a type error. Parse don't validate — accept unstructured input at the
-   boundary, return structured typed output, never pass unvalidated data inward.
+- Test suite: `npm test`
+- Type checking: `npm run typecheck`
+- Verification chain: `npm test && npm run typecheck`
 
-5. **Don't accumulate debt.** If a type cast feels wrong, stop and fix it. If
-   a test is asserting something that feels untrue, stop and understand why.
-   Don't paper over type errors with `as any` unless there is a documented
-   reason in a comment.
+## Architecture & Core Shapes
 
-6. **Phantom types are intentional.** `_type` and `_child` fields are
-   always `undefined as never` at runtime. They exist only for type inference.
-   Never assign real values to them. `context` is concrete and optional —
-   it carries runtime data (e.g. HTTP method, schemas) when present.
-
-7. **Preserve existing tests.** No phase should break a test from a previous
-   phase. If a refactor breaks a test, fix the test or fix the refactor —
-   don't delete the test.
-
-8. **One phase at a time.** Complete the current phase fully before starting
-   the next. Phases are in `PLAN.md`.
-
----
-
-## Architecture
-
-### Key types
+_URL router with full TS type inference without codegen. Route type is a nested discriminated union via phantom types. Read `plan/spec.architecture.md` for compiler constraints and structural edge cases._
 
 ```typescript
-// The tree node — all inference flows through here
-interface RouteNode
-  R,        // this node's route type (z.infer<S>)
-  Child,    // union of child route types
-  C extends RouteNode<unknown, unknown, any, any>[] = [],  // children tuple
-  Context = never,   // open extension slot — never = no extension
+interface RouteNode<
+  R,
+  Child,
+  C extends RouteNode<unknown, unknown, any, any>[] = [],
+  Context = never,
 > {
-  _type:    R;        // phantom
-  _child:   Child;    // phantom
-  schema:   z.ZodObject<any, any> | null;  // null for section()
-  path:     string;
+  _type: R; // phantom (undefined as never)
+  _child: Child; // phantom (undefined as never)
+  schema: z.ZodObject<any, any> | null;
+  path: string;
   children: C;
-  context?: Context;  // concrete — carries runtime data (HTTP method, schemas, meta)
+  context?: Context; // concrete — carries runtime data
 }
 
-// Derives the nested Route type from a tuple of RouteNodes
 type ChildUnion<C extends RouteNode<unknown, unknown, any, any>[]> = {
-  [K in keyof C]: Derive<C[K]>
-}[number]
+  [K in keyof C]: Derive<C[K]>;
+}[number];
 
-// Derives the type for a single node
 type Derive<N> =
   N extends RouteNode<infer R, infer Child, any, any>
     ? [R] extends [never]
-      ? Flatten<{ child: Child }>           // section — child required
+      ? Flatten<{ child: Child }>
       : [Child] extends [never]
-        ? Flatten<R>                        // leaf — no child
-        : Flatten<R & { child?: Child }>    // tagged node — optional child
-    : never
+        ? Flatten<R>
+        : Flatten<R & { child?: Child }>
+    : never;
 ```
 
-### Non-obvious decisions
+## Non-Negotiable Working Style
 
-- `z.ZodObject<any, any>` — Zod v4 takes 2 type params not 3
-- `[...C]` on children — spread preserves tuple type for ChildUnion inference
-- `[R] extends [never]` — tuple prevents distributive conditional behaviour
-- `C extends RouteNode<unknown, unknown, any, any>[]` — `unknown` not `any`
-  for R and Child, or inference widens to `any`
-- `tsc --noEmit` not `tsc -b --noEmit` — the `-b` flag propagates noEmit to
-  referenced projects, breaking composite builds
-
-### Result type
-
-Local stub in `src/result.ts`. Not the full `@arbor/common` version.
-API: `Result.success`, `Result.failure`, `Result.isSuccess`, `Result.isFailure`.
-
----
-
-## Current state
-
-All tests pass. Implementation complete for core URL routing.
-See `PLAN.md` for what comes next.
-
-## Commands
-
-```bash
-npm test              # run tests once
-npm run test:watch    # watch mode
-npm run typecheck     # typecheck only
-```
+1. **Smallest possible change**: One localized thing at a time. Prefer a 1-line change with a test.
+2. **TDD Workflow**: Write failing tests/stubs first to verify ergonomics before updating runtime code.
+3. **Test alongside**: Changes require tests (`expectTypeOf` for type-level, `expect` for runtime). Base cases first.
+4. **Always verify**: Run verification chain after every single change. Fix failures before moving forward.
+5. **Correct by construction**: Parse, don't validate. Use types over runtime checks to make illegal states unrepresentable.
+6. **No Debt**: Fix bad type casts immediately. Do not use `as any` without a documented comment reason.
+7. **Phantom types**: `_type` and `_child` are strictly `undefined as never` at runtime. Used for inference only.
+8. **Preserve tests**: Never delete or break past tests. Fix the refactor to match.
+9. **One phase at a time**: Complete the current phase in `plan/` fully before starting the next.

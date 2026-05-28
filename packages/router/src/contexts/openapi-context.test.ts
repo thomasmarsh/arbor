@@ -2,14 +2,14 @@
 
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import { defineRoutes, section, type InferContext } from './define-routes.js';
+import { defineRoutes, section, type InferContext } from '../core/define-routes.js';
+import { createServer } from '../server/server.js';
 import {
   generateSpec,
   openApiRoute,
   type OpenApiContext,
   type OpenApiMeta,
 } from './openapi-context.js';
-import { createServer } from './server.js';
 
 describe('OpenApiContext', () => {
   it('extends HttpContext with meta', () => {
@@ -35,8 +35,9 @@ describe('openApiRoute', () => {
 
     expect(r.path).toBe('users/:id/');
     expect(r.context).toBeDefined();
-    expect((r.context as any).method).toBe('GET');
-    expect((r.context as any).meta).toEqual({ summary: 'Get a user' });
+    expect(r.context?.method).toBe('GET');
+    expect(r.context?.meta).toEqual({ summary: 'Get a user' });
+    // TODO: fix typing on responseSchema
     expect((r.context as any).responseSchemas).toBeDefined();
   });
 
@@ -58,7 +59,7 @@ describe('openApiRoute', () => {
       response: { 200: UserResp },
     });
 
-    expect((r.context as any).meta).toBeUndefined();
+    expect(r.context?.meta).toBeUndefined();
     expect(r.path).toBe('users/:id/');
   });
 
@@ -72,7 +73,10 @@ describe('openApiRoute', () => {
 
     const server = createServer(router, {
       'get-user': (route) => {
-        return Promise.resolve({ status: 200 as const, body: { id: route.id, email: 'test@test.com' } });
+        return Promise.resolve({
+          status: 200 as const,
+          body: { id: route.id, email: 'test@test.com' },
+        });
       },
     });
 
@@ -243,9 +247,9 @@ describe('generateSpec', () => {
         string,
         Record<string, unknown>
       >;
-      const schema = (responses['200']!['content'] as any)['application/json']['schema'];
-      expect(schema['type']).toBe('object');
-      expect(schema['properties']['tags']).toEqual({
+      const schema = (responses['200']!['content'] as any)['application/json'].schema;
+      expect(schema.type).toBe('object');
+      expect(schema.properties.tags).toEqual({
         type: 'array',
         items: { type: 'string' },
       });
@@ -256,9 +260,9 @@ describe('generateSpec', () => {
         string,
         Record<string, unknown>
       >;
-      const schema = (responses['200']!['content'] as any)['application/json']['schema'];
-      expect(schema['properties']['result']['anyOf']).toBeDefined();
-      expect(schema['properties']['result']['anyOf']).toHaveLength(2);
+      const schema = (responses['200']!['content'] as any)['application/json'].schema;
+      expect(schema.properties.result.anyOf).toBeDefined();
+      expect(schema.properties.result.anyOf).toHaveLength(2);
     });
   });
 

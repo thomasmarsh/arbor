@@ -64,6 +64,21 @@ function collectTags(nodes: WalkNode[]): string[] {
   return tags;
 }
 
+function collectMethods(nodes: WalkNode[]): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const node of nodes) {
+    if (node.schema !== null && node.context) {
+      const tag = getTag(node.schema);
+      const method = (node.context as { method?: string }).method;
+      if (tag && method) map[tag] = method;
+    }
+    if (node.children.length > 0) {
+      Object.assign(map, collectMethods(node.children as WalkNode[]));
+    }
+  }
+  return map;
+}
+
 export function defineRoutes<C extends RouteNode<unknown, unknown, any, any>[] = []>(
   children: [...C],
 ) {
@@ -78,10 +93,13 @@ export function defineRoutes<C extends RouteNode<unknown, unknown, any, any>[] =
     seen.add(tag);
   }
 
+  const methodMap = collectMethods(nodes);
+
   return {
     _type: undefined as never as Route,
     _ctxMap: undefined as never as CtxMap<[...C]>,
     children,
+    methodMap,
 
     parse(url: URL): Result<Route, string> {
       const segments = url.pathname.split('/').filter(Boolean);

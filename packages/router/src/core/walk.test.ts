@@ -32,7 +32,7 @@ describe('walkParse', () => {
         {
           _type: undefined,
           _child: undefined,
-    
+
           schema: User,
           path: ':id/',
           segments: parseSegments(':id/'),
@@ -40,7 +40,7 @@ describe('walkParse', () => {
             {
               _type: undefined,
               _child: undefined,
-        
+
               schema: Settings,
               path: 'settings/',
               segments: parseSegments('settings/'),
@@ -61,7 +61,7 @@ describe('walkParse', () => {
         {
           _type: undefined,
           _child: undefined,
-    
+
           schema: Project,
           path: '#projectId/',
           segments: parseSegments('#projectId/'),
@@ -69,7 +69,7 @@ describe('walkParse', () => {
             {
               _type: undefined,
               _child: undefined,
-        
+
               schema: Issue,
               path: ':issueId/',
               segments: parseSegments(':issueId/'),
@@ -172,7 +172,7 @@ describe('walkParse', () => {
       {
         _type: undefined,
         _child: undefined,
-  
+
         schema: null,
         path: 'orgs/:orgId/',
         segments: parseSegments('orgs/:orgId/'),
@@ -241,7 +241,7 @@ describe('walkPrint', () => {
         {
           _type: undefined,
           _child: undefined,
-    
+
           schema: User,
           path: ':id/',
           segments: parseSegments(':id/'),
@@ -249,7 +249,7 @@ describe('walkPrint', () => {
             {
               _type: undefined,
               _child: undefined,
-        
+
               schema: Settings,
               path: 'settings/',
               segments: parseSegments('settings/'),
@@ -270,7 +270,7 @@ describe('walkPrint', () => {
         {
           _type: undefined,
           _child: undefined,
-    
+
           schema: Project,
           path: '#projectId/',
           segments: parseSegments('#projectId/'),
@@ -278,7 +278,7 @@ describe('walkPrint', () => {
             {
               _type: undefined,
               _child: undefined,
-        
+
               schema: Issue,
               path: ':issueId/',
               segments: parseSegments(':issueId/'),

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Result } from '@arbor/common';
-import type { HttpContext } from './http-context.js';
+import type { Result } from '@arbor/common';
+import type { HttpContext } from '../contexts/http-context.js';
 
 type ResponseUnion<Resp> = {
   [S in keyof Resp]: { status: S; body: Resp[S] };
@@ -18,15 +18,20 @@ export function createServer<Route, Map extends Record<string, HttpContext<any, 
   router: {
     _type: Route;
     _ctxMap: Map;
+    methodMap: Record<string, string>;
     parse(url: URL): Result<Route, string>;
   },
   handlers: HandlerMap<Map, Route>,
 ) {
   return {
-    async handle(url: URL, body?: unknown): Promise<{ status: number; body: unknown }> {
+    async handle(url: URL, method: string, body?: unknown): Promise<{ status: number; body: unknown }> {
       return router.parse(url).fold(
         (route) => {
           const tag = (route as Record<string, unknown>)['tag'] as string;
+          const expected = router.methodMap[tag];
+          if (expected && expected !== method) {
+            return Promise.resolve({ status: 405, body: { error: 'method not allowed' } });
+          }
           const handler = (
             handlers as Record<
               string,

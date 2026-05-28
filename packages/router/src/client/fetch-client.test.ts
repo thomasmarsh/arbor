@@ -1,8 +1,8 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import { createClient, type FetchLike } from './client.js';
-import { defineRoutes } from './define-routes.js';
-import { httpRoute } from './http-context.js';
+import { httpRoute } from '../contexts/http-context.js';
+import { defineRoutes } from '../core/define-routes.js';
+import { createClient, type FetchLike } from './fetch-client.js';
 
 describe('createClient', () => {
   const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
@@ -22,7 +22,10 @@ describe('createClient', () => {
   ]);
 
   function mockFetch(
-    handler: (url: string, init: { method: string; body?: string }) => { status: number; body: unknown },
+    handler: (
+      url: string,
+      init: { method: string; body?: string },
+    ) => { status: number; body: unknown },
   ): FetchLike {
     return (url, init) => {
       const result = handler(url, init);
@@ -40,7 +43,8 @@ describe('createClient', () => {
     it('GET route returns typed response union', async () => {
       const result = await client.fetch({ tag: 'get-user', id: '123' });
       expectTypeOf(result).toEqualTypeOf<
-        { status: 200; body: { id: string; email: string } } | { status: 404; body: { error: string } }
+        | { status: 200; body: { id: string; email: string } }
+        | { status: 404; body: { error: string } }
       >();
       expect(result.status).toBe(200);
     });
@@ -50,9 +54,7 @@ describe('createClient', () => {
         { tag: 'create-user' },
         { name: 'Alice', email: 'alice@test.com' },
       );
-      expectTypeOf(result).toEqualTypeOf<
-        { status: 201; body: { id: string; email: string } }
-      >();
+      expectTypeOf(result).toEqualTypeOf<{ status: 201; body: { id: string; email: string } }>();
       expect(result.status).toBe(200);
     });
   });
@@ -133,14 +135,14 @@ describe('createClient', () => {
       const fetchFn: FetchLike = (_url, init) => {
         capturedBody = init.body ?? '';
         capturedHeaders = init.headers ?? {};
-        return Promise.resolve({ status: 201, json: () => Promise.resolve({ id: '1', email: 'alice@test.com' }) });
+        return Promise.resolve({
+          status: 201,
+          json: () => Promise.resolve({ id: '1', email: 'alice@test.com' }),
+        });
       };
 
       const client = createClient('https://example.com', router, { fetch: fetchFn });
-      await client.fetch(
-        { tag: 'create-user' },
-        { name: 'Alice', email: 'alice@test.com' },
-      );
+      await client.fetch({ tag: 'create-user' }, { name: 'Alice', email: 'alice@test.com' });
 
       expect(JSON.parse(capturedBody)).toEqual({ name: 'Alice', email: 'alice@test.com' });
       expect(capturedHeaders['Content-Type']).toBe('application/json');
@@ -150,7 +152,10 @@ describe('createClient', () => {
       let capturedBody: string | undefined;
       const fetchFn: FetchLike = (_url, init) => {
         capturedBody = init.body;
-        return Promise.resolve({ status: 200, json: () => Promise.resolve({ id: '1', email: 'test@test.com' }) });
+        return Promise.resolve({
+          status: 200,
+          json: () => Promise.resolve({ id: '1', email: 'test@test.com' }),
+        });
       };
 
       const client = createClient('https://example.com', router, { fetch: fetchFn });

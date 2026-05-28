@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import { defineRoutes } from './define-routes.js';
-import { httpRoute } from './http-context.js';
+import { httpRoute } from '../contexts/http-context.js';
+import { defineRoutes } from '../core/define-routes.js';
 import { createServer } from './server.js';
 
 describe('createServer', () => {
@@ -23,7 +23,10 @@ describe('createServer', () => {
 
   const server = createServer(router, {
     'get-user': (route) => {
-      return Promise.resolve({ status: 200 as const, body: { id: route.id, email: 'test@test.com' } });
+      return Promise.resolve({
+        status: 200 as const,
+        body: { id: route.id, email: 'test@test.com' },
+      });
     },
     'create-user': (_route, body) => {
       return Promise.resolve({ status: 201 as const, body: { id: '1', email: body.email } });
@@ -35,7 +38,10 @@ describe('createServer', () => {
       createServer(router, {
         'get-user': (route) => {
           expectTypeOf(route).toEqualTypeOf<{ tag: 'get-user'; id: string }>();
-          return Promise.resolve({ status: 200 as const, body: { id: route.id, email: 'a@b.com' } });
+          return Promise.resolve({
+            status: 200 as const,
+            body: { id: route.id, email: 'a@b.com' },
+          });
         },
         'create-user': (route, body) => {
           expectTypeOf(route).toEqualTypeOf<{ tag: 'create-user' }>();
@@ -48,21 +54,32 @@ describe('createServer', () => {
 
   describe('handle', () => {
     it('dispatches a GET request', async () => {
-      const result = await server.handle(new URL('https://example.com/users/123'));
+      const result = await server.handle(new URL('https://example.com/users/123'), 'GET');
       expect(result).toEqual({ status: 200, body: { id: '123', email: 'test@test.com' } });
     });
 
     it('returns 404 for unknown routes', async () => {
-      const result = await server.handle(new URL('https://example.com/unknown'));
+      const result = await server.handle(new URL('https://example.com/unknown'), 'GET');
       expect(result.status).toBe(404);
     });
 
     it('forwards body to POST handler', async () => {
       const result = await server.handle(
         new URL('https://example.com/users'),
+        'POST',
         { name: 'Alice', email: 'alice@test.com' },
       );
       expect(result).toEqual({ status: 201, body: { id: '1', email: 'alice@test.com' } });
+    });
+
+    it('returns 405 when method does not match', async () => {
+      const result = await server.handle(new URL('https://example.com/users/123'), 'DELETE');
+      expect(result).toEqual({ status: 405, body: { error: 'method not allowed' } });
+    });
+
+    it('returns 405 for POST to a GET-only route', async () => {
+      const result = await server.handle(new URL('https://example.com/users/123'), 'POST');
+      expect(result).toEqual({ status: 405, body: { error: 'method not allowed' } });
     });
   });
 });

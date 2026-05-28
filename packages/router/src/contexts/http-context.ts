@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type z from 'zod';
-import type { ChildUnion, RouteNode } from './define-routes.js';
-import { parseSegments } from './segments.js';
+import type { ChildUnion, RouteNode } from '../core/define-routes.js';
+import { parseSegments } from '../core/segments.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 

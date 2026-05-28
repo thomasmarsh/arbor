@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import z from 'zod';
-import type { ChildUnion, RouteNode } from './define-routes.js';
+import type { ChildUnion, RouteNode } from '../core/define-routes.js';
+import type { Segment } from '../core/segments.js';
+import { parseSegments } from '../core/segments.js';
+import { getShape, getTag, type WalkNode } from '../core/walk.js';
 import type { HttpContext, HttpMethod } from './http-context.js';
-import { parseSegments } from './segments.js';
-import type { Segment } from './segments.js';
-import { getShape, getTag, type WalkNode } from './walk.js';
 
 interface OpenApiContextData {
   method: HttpMethod;
@@ -121,7 +121,9 @@ function walkSpec(
       // Path params
       const pathParams = segments.map(segmentToParam).filter(Boolean);
       const pathParamNames = new Set(
-        segments.filter((s): s is Exclude<Segment, { kind: 'lit' }> => s.kind !== 'lit').map((s) => s.name),
+        segments
+          .filter((s): s is Exclude<Segment, { kind: 'lit' }> => s.kind !== 'lit')
+          .map((s) => s.name),
       );
 
       // Query params from schema shape

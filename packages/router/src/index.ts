@@ -10,12 +10,12 @@ export {
   type InferContext,
   type InferRoute,
   type RouteNode,
-} from './define-routes.js';
+} from './core/define-routes.js';
 
 // HTTP
-export { createClient, type FetchLike } from './client.js';
-export { httpRoute, type HttpContext, type HttpMethod } from './http-context.js';
-export { createServer, type HandlerMap } from './server.js';
+export { createClient, type FetchLike } from './client/fetch-client.js';
+export { httpRoute, type HttpContext, type HttpMethod } from './contexts/http-context.js';
+export { createServer, type HandlerMap } from './server/server.js';
 
 // OpenAPI
 export {
@@ -23,4 +23,4 @@ export {
   openApiRoute,
   type OpenApiContext,
   type OpenApiMeta,
-} from './openapi-context.js';
+} from './contexts/openapi-context.js';

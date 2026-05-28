@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { HttpContext, HttpContextData } from './http-context.js';
-import type { RouteNode } from './route-node.js';
-import { getTag, type WalkNode } from './walk.js';
+import type { HttpContext, HttpContextData } from '../contexts/http-context.js';
+import type { RouteNode } from '../core/route-node.js';
+import { getTag, type WalkNode } from '../core/walk.js';
 
 type ResponseUnion<Resp> = {
   [S in keyof Resp]: { status: S; body: Resp[S] };
@@ -46,7 +46,7 @@ export function createClient<Route, Map extends Record<string, HttpContext<any, 
   options?: { fetch?: FetchLike },
 ) {
   const methodMap = buildMethodMap(router.children as WalkNode[]);
-  const fetchFn: FetchLike = options?.fetch ?? (globalThis.fetch);
+  const fetchFn: FetchLike = options?.fetch ?? globalThis.fetch;
 
   return {
     async fetch<Tag extends keyof Map & string>(
