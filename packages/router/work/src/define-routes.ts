@@ -127,6 +127,19 @@ export type ChildUnion<C extends RouteNode<unknown, unknown, any, any>[]> = {
   [K in keyof C]: Derive<C[K]>;
 }[number];
 
+/**
+ * Builds a flat mapping from route tag → Context for every tagged node in a
+ * children tuple. Used as a phantom type on the router so that consumers
+ * (e.g. `createServer`) can look up context by tag without walking the tree
+ * at the type level.
+ *
+ * @internal
+ */
+export type CtxMap<C extends RouteNode<unknown, unknown, any, any>[]> = {
+  [N in C[number] as N extends RouteNode<{ tag: infer T extends string }, any, any, any> ? T : never]:
+    N extends RouteNode<any, any, any, infer Ctx> ? Ctx : never;
+};
+
 // ── matchSegments ────────────────────────────────────────────────────
 
 /**
@@ -590,6 +603,9 @@ export function defineRoutes<C extends RouteNode<unknown, unknown, any, any>[] =
   return {
     /** Phantom type carrier — always `undefined` at runtime. Use {@link InferRoute} or `typeof router._type` to extract the `Route` union. */
     _type: undefined as never as Route,
+
+    /** @internal Phantom type carrier — maps tag → Context for each tagged node. */
+    _ctxMap: undefined as never as CtxMap<[...C]>,
 
     /** The route tree as a typed tuple. Spread into another {@link defineRoutes} call to compose routers. */
     children,
