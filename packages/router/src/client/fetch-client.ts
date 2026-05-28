@@ -55,46 +55,35 @@ function buildResponseSchemaMap(nodes: WalkNode[]): Record<string, Record<number
   return map;
 }
 
-export function createClient<Route, Map extends Record<string, HttpContext<any, any, any, any>>>(
+export function createClient<
+  Route,
+  Map extends Record<string, HttpContext<any, any, any, any>>,
+  Validate extends boolean = false,
+>(
   baseUrl: string,
   router: RouterArg<Route> & { _ctxMap: Map },
-  options: { fetch?: FetchLike; validate: true },
+  options?: { fetch?: FetchLike; validate?: Validate },
 ): {
   fetch<Tag extends keyof Map & string>(
     route: Extract<Route, { tag: Tag }>,
     ...args: BodyArgs<Map[Tag]>
-  ): Promise<Result<ResponseUnion<Map[Tag]['response']>, z.ZodError>>;
-};
-export function createClient<Route, Map extends Record<string, HttpContext<any, any, any, any>>>(
-  baseUrl: string,
-  router: RouterArg<Route> & { _ctxMap: Map },
-  options?: { fetch?: FetchLike; validate?: false },
-): {
-  fetch<Tag extends keyof Map & string>(
-    route: Extract<Route, { tag: Tag }>,
-    ...args: BodyArgs<Map[Tag]>
-  ): Promise<ResponseUnion<Map[Tag]['response']>>;
-};
-export function createClient<Route, Map extends Record<string, HttpContext<any, any, any, any>>>(
-  baseUrl: string,
-  router: RouterArg<Route> & { _ctxMap: Map },
-  options?: { fetch?: FetchLike; validate?: boolean },
-): {
-  fetch<Tag extends keyof Map & string>(
-    route: Extract<Route, { tag: Tag }>,
-    ...args: BodyArgs<Map[Tag]>
-  ): Promise<ResponseUnion<Map[Tag]['response']> | Result<ResponseUnion<Map[Tag]['response']>, z.ZodError>>;
+  ): Promise<
+    Validate extends true
+      ? Result<ResponseUnion<Map[Tag]['response']>, z.ZodError>
+      : ResponseUnion<Map[Tag]['response']>
+  >;
 } {
   const methodMap = buildMethodMap(router.children as WalkNode[]);
   const responseSchemaMap = buildResponseSchemaMap(router.children as WalkNode[]);
   const fetchFn: FetchLike = options?.fetch ?? globalThis.fetch;
   const validate = options?.validate ?? false;
 
+  // Cast needed: TypeScript cannot assign a concrete union to an unresolved conditional type.
   return {
     async fetch<Tag extends keyof Map & string>(
       route: Extract<Route, { tag: Tag }>,
       ...args: BodyArgs<Map[Tag]>
-    ): Promise<ResponseUnion<Map[Tag]['response']> | Result<ResponseUnion<Map[Tag]['response']>, z.ZodError>> {
+    ): Promise<any> {
       const tag = (route as Record<string, unknown>)['tag'] as string;
       const method = methodMap[tag] ?? 'GET';
       const path = router.print(route);
