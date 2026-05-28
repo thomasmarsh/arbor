@@ -170,6 +170,81 @@ describe('defineRoutes', () => {
         },
       );
     });
+
+    it('prints through a section when params are in child', () => {
+      // orgId is a runtime extra: not in the type but used by buildUrl to fill the section's path param
+      expect(
+        sectionRouter.print({ child: { tag: 'project', projectId: 42, orgId: 'acme' } } as any),
+      ).toBe('/orgs/acme/42');
+    });
+
+    it('section path params are not preserved in parse result', () => {
+      // orgId is captured by the section but is not in the returned result
+      const parsed = sectionRouter
+        .parse(new URL('https://example.com/orgs/acme/42'))
+        .getOrThrow();
+      expect(parsed).toEqual({ child: { tag: 'project', projectId: 42 } });
+    });
+
+    it('roundtrip works for sections without path params', () => {
+      const prefixRouter = defineRoutes([section('v1/', [route(Project, '#projectId/')])]);
+      const parsed = prefixRouter.parse(new URL('https://example.com/v1/42')).getOrThrow();
+      expect(prefixRouter.print(parsed)).toBe('/v1/42');
+    });
+  });
+
+  describe('nested sections (section > section > route)', () => {
+    const nestedSectionRouter = defineRoutes([
+      section('orgs/:orgId/', [section('projects/', [route(Issue, ':issueId/')])]),
+    ]);
+
+    it('nested section is not a valid terminal route at outer level', () => {
+      expect(
+        nestedSectionRouter.parse(new URL('https://example.com/orgs/acme')).isFailure(),
+      ).toBe(true);
+    });
+
+    it('nested section is not a valid terminal route at inner level', () => {
+      expect(
+        nestedSectionRouter.parse(new URL('https://example.com/orgs/acme/projects')).isFailure(),
+      ).toBe(true);
+    });
+
+    it('parses through two nested sections', () => {
+      expect(
+        nestedSectionRouter
+          .parse(new URL('https://example.com/orgs/acme/projects/7'))
+          .getOrThrow(),
+      ).toMatchObject({ child: { child: { tag: 'issue', issueId: '7' } } });
+    });
+
+    it('prints through two nested sections when params are in innermost child', () => {
+      // orgId is a runtime extra: not in the type but used by buildUrl to fill the outer section's path param
+      expect(
+        nestedSectionRouter.print({
+          child: { child: { tag: 'issue', issueId: '7', orgId: 'acme' } },
+        } as any),
+      ).toBe('/orgs/acme/projects/7');
+    });
+
+    it('nested section path params are not preserved in parse result', () => {
+      const parsed = nestedSectionRouter
+        .parse(new URL('https://example.com/orgs/acme/projects/7'))
+        .getOrThrow();
+      // orgId captured by outer section is absent from the result
+      expect(parsed).toMatchObject({ child: { child: { tag: 'issue', issueId: '7' } } });
+      expect((parsed as { child?: { child?: { orgId?: unknown } } }).child?.child?.orgId).toBeUndefined();
+    });
+
+    it('roundtrip works for nested sections without path params', () => {
+      const prefixRouter = defineRoutes([
+        section('v1/', [section('api/', [route(Project, '#projectId/')])]),
+      ]);
+      const parsed = prefixRouter
+        .parse(new URL('https://example.com/v1/api/42'))
+        .getOrThrow();
+      expect(prefixRouter.print(parsed)).toBe('/v1/api/42');
+    });
   });
 
   describe('duplicate tag detection', () => {

@@ -101,9 +101,13 @@ export function walkPrint(
       } else {
         return path;
       }
-    } else if (node.children.length > 0) {
-      const found = walkPrint(node.children as WalkNode[], route, path);
-      if (found) return found;
+    } else if (node.schema === null && node.children.length > 0) {
+      // Section node: consume one level of child wrapping before recursing
+      const child = route['child'] as Record<string, unknown> | undefined;
+      if (child) {
+        const found = walkPrint(node.children as WalkNode[], child, path);
+        if (found) return found;
+      }
     }
   }
 

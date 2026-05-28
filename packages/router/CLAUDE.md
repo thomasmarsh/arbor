@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Ready to begin `plan/15.section-nesting-tests.md`.
-- **Current Status**: Plans up to 14 implemented. Plans 15-16 and 11-13 remaining. See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Ready to begin `plan/11.parse-diagnostics.md`.
+- **Current Status**: Plans up to 15 implemented. Plans 16 and 11-13 remaining. See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 

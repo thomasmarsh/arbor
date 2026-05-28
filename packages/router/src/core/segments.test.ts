@@ -204,4 +204,37 @@ describe('matchSegments', () => {
       });
     });
   });
+
+  describe('adjacent optional params', () => {
+    const segs = parseSegments(':name?/#id?/');
+
+    it('captures both when both present', () => {
+      expect(matchSegments(segs, ['alice', '42'], {})).toEqual({
+        params: { name: 'alice', id: 42 },
+        rest: [],
+      });
+    });
+
+    it('captures first when only first value present', () => {
+      expect(matchSegments(segs, ['alice'], {})).toEqual({
+        params: { name: 'alice' },
+        rest: [],
+      });
+    });
+
+    it('first optional greedily consumes the lone value', () => {
+      // opt-str captures any non-null value, so '42' becomes name, not id
+      expect(matchSegments(segs, ['42'], {})).toEqual({
+        params: { name: '42' },
+        rest: [],
+      });
+    });
+
+    it('captures nothing when neither present', () => {
+      expect(matchSegments(segs, [], {})).toEqual({
+        params: {},
+        rest: [],
+      });
+    });
+  });
 });

@@ -201,6 +201,61 @@ describe('walkParse', () => {
     });
   });
 
+  describe('nested sections (section > section > route)', () => {
+    const nestedSectionNodes: RouteNode<
+      unknown,
+      unknown,
+      RouteNode<unknown, unknown, any, any>[],
+      any
+    >[] = [
+      {
+        _type: undefined,
+        _child: undefined,
+
+        schema: null,
+        path: 'orgs/:orgId/',
+        segments: parseSegments('orgs/:orgId/'),
+        children: [
+          {
+            _type: undefined,
+            _child: undefined,
+
+            schema: null,
+            path: 'projects/',
+            segments: parseSegments('projects/'),
+            children: [
+              {
+                _type: undefined,
+                _child: undefined,
+
+                schema: Issue,
+                path: ':issueId/',
+                segments: parseSegments(':issueId/'),
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    it('parses through two nested sections', () => {
+      expect(
+        walkParse(nestedSectionNodes, ['orgs', 'acme', 'projects', '7'], q(), {}),
+      ).toMatchObject({
+        child: { child: { tag: 'issue', issueId: '7' } },
+      });
+    });
+
+    it('inner section alone is not a valid terminal route', () => {
+      expect(walkParse(nestedSectionNodes, ['orgs', 'acme', 'projects'], q(), {})).toBeNull();
+    });
+
+    it('outer section alone is not a valid terminal route', () => {
+      expect(walkParse(nestedSectionNodes, ['orgs', 'acme'], q(), {})).toBeNull();
+    });
+  });
+
   describe('no match', () => {
     it('returns null for unknown route', () => {
       expect(walkParse(nodes, ['unknown'], q(), {})).toBeNull();
@@ -411,6 +466,88 @@ describe('walkPrint', () => {
       const result = walkPrint(nodes, route, empty);
       expect(result).not.toBeNull();
       expect(buildUrl(result!, route)).not.toContain('status');
+    });
+  });
+
+  describe('section nodes', () => {
+    const sectionNodes: RouteNode<
+      unknown,
+      unknown,
+      RouteNode<unknown, unknown, any, any>[],
+      any
+    >[] = [
+      {
+        _type: undefined,
+        _child: undefined,
+
+        schema: null,
+        path: 'orgs/:orgId/',
+        segments: parseSegments('orgs/:orgId/'),
+        children: [
+          {
+            _type: undefined,
+            _child: undefined,
+
+            schema: Project,
+            path: '#projectId/',
+            segments: parseSegments('#projectId/'),
+            children: [],
+          },
+        ],
+      },
+    ];
+
+    it('prints through a single section', () => {
+      const route = { child: { tag: 'project', projectId: 42, orgId: 'acme' } };
+      const result = walkPrint(sectionNodes, route, empty);
+      expect(result).not.toBeNull();
+      expect(buildUrl(result!, route)).toBe('/orgs/acme/42');
+    });
+  });
+
+  describe('nested sections (section > section > route)', () => {
+    const nestedSectionNodes: RouteNode<
+      unknown,
+      unknown,
+      RouteNode<unknown, unknown, any, any>[],
+      any
+    >[] = [
+      {
+        _type: undefined,
+        _child: undefined,
+
+        schema: null,
+        path: 'orgs/:orgId/',
+        segments: parseSegments('orgs/:orgId/'),
+        children: [
+          {
+            _type: undefined,
+            _child: undefined,
+
+            schema: null,
+            path: 'projects/',
+            segments: parseSegments('projects/'),
+            children: [
+              {
+                _type: undefined,
+                _child: undefined,
+
+                schema: Issue,
+                path: ':issueId/',
+                segments: parseSegments(':issueId/'),
+                children: [],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    it('prints through two nested sections', () => {
+      const route = { child: { child: { tag: 'issue', issueId: '7', orgId: 'acme' } } };
+      const result = walkPrint(nestedSectionNodes, route, empty);
+      expect(result).not.toBeNull();
+      expect(buildUrl(result!, route)).toBe('/orgs/acme/projects/7');
     });
   });
 
