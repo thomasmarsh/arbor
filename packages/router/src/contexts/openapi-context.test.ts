@@ -34,10 +34,10 @@ describe('openApiRoute', () => {
     });
 
     expect(r.path).toBe('users/:id/');
-    expect(r.context).toBeDefined();
-    expect(r.context?.method).toBe('GET');
-    expect(r.context?.meta).toEqual({ summary: 'Get a user' });
-    expect((r.context as unknown as { responseSchemas: unknown }).responseSchemas).toBeDefined();
+    expect(r._ctx).toBeDefined();
+    expect(r._ctx?.method).toBe('GET');
+    expect(r._ctx?.meta).toEqual({ summary: 'Get a user' });
+    expect(r._ctx?.responseSchemas).toBeDefined();
   });
 
   it('infers OpenApiContext with meta field', () => {
@@ -45,7 +45,7 @@ describe('openApiRoute', () => {
       response: { 200: UserResp },
       meta: { summary: 'Get a user' },
     });
-    expect(r.context).toBeDefined();
+    expect(r._ctx).toBeDefined();
 
     type Ctx = InferContext<typeof r>;
     expectTypeOf<Ctx['method']>().toEqualTypeOf<'GET'>();
@@ -58,7 +58,7 @@ describe('openApiRoute', () => {
       response: { 200: UserResp },
     });
 
-    expect(r.context?.meta).toBeUndefined();
+    expect(r._ctx?.meta).toBeUndefined();
     expect(r.path).toBe('users/:id/');
   });
 

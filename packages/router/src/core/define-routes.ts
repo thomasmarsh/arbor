@@ -70,9 +70,9 @@ function collectTags(nodes: WalkNode[]): string[] {
 function collectMethods(nodes: WalkNode[]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const node of nodes) {
-    if (node.schema !== null && node.context) {
+    if (node.schema !== null && node._ctx?.method) {
       const tag = getTag(node.schema);
-      const method = (node.context as { method?: string }).method;
+      const method = node._ctx.method;
       if (tag && method) map[tag] = method;
     }
     if (node.children.length > 0) {
@@ -119,12 +119,12 @@ export function defineRoutes<C extends RouteNode<unknown, unknown, any, any>[] =
       return { result: Result.success(raw) as Result<Route, string>, diagnostics: diag };
     },
 
-    print(route: Route): string {
+    print(route: Route, sectionParams?: Record<string, string | number>): string {
       const result = walkPrint(nodes, route, {
         segments: [],
         paramNames: new Set(),
       });
-      return result ? buildUrl(result, route) : '/';
+      return result ? buildUrl(result, route, sectionParams) : '/';
     },
   };
 }

@@ -177,7 +177,7 @@ describe('walkParse', () => {
         path: 'search/',
         segments: parseSegments('search/'),
         children: [],
-        context: { querySchema: QuerySchema },
+        _ctx: { querySchema: QuerySchema },
       },
     ];
 

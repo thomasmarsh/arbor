@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Ready to begin `plan/17.cleanup-client-creation.md`.
-- **Current Status**: Plan 17, 18 remaining. See `plan/spec.workflow.md` for execution order. (to be updated soon)
+- **Current Task**: Ready to begin `plan/18.improve-type-safety.md`.
+- **Current Status**: 18 remaining. See `plan/spec.workflow.md` for execution order. (to be updated soon)
 
 ## Strict System Rules (Zero Preamble)
 
@@ -62,6 +62,7 @@ type Derive<N> =
 
 ## Non-Negotiable Working Style
 
+0. **Break down work per session:** No refactor binges or endless pontificating. If a change too large, requires extensive decision-making, raises serious concerns, or otherwise would burn tokens, take either or both of these actions: a) add/update `plan/questions.md` for user consideration, and/or b) add tech debt plans in the `plan/` directory in format `plan/
 1. **Smallest possible change**: One localized thing at a time. Prefer a 1-line change with a test.
 2. **TDD Workflow**: Write failing tests/stubs first to verify ergonomics before updating runtime code.
 3. **Test alongside**: Changes require tests (`expectTypeOf` for type-level, `expect` for runtime). Base cases first.

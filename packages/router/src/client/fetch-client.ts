@@ -2,7 +2,7 @@
 
 import { Result } from '@arbor/common';
 import type z from 'zod';
-import type { HttpContext, HttpContextData } from '../contexts/http-context.js';
+import type { HttpContext } from '../contexts/http-context.js';
 import type { ResponseUnion, RouteNode } from '../core/route-node.js';
 import { getTag, type WalkNode } from '../core/walk.js';
 
@@ -28,7 +28,7 @@ interface RouterArg<Route> {
 function buildMethodMap(nodes: WalkNode[]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const node of nodes) {
-    const ctx = node.context as HttpContextData | undefined;
+    const ctx = node._ctx;
     if (node.schema !== null && ctx?.method) {
       const tag = getTag(node.schema);
       if (tag) map[tag] = ctx.method;
@@ -43,7 +43,7 @@ function buildMethodMap(nodes: WalkNode[]): Record<string, string> {
 function buildResponseSchemaMap(nodes: WalkNode[]): Record<string, Record<number, z.ZodType>> {
   const map: Record<string, Record<number, z.ZodType>> = {};
   for (const node of nodes) {
-    const ctx = node.context as HttpContextData | undefined;
+    const ctx = node._ctx;
     if (node.schema !== null && ctx?.responseSchemas) {
       const tag = getTag(node.schema);
       if (tag) map[tag] = ctx.responseSchemas;
@@ -56,7 +56,7 @@ function buildResponseSchemaMap(nodes: WalkNode[]): Record<string, Record<number
 }
 
 export function createClient<
-  Route,
+  Route extends { tag: string },
   Map extends Record<string, HttpContext<any, any, any, any>>,
   Validate extends boolean = false,
 >(
@@ -84,7 +84,7 @@ export function createClient<
       route: Extract<Route, { tag: Tag }>,
       ...args: BodyArgs<Map[Tag]>
     ): Promise<any> {
-      const tag = (route as Record<string, unknown>)['tag'] as string;
+      const tag = route.tag;
       const method = methodMap[tag] ?? 'GET';
       const path = router.print(route);
       const url = `${baseUrl.replace(/\/$/, '')}${path}`;

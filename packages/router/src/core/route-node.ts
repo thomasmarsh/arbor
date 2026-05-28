@@ -5,6 +5,15 @@ import type { Segment } from './segments.js';
 
 export type Flatten<T> = { [K in keyof T]: T[K] };
 
+export interface RouteCtx {
+  method?: string;
+  bodySchema?: z.ZodType;
+  responseSchemas?: Record<string | number, z.ZodType>;
+  querySchema?: z.ZodObject<any, any>;
+  meta?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export type InferRoute<R extends { _type: unknown }> = R['_type'];
 
 export type InferContext<N extends { context?: unknown }> =
@@ -23,6 +32,7 @@ export interface RouteNode<
   segments: Segment[];
   children: C;
   context?: Context;
+  _ctx?: RouteCtx;
 }
 
 export type Derive<N> =

@@ -67,7 +67,7 @@ export function walkParse(
       tag: getTag(node.schema),
     };
 
-    const contextQuerySchema = (node.context as { querySchema?: z.ZodObject<any, any> } | undefined)?.querySchema;
+    const contextQuerySchema = node._ctx?.querySchema;
 
     if (contextQuerySchema) {
       const rawQuery: Record<string, unknown> = {};
@@ -163,8 +163,9 @@ export function walkPrint(
 export function buildUrl(
   result: { segments: Segment[]; paramNames: Set<string> },
   route: Record<string, unknown>,
+  sectionParams?: Record<string, string | number>,
 ): string {
-  const allParams: Record<string, unknown> = {};
+  const allParams: Record<string, unknown> = { ...sectionParams };
   let current: Record<string, unknown> | undefined = route;
   while (current) {
     Object.assign(allParams, current);

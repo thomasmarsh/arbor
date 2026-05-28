@@ -21,6 +21,7 @@ export interface OpenApiMeta {
   description?: string;
   operationId?: string;
   tags?: string[];
+  [key: string]: unknown;
 }
 
 export interface OpenApiContext<
@@ -62,12 +63,13 @@ export function openApiRoute<
     path,
     segments: parseSegments(path),
     children: (children ?? []) as [...C],
-    context: {
+    context: undefined as never,
+    _ctx: {
       method,
       ...(options.meta ? { meta: options.meta } : {}),
       ...(options.body ? { bodySchema: options.body } : {}),
       responseSchemas: options.response,
-    } as unknown as OpenApiContext<Method, Body, InferResponseMap<Res>>,
+    },
   };
 }
 
@@ -112,7 +114,7 @@ function walkSpec(
     const segments = [...parentSegments, ...node.segments];
 
     // Only include nodes with context (openApiRoute / httpRoute nodes)
-    const ctx = node.context as OpenApiContextData | undefined;
+    const ctx = node._ctx as OpenApiContextData | undefined;
     if (node.schema !== null && ctx?.method) {
       const hasWildcard = segments.some((s) => s.kind === 'wildcard');
       if (hasWildcard) {

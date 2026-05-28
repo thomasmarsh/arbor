@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type { Result } from '@arbor/common';
-import type { HttpContext } from '../contexts/http-context.js';
+import type { HttpContext, HttpMethod } from '../contexts/http-context.js';
 import type { ResponseUnion } from '../core/route-node.js';
 
-export type HandlerMap<CtxMap extends Record<string, HttpContext<any, any, any, any>>, Routes> = {
+export type HandlerMap<
+  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown>>,
+  Routes,
+> = {
   [Tag in keyof CtxMap & string]: (
     route: Extract<Routes, { tag: Tag }>,
     body: CtxMap[Tag]['body'],
@@ -12,7 +13,10 @@ export type HandlerMap<CtxMap extends Record<string, HttpContext<any, any, any, 
   ) => Promise<ResponseUnion<CtxMap[Tag]['response']>>;
 };
 
-export function createServer<Route, Map extends Record<string, HttpContext<any, any, any, any>>>(
+export function createServer<
+  Route extends { tag: string },
+  Map extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown>>,
+>(
   router: {
     _type: Route;
     _ctxMap: Map;
@@ -25,8 +29,7 @@ export function createServer<Route, Map extends Record<string, HttpContext<any, 
     async handle(url: URL, method: string, body?: unknown): Promise<{ status: number; body: unknown }> {
       return router.parse(url).fold(
         (route) => {
-          const routeRecord = route as Record<string, unknown>;
-          const tag = routeRecord['tag'] as string;
+          const tag = route.tag;
           const expected = router.methodMap[tag];
           if (expected && expected !== method) {
             return Promise.resolve({ status: 405, body: { error: 'method not allowed' } });
@@ -40,7 +43,7 @@ export function createServer<Route, Map extends Record<string, HttpContext<any, 
           if (!handler) {
             return Promise.resolve({ status: 404, body: { error: `no handler for tag: ${tag}` } });
           }
-          return handler(route, body, routeRecord['query']);
+          return handler(route, body, (route as Record<string, unknown>)['query']);
         },
         (error) => Promise.resolve({ status: 404, body: { error } }),
       );

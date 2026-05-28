@@ -172,9 +172,7 @@ describe('defineRoutes', () => {
     });
 
     it('prints through a section when params are in child', () => {
-      // orgId is a runtime extra: not in the type but needed by buildUrl to fill the section's path param
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      const url = sectionRouter.print({ child: { tag: 'project', projectId: 42, orgId: 'acme' } } as any);
+      const url = sectionRouter.print({ child: { tag: 'project', projectId: 42 } }, { orgId: 'acme' });
       expect(url).toBe('/orgs/acme/42');
     });
 
@@ -219,10 +217,8 @@ describe('defineRoutes', () => {
     });
 
     it('prints through two nested sections when params are in innermost child', () => {
-      // orgId is a runtime extra: not in the type but needed by buildUrl to fill the outer section's path param
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      const url = nestedSectionRouter.print({ child: { child: { tag: 'issue', issueId: '7', orgId: 'acme' } } } as any);
-      expect(url).toBe('/orgs/acme/projects/7');
+      const url = nestedSectionRouter.print({ child: { child: { tag: 'issue', issueId: '7', page: 1 } } }, { orgId: 'acme' });
+      expect(url).toBe('/orgs/acme/projects/7?page=1');
     });
 
     it('nested section path params are not preserved in parse result', () => {

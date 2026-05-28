@@ -56,14 +56,14 @@ describe('httpRoute', () => {
     expect(r.path).toBe(':id/');
     expect(r.schema).toBe(GetUser);
     expect(r.children).toEqual([]);
-    expect(r.context).toBeDefined();
+    expect(r._ctx).toBeDefined();
   });
 
   it('infers method from the constructor', () => {
     const r = httpRoute(GetUser, 'GET', ':id/', {
       response: { 200: UserResponse },
     });
-    expect(r.context).toBeDefined();
+    expect(r._ctx).toBeDefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['method']>().toEqualTypeOf<'GET'>();
@@ -73,7 +73,7 @@ describe('httpRoute', () => {
     const r = httpRoute(GetUser, 'GET', ':id/', {
       response: { 200: UserResponse },
     });
-    expect(r.context).toBeDefined();
+    expect(r._ctx).toBeDefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['body']>().toEqualTypeOf<never>();
@@ -83,7 +83,7 @@ describe('httpRoute', () => {
     const r = httpRoute(GetUser, 'GET', ':id/', {
       response: { 200: UserResponse },
     });
-    expect(r.context).toBeDefined();
+    expect(r._ctx).toBeDefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['response']>().toEqualTypeOf<{ 200: { id: string; email: string } }>();
@@ -97,7 +97,7 @@ describe('httpRoute', () => {
       body: BodySchema,
       response: { 201: UserResponse },
     });
-    expect(r.context).toBeDefined();
+    expect(r._ctx).toBeDefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['method']>().toEqualTypeOf<'POST'>();
@@ -111,7 +111,7 @@ describe('httpRoute', () => {
     const r = httpRoute(GetUser, 'GET', ':id/', {
       response: { 200: UserResponse, 404: ErrorResponse },
     });
-    expect(r.context).toBeDefined();
+    expect(r._ctx).toBeDefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['response']>().toEqualTypeOf<{
@@ -127,7 +127,7 @@ describe('httpRoute', () => {
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['query']>().toEqualTypeOf<never>();
-    expect(true).toBe(true);
+    expect(r._ctx).toBeDefined();
   });
 
   it('infers query type from Zod schema', () => {
@@ -141,10 +141,10 @@ describe('httpRoute', () => {
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['query']>().toEqualTypeOf<{ page: number; search?: string | undefined }>();
-    expect(r.context).toBeDefined();
+    expect(r._ctx).toBeDefined();
   });
 
-  it('stores querySchema in context at runtime', () => {
+  it('stores querySchema in _ctx at runtime', () => {
     const ListUsers = z.object({ tag: z.literal('list-users') });
     const QuerySchema = z.object({ page: z.number() });
 
@@ -153,6 +153,6 @@ describe('httpRoute', () => {
       response: { 200: UserResponse },
     });
 
-    expect((r.context as unknown as Record<string, unknown>)['querySchema']).toBe(QuerySchema);
+    expect(r._ctx?.querySchema).toBe(QuerySchema);
   });
 });

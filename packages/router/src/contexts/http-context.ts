@@ -55,11 +55,12 @@ export function httpRoute<
     path,
     segments: parseSegments(path),
     children: (children ?? []) as [...C],
-    context: {
+    context: undefined as never,
+    _ctx: {
       method,
       ...(options.body ? { bodySchema: options.body } : {}),
       ...(options.query ? { querySchema: options.query } : {}),
       responseSchemas: options.response,
-    } as unknown as HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never>,
+    },
   };
 }
