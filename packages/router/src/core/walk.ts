@@ -6,7 +6,7 @@ import { type Segment, matchSegments } from './segments.js';
 
 export type ParseDiag =
   | { kind: 'segment-mismatch'; path: string; urlSegments: string[] }
-  | { kind: 'schema-error'; path: string; issues: z.ZodIssue[] };
+  | { kind: 'schema-error'; path: string; issues: z.core.$ZodIssue[] };
 
 export type WalkNode = RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any>[], any>;
 
@@ -101,7 +101,10 @@ export function walkPrint(
   accumulated: { segments: Segment[]; paramNames: Set<string> },
 ): { segments: Segment[]; paramNames: Set<string> } | null {
   for (const node of nodes) {
-    const paramNames = new Set([...accumulated.paramNames, ...collectPathParamNames(node.segments)]);
+    const paramNames = new Set([
+      ...accumulated.paramNames,
+      ...collectPathParamNames(node.segments),
+    ]);
     const path = { segments: [...accumulated.segments, ...node.segments], paramNames };
 
     const tagMatches = node.schema !== null && getTag(node.schema) === route['tag'];
@@ -144,7 +147,9 @@ export function buildUrl(
   const path =
     '/' +
     result.segments
-      .map((seg) => (seg.kind === 'lit' ? seg.value : encodeURIComponent(String(allParams[seg.name]))))
+      .map((seg) =>
+        seg.kind === 'lit' ? seg.value : encodeURIComponent(String(allParams[seg.name])),
+      )
       .join('/');
 
   const query = Object.entries(allParams)
