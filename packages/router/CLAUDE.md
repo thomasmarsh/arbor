@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: `plan/10.extract-response-union.md` complete.
-- **Current Status**: All plans up to 10 implemented.
+- **Current Task**: Ready to begin `plan/14.barrel-smoke-test.md`.
+- **Current Status**: All plans up to 10 implemented. Plans 11-16 defined. See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 
