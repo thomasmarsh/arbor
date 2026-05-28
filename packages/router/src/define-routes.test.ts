@@ -158,6 +158,24 @@ describe('defineRoutes', () => {
     });
   });
 
+  describe('duplicate tag detection', () => {
+    it('throws when two routes share the same tag', () => {
+      const A = z.object({ tag: z.literal('dup') });
+      const B = z.object({ tag: z.literal('dup'), extra: z.string() });
+      expect(() => defineRoutes([route(A, 'a/'), route(B, 'b/')])).toThrow(
+        'duplicate route tag: "dup"',
+      );
+    });
+
+    it('throws for duplicate tags in nested children', () => {
+      const Parent = z.object({ tag: z.literal('parent') });
+      const Child = z.object({ tag: z.literal('parent') });
+      expect(() => defineRoutes([route(Parent, 'p/', [route(Child, 'c/')])])).toThrow(
+        'duplicate route tag: "parent"',
+      );
+    });
+  });
+
   describe('composition', () => {
     const orgRouter = defineRoutes([
       route(Org, 'orgs/:orgId/', [route(Project, '#projectId/', [route(Issue, ':issueId/')])]),

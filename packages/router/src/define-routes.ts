@@ -4,7 +4,7 @@ import { Result } from '@arbor/common';
 import type z from 'zod';
 import type { ChildUnion, CtxMap, RouteNode } from './route-node.js';
 import { parseSegments } from './segments.js';
-import { buildUrl, walkParse, walkPrint } from './walk.js';
+import { type WalkNode, buildUrl, getTag, walkParse, walkPrint } from './walk.js';
 
 export {
   type ChildUnion,
@@ -52,17 +52,33 @@ export function section<C extends RouteNode<unknown, unknown, any, any>[]>(
   };
 }
 
+function collectTags(nodes: WalkNode[]): string[] {
+  const tags: string[] = [];
+  for (const node of nodes) {
+    if (node.schema !== null) {
+      const tag = getTag(node.schema);
+      if (tag) tags.push(tag);
+    }
+    if (node.children.length > 0) {
+      tags.push(...collectTags(node.children as WalkNode[]));
+    }
+  }
+  return tags;
+}
+
 export function defineRoutes<C extends RouteNode<unknown, unknown, any, any>[] = []>(
   children: [...C],
 ) {
   type Route = ChildUnion<C>;
 
-  const nodes = children as RouteNode<
-    unknown,
-    unknown,
-    RouteNode<unknown, unknown, any, any>[],
-    any
-  >[];
+  const nodes = children as WalkNode[];
+
+  const tags = collectTags(nodes);
+  const seen = new Set<string>();
+  for (const tag of tags) {
+    if (seen.has(tag)) throw new Error(`duplicate route tag: "${tag}"`);
+    seen.add(tag);
+  }
 
   return {
     _type: undefined as never as Route,
