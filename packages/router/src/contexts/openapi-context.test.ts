@@ -37,8 +37,7 @@ describe('openApiRoute', () => {
     expect(r.context).toBeDefined();
     expect(r.context?.method).toBe('GET');
     expect(r.context?.meta).toEqual({ summary: 'Get a user' });
-    // TODO: fix typing on responseSchema
-    expect((r.context as any).responseSchemas).toBeDefined();
+    expect((r.context as unknown as { responseSchemas: unknown }).responseSchemas).toBeDefined();
   });
 
   it('infers OpenApiContext with meta field', () => {
@@ -247,9 +246,10 @@ describe('generateSpec', () => {
         string,
         Record<string, unknown>
       >;
-      const schema = (responses['200']!['content'] as any)['application/json'].schema;
-      expect(schema.type).toBe('object');
-      expect(schema.properties.tags).toEqual({
+      const content = responses['200']!['content'] as Record<string, { schema: Record<string, unknown> }>;
+      const schema = content['application/json']!.schema;
+      expect(schema['type']).toBe('object');
+      expect((schema['properties'] as Record<string, unknown>)['tags']).toEqual({
         type: 'array',
         items: { type: 'string' },
       });
@@ -260,9 +260,38 @@ describe('generateSpec', () => {
         string,
         Record<string, unknown>
       >;
-      const schema = (responses['200']!['content'] as any)['application/json'].schema;
-      expect(schema.properties.result.anyOf).toBeDefined();
-      expect(schema.properties.result.anyOf).toHaveLength(2);
+      const content = responses['200']!['content'] as Record<string, { schema: Record<string, unknown> }>;
+      const schema = content['application/json']!.schema;
+      const result = (schema['properties'] as Record<string, Record<string, unknown>>)['result']!;
+      expect(result['anyOf']).toBeDefined();
+      expect(result['anyOf']).toHaveLength(2);
+    });
+  });
+
+  describe('wildcard routes', () => {
+    const FileRoute = z.object({ tag: z.literal('get-file') });
+    const FileResp = z.object({ content: z.string() });
+
+    const wildcardRouter = defineRoutes([
+      openApiRoute(FileRoute, 'GET', 'files/*rest', {
+        response: { 200: FileResp },
+      }),
+      openApiRoute(GetUser, 'GET', 'users/:id/', {
+        response: { 200: UserResp },
+      }),
+    ]);
+
+    const wildcardSpec = generateSpec(wildcardRouter, { title: 'Wildcard API', version: '1.0.0' });
+
+    it('excludes wildcard routes from spec', () => {
+      const paths = wildcardSpec['paths'] as Record<string, unknown>;
+      expect(Object.keys(paths)).not.toContain('/files/{rest}');
+      expect(Object.keys(paths)).not.toContain('/files/rest');
+    });
+
+    it('still includes non-wildcard routes', () => {
+      const paths = wildcardSpec['paths'] as Record<string, unknown>;
+      expect(Object.keys(paths)).toContain('/users/{id}');
     });
   });
 

@@ -96,8 +96,8 @@ function segmentToParam(seg: Segment): Record<string, unknown> | null {
       return { name: seg.name, in: 'path', required: false, schema: { type: 'string' } };
     case 'opt-num':
       return { name: seg.name, in: 'path', required: false, schema: { type: 'integer' } };
-    case 'wildcard':
-      return { name: seg.name, in: 'path', required: true, schema: { type: 'string' } };
+    default:
+      return null;
   }
 }
 
@@ -113,7 +113,14 @@ function walkSpec(
 
     // Only include nodes with context (openApiRoute / httpRoute nodes)
     const ctx = node.context as OpenApiContextData | undefined;
-    if (node.schema !== null && ctx?.method && ctx.responseSchemas) {
+    if (node.schema !== null && ctx?.method) {
+      const hasWildcard = segments.some((s) => s.kind === 'wildcard');
+      if (hasWildcard) {
+        const rawPath = segments.map((s) => (s.kind === 'lit' ? s.value : s.name)).join('/');
+        console.warn(`[openapi] skipping route with wildcard segment: ${rawPath}`);
+        continue;
+      }
+
       const tag = getTag(node.schema);
       const method = ctx.method.toLowerCase();
       const path = '/' + segments.map(segmentToOpenApi).join('/');

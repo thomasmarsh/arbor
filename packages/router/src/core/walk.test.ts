@@ -309,8 +309,8 @@ describe('walkParse', () => {
     it('does not push segment-mismatch for section nodes (schema === null)', () => {
       const sectionOnlyNodes: RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any>[], any>[] = [
         {
-          _type: undefined as never,
-          _child: undefined as never,
+          _type: undefined,
+          _child: undefined,
           schema: null,
           path: 'orgs/:orgId/',
           segments: parseSegments('orgs/:orgId/'),
