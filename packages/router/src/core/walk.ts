@@ -4,6 +4,10 @@ import z from 'zod';
 import type { RouteNode } from './route-node.js';
 import { type Segment, matchSegments } from './segments.js';
 
+export type ParseDiag =
+  | { kind: 'segment-mismatch'; path: string; urlSegments: string[] }
+  | { kind: 'schema-error'; path: string; issues: z.ZodIssue[] };
+
 export type WalkNode = RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any>[], any>;
 
 export function getShape(schema: z.ZodObject<any, any>): Record<string, z.z.ZodType> {
@@ -21,24 +25,33 @@ export function walkParse(
   urlSegments: string[],
   query: URLSearchParams,
   params: Record<string, unknown> = {},
+  diag?: ParseDiag[],
 ): Record<string, unknown> | null {
   for (const node of nodes) {
     const match = matchSegments(node.segments, urlSegments, params);
-    if (!match) continue;
+    if (!match) {
+      if (diag && node.schema !== null) {
+        diag.push({ kind: 'segment-mismatch', path: node.path, urlSegments });
+      }
+      continue;
+    }
 
     const { params: nextParams, rest } = match;
 
     if (rest.length > 0) {
       if (node.children.length === 0) continue;
 
-      const child = walkParse(node.children as WalkNode[], rest, query, nextParams);
+      const child = walkParse(node.children as WalkNode[], rest, query, nextParams, diag);
       if (!child) continue;
 
       if (node.schema === null) return { child };
 
       const raw = { ...nextParams, tag: getTag(node.schema) };
       const result = node.schema.safeParse(raw);
-      if (!result.success) continue;
+      if (!result.success) {
+        diag?.push({ kind: 'schema-error', path: node.path, issues: result.error.issues });
+        continue;
+      }
 
       return {
         ...Object.fromEntries(Object.entries(result.data).filter(([, v]) => v !== undefined)),
@@ -63,7 +76,10 @@ export function walkParse(
     }
 
     const result = node.schema.safeParse(raw);
-    if (!result.success) continue;
+    if (!result.success) {
+      diag?.push({ kind: 'schema-error', path: node.path, issues: result.error.issues });
+      continue;
+    }
 
     return Object.fromEntries(Object.entries(result.data).filter(([, v]) => v !== undefined));
   }

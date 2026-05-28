@@ -4,7 +4,7 @@ import { Result } from '@arbor/common';
 import type z from 'zod';
 import type { ChildUnion, CtxMap, RouteNode } from './route-node.js';
 import { parseSegments } from './segments.js';
-import { type WalkNode, buildUrl, getTag, walkParse, walkPrint } from './walk.js';
+import { type ParseDiag, type WalkNode, buildUrl, getTag, walkParse, walkPrint } from './walk.js';
 
 export {
   type ChildUnion,
@@ -16,6 +16,8 @@ export {
   type ResponseUnion,
   type RouteNode,
 } from './route-node.js';
+
+export type { ParseDiag } from './walk.js';
 
 export function route<
   S extends z.ZodObject<any, any>,
@@ -107,6 +109,14 @@ export function defineRoutes<C extends RouteNode<unknown, unknown, any, any>[] =
       const raw = walkParse(nodes, segments, url.searchParams);
       if (!raw) return Result.failure(`no route: ${url.pathname}`);
       return Result.success(raw) as Result<Route, string>;
+    },
+
+    parseDiagnostics(url: URL): { result: Result<Route, string>; diagnostics: ParseDiag[] } {
+      const segs = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+      const diag: ParseDiag[] = [];
+      const raw = walkParse(nodes, segs, url.searchParams, {}, diag);
+      if (!raw) return { result: Result.failure(`no route: ${url.pathname}`), diagnostics: diag };
+      return { result: Result.success(raw) as Result<Route, string>, diagnostics: diag };
     },
 
     print(route: Route): string {

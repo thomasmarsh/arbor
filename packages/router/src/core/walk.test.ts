@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import z from 'zod';
 import type { RouteNode } from './route-node.js';
 import { parseSegments } from './segments.js';
-import { buildUrl, walkParse, walkPrint } from './walk.js';
+import { type ParseDiag, buildUrl, walkParse, walkPrint } from './walk.js';
 
 describe('walkParse', () => {
   const Users = z.object({ tag: z.literal('users') });
@@ -267,6 +267,59 @@ describe('walkParse', () => {
 
     it('returns null for too many segments', () => {
       expect(walkParse(nodes, ['users', '123', 'settings', 'extra'], q(), {})).toBeNull();
+    });
+  });
+
+  describe('diagnostics accumulator', () => {
+    it('is absent by default and does not affect parse result', () => {
+      expect(walkParse(nodes, ['users'], q(), {})).toEqual({ tag: 'users' });
+    });
+
+    it('pushes segment-mismatch for each non-matching top-level node', () => {
+      const diag: ParseDiag[] = [];
+      walkParse(nodes, ['unknown'], q(), {}, diag);
+      expect(diag).toContainEqual({
+        kind: 'segment-mismatch',
+        path: 'users/',
+        urlSegments: ['unknown'],
+      });
+      expect(diag).toContainEqual({
+        kind: 'segment-mismatch',
+        path: 'orgs/:orgId/',
+        urlSegments: ['unknown'],
+      });
+    });
+
+    it('pushes schema-error when schema validation fails', () => {
+      const diag: ParseDiag[] = [];
+      walkParse(nodes, ['orgs', 'acme', '42', '7'], q('status=invalid'), {}, diag);
+      const schemaErrors = diag.filter((d): d is Extract<ParseDiag, { kind: 'schema-error' }> => d.kind === 'schema-error');
+      expect(schemaErrors).toHaveLength(1);
+      const first = schemaErrors[0]!;
+      expect(first).toMatchObject({ kind: 'schema-error', path: ':issueId/' });
+      expect(first.issues.length).toBeGreaterThan(0);
+    });
+
+    it('is empty when parse succeeds', () => {
+      const diag: ParseDiag[] = [];
+      walkParse(nodes, ['users'], q(), {}, diag);
+      expect(diag).toHaveLength(0);
+    });
+
+    it('does not push segment-mismatch for section nodes (schema === null)', () => {
+      const sectionOnlyNodes: RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any>[], any>[] = [
+        {
+          _type: undefined as never,
+          _child: undefined as never,
+          schema: null,
+          path: 'orgs/:orgId/',
+          segments: parseSegments('orgs/:orgId/'),
+          children: [],
+        },
+      ];
+      const diag: ParseDiag[] = [];
+      walkParse(sectionOnlyNodes, ['users'], q(), {}, diag);
+      expect(diag).toHaveLength(0);
     });
   });
 });

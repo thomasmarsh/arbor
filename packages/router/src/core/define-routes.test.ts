@@ -247,6 +247,33 @@ describe('defineRoutes', () => {
     });
   });
 
+  describe('parseDiagnostics', () => {
+    it('returns success result with empty diagnostics when route matches', () => {
+      const { result, diagnostics } = router.parseDiagnostics(url('/users'));
+      expect(result.isSuccess()).toBe(true);
+      expect(diagnostics).toHaveLength(0);
+    });
+
+    it('returns failure result with segment-mismatch diagnostics for unknown route', () => {
+      const { result, diagnostics } = router.parseDiagnostics(url('/unknown'));
+      expect(result.isFailure()).toBe(true);
+      expect(diagnostics.some((d) => d.kind === 'segment-mismatch')).toBe(true);
+    });
+
+    it('returns failure result with schema-error diagnostic for invalid query param', () => {
+      const { result, diagnostics } = router.parseDiagnostics(url('/orgs/acme/42/7?status=invalid'));
+      expect(result.isFailure()).toBe(true);
+      const schemaErrors = diagnostics.filter((d) => d.kind === 'schema-error');
+      expect(schemaErrors).toHaveLength(1);
+      expect(schemaErrors[0]).toMatchObject({ kind: 'schema-error', path: ':issueId/' });
+    });
+
+    it('does not affect parse() — parse never allocates the accumulator', () => {
+      expect(router.parse(url('/users')).isSuccess()).toBe(true);
+      expect(router.parse(url('/unknown')).isFailure()).toBe(true);
+    });
+  });
+
   describe('duplicate tag detection', () => {
     it('throws when two routes share the same tag', () => {
       const A = z.object({ tag: z.literal('dup') });
