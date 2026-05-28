@@ -15,6 +15,7 @@ import {
   type ChildUnion,
   type Derive,
   type Flatten,
+  type InferContext,
   type InferRoute,
   type RouteNode,
 } from './define-routes.js';
@@ -63,6 +64,25 @@ describe('InferRoute', () => {
     expectTypeOf<InferRoute<typeof stubRouter>>().toEqualTypeOf<
       { tag: 'users'; child?: { tag: 'user'; id: string } } | { tag: 'org'; orgId: string }
     >();
+  });
+});
+
+describe('InferContext', () => {
+  it('extracts never from a route() node', () => {
+    const node = route(z.object({ tag: z.literal('user'), id: z.string() }), ':id/');
+    expect(node._context).toBeUndefined();
+    expectTypeOf<InferContext<typeof node>>().toEqualTypeOf<never>();
+  });
+
+  it('extracts the context type when set', () => {
+    type N = RouteNode<{ tag: 'user' }, never, [], { method: 'GET' }>;
+    expectTypeOf<InferContext<N>>().toEqualTypeOf<{ method: 'GET' }>();
+  });
+
+  it('works with a complex context type', () => {
+    type Ctx = { method: 'POST'; body: { name: string }; response: { 200: { id: string } } };
+    type N = RouteNode<{ tag: 'create-user' }, never, [], Ctx>;
+    expectTypeOf<InferContext<N>>().toEqualTypeOf<Ctx>();
   });
 });
 

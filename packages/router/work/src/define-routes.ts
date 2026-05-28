@@ -15,6 +15,9 @@ export type Flatten<T> = { [K in keyof T]: T[K] };
 /** Extract the route union type from a router returned by {@link defineRoutes}. */
 export type InferRoute<R extends { _type: unknown }> = R['_type'];
 
+/** Extract the Context type from a {@link RouteNode}. */
+export type InferContext<N extends { _context: unknown }> = N['_context'];
+
 // ── Segment types and parseSegments ─────────────────────────────────
 
 /**
