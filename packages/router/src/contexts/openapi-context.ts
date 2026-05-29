@@ -2,9 +2,8 @@
 
 import type z from 'zod';
 import type { RouteNode } from '../core/define-routes.js';
-import type { HttpContext, HttpMethod } from './http-context.js';
-import { httpRoute } from './http-context.js';
-
+import type { HttpContext, HttpContextData, HttpMethod } from './http-context.js';
+import { getHttpCtx, httpRoute } from './http-context.js';
 
 export interface OpenApiMeta {
   summary?: string;
@@ -12,6 +11,14 @@ export interface OpenApiMeta {
   operationId?: string;
   tags?: string[];
   [key: string]: unknown;
+}
+
+export interface OpenApiCtxData extends HttpContextData {
+  meta?: OpenApiMeta;
+}
+
+export function getOpenApiCtx(node: { _ctx?: Record<string, unknown> }): OpenApiCtxData | undefined {
+  return getHttpCtx(node);
 }
 
 export interface OpenApiContext<

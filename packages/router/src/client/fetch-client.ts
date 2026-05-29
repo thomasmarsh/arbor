@@ -3,6 +3,7 @@
 import { Result } from '@arbor/common';
 import type z from 'zod';
 import type { HttpContext, HttpResponseUnion } from '../contexts/http-context.js';
+import { getHttpCtx } from '../contexts/http-context.js';
 import type { RouteNode } from '../core/route-node.js';
 import { getTag, type WalkNode } from '../core/walk.js';
 
@@ -53,10 +54,10 @@ export interface TypedClient<
 function buildMethodMap(nodes: WalkNode[]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const node of nodes) {
-    const ctx = node._ctx;
-    if (node.schema !== null && ctx?.method) {
+    const httpCtx = getHttpCtx(node);
+    if (node.schema !== null && httpCtx?.method) {
       const tag = getTag(node.schema);
-      if (tag) map[tag] = ctx.method;
+      if (tag) map[tag] = httpCtx.method;
     }
     if (node.children.length > 0) {
       Object.assign(map, buildMethodMap(node.children as WalkNode[]));
@@ -68,10 +69,10 @@ function buildMethodMap(nodes: WalkNode[]): Record<string, string> {
 function buildResponseSchemaMap(nodes: WalkNode[]): Record<string, Record<number, z.ZodType>> {
   const map: Record<string, Record<number, z.ZodType>> = {};
   for (const node of nodes) {
-    const ctx = node._ctx;
-    if (node.schema !== null && ctx?.responseSchemas) {
+    const httpCtx = getHttpCtx(node);
+    if (node.schema !== null && httpCtx?.responseSchemas) {
       const tag = getTag(node.schema);
-      if (tag) map[tag] = ctx.responseSchemas;
+      if (tag) map[tag] = httpCtx.responseSchemas;
     }
     if (node.children.length > 0) {
       Object.assign(map, buildResponseSchemaMap(node.children as WalkNode[]));

@@ -2,6 +2,7 @@
 
 import { Result } from '@arbor/common';
 import type z from 'zod';
+import { getHttpCtx } from '../contexts/http-context.js';
 import type { ChildUnion, CtxMap, ExtractPathParams, RouteNode } from './route-node.js';
 import { parseSegments } from './segments.js';
 import { type ParseDiag, type WalkNode, buildUrl, getTag, walkParse, walkPrint } from './walk.js';
@@ -80,10 +81,10 @@ function collectTags(nodes: WalkNode[]): string[] {
 function collectMethods(nodes: WalkNode[]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const node of nodes) {
-    if (node.schema !== null && node._ctx?.method) {
+    const httpCtx = getHttpCtx(node);
+    if (node.schema !== null && httpCtx?.method) {
       const tag = getTag(node.schema);
-      const method = node._ctx.method;
-      if (tag && method) map[tag] = method;
+      if (tag) map[tag] = httpCtx.method;
     }
     if (node.children.length > 0) {
       Object.assign(map, collectMethods(node.children as WalkNode[]));
@@ -95,9 +96,10 @@ function collectMethods(nodes: WalkNode[]): Record<string, string> {
 function collectBodySchemas(nodes: WalkNode[]): Record<string, z.ZodType> {
   const map: Record<string, z.ZodType> = {};
   for (const node of nodes) {
-    if (node.schema !== null && node._ctx?.bodySchema) {
+    const httpCtx = getHttpCtx(node);
+    if (node.schema !== null && httpCtx?.bodySchema) {
       const tag = getTag(node.schema);
-      if (tag) map[tag] = node._ctx.bodySchema;
+      if (tag) map[tag] = httpCtx.bodySchema;
     }
     if (node.children.length > 0) {
       Object.assign(map, collectBodySchemas(node.children as WalkNode[]));
@@ -109,9 +111,10 @@ function collectBodySchemas(nodes: WalkNode[]): Record<string, z.ZodType> {
 function collectRequestHeaderSchemas(nodes: WalkNode[]): Record<string, z.ZodObject<any, any>> {
   const map: Record<string, z.ZodObject<any, any>> = {};
   for (const node of nodes) {
-    if (node.schema !== null && node._ctx?.headerSchema) {
+    const httpCtx = getHttpCtx(node);
+    if (node.schema !== null && httpCtx?.headerSchema) {
       const tag = getTag(node.schema);
-      if (tag) map[tag] = node._ctx.headerSchema;
+      if (tag) map[tag] = httpCtx.headerSchema;
     }
     if (node.children.length > 0) {
       Object.assign(map, collectRequestHeaderSchemas(node.children as WalkNode[]));
@@ -125,9 +128,10 @@ function collectResponseHeaderSchemas(
 ): Record<string, Record<number, z.ZodObject<any, any>>> {
   const map: Record<string, Record<number, z.ZodObject<any, any>>> = {};
   for (const node of nodes) {
-    if (node.schema !== null && node._ctx?.responseHeaderSchemas) {
+    const httpCtx = getHttpCtx(node);
+    if (node.schema !== null && httpCtx?.responseHeaderSchemas) {
       const tag = getTag(node.schema);
-      if (tag) map[tag] = node._ctx.responseHeaderSchemas;
+      if (tag) map[tag] = httpCtx.responseHeaderSchemas;
     }
     if (node.children.length > 0) {
       Object.assign(map, collectResponseHeaderSchemas(node.children as WalkNode[]));
@@ -141,9 +145,10 @@ function collectRateLimits(
 ): Record<string, { windowMs: number; maxRequests: number }> {
   const map: Record<string, { windowMs: number; maxRequests: number }> = {};
   for (const node of nodes) {
-    if (node.schema !== null && node._ctx?.rateLimit) {
+    const httpCtx = getHttpCtx(node);
+    if (node.schema !== null && httpCtx?.rateLimit) {
       const tag = getTag(node.schema);
-      if (tag) map[tag] = node._ctx.rateLimit;
+      if (tag) map[tag] = httpCtx.rateLimit;
     }
     if (node.children.length > 0) {
       Object.assign(map, collectRateLimits(node.children as WalkNode[]));

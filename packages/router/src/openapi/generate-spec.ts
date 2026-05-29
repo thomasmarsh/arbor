@@ -4,17 +4,7 @@ import z from 'zod';
 import type { RouteNode } from '../core/define-routes.js';
 import type { Segment } from '../core/segments.js';
 import { getShape, getTag, type WalkNode } from '../core/walk.js';
-import type { HttpMethod } from '../contexts/http-context.js';
-import type { OpenApiMeta } from '../contexts/openapi-context.js';
-
-interface OpenApiContextData {
-  method: HttpMethod;
-  bodySchema?: z.ZodType;
-  responseSchemas: Record<number, z.ZodType>;
-  responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
-  headerSchema?: z.ZodObject<any, any>;
-  meta?: OpenApiMeta;
-}
+import { getOpenApiCtx } from '../contexts/openapi-context.js';
 
 function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
   const { $schema: _, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
@@ -50,7 +40,7 @@ function walkSpec(
   for (const node of nodes) {
     const segments = [...parentSegments, ...node.segments];
 
-    const ctx = node._ctx as OpenApiContextData | undefined;
+    const ctx = getOpenApiCtx(node);
     if (node.schema !== null && ctx?.method) {
       const hasWildcard = segments.some((s) => s.kind === 'wildcard');
       if (hasWildcard) {

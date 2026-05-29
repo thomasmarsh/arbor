@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 37
-- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36 complete. Plan 28 superseded by 47. See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Plan 54
+- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53 complete. Plan 28 superseded by 47. Plan 53 partial: `getHttpCtx`/`getOpenApiCtx` accessors added, all consumers updated; `RouteCtx` removal deferred to plan 54 (requires `Ctx` type parameter on `RouteNode`). See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 

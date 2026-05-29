@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type z from 'zod';
-import type { RouteNode } from '../core/define-routes.js';
+import type { RouteNode } from '../core/route-node.js';
 import { parseSegments } from '../core/segments.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -12,7 +12,12 @@ export interface HttpContextData {
   responseSchemas: Record<number, z.ZodType>;
   responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
   querySchema?: z.ZodObject<any, any>;
+  headerSchema?: z.ZodObject<any, any>;
   rateLimit?: { windowMs: number; maxRequests: number };
+}
+
+export function getHttpCtx(node: { _ctx?: Record<string, unknown> }): HttpContextData | undefined {
+  return node._ctx as HttpContextData | undefined;
 }
 
 export interface HttpContext<

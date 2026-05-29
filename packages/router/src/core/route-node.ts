@@ -17,9 +17,9 @@ export type ExtractPathParams<Path extends string> =
       ? Param | ExtractPathParams<Rest>
       : never;
 
-// Runtime context attached by factory helpers (httpRoute, openApiRoute, etc.).
-// Kept separate from the phantom R/C type params so domain-specific schemes
-// don't bleed into the core RouteNode shape.
+
+// Opaque plugin-context bag. HTTP/OpenAPI fields are defined here to allow dot-notation
+// access under noPropertyAccessFromIndexSignature. Removal tracked in plan 54.
 export interface RouteCtx {
   method?: string;
   bodySchema?: z.ZodType;
@@ -61,7 +61,7 @@ export type InferContext<N extends { context?: unknown }> = N extends { context?
 //   schema        — null for section nodes; the Zod schema for route nodes.
 //   children      — concrete array of child RouteNodes.
 //   context       — optional DI bag set by context-aware factory helpers.
-//   _ctx          — runtime metadata (method, body/response schemas, etc.).
+//   _ctx          — opaque plugin metadata bag (typed by context accessors in contexts/).
 export interface RouteNode<
   R,
   C extends RouteNode<unknown, any, any, any>[] = [],
