@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 54 complete
-- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54 complete. Plan 28 superseded by 47. Plan 54: `RouteCtx` removed; `Ctx` 5th type parameter added to `RouteNode`; `httpRoute()` returns `RouteNode<..., HttpContextData>`, `openApiRoute()` returns `RouteNode<..., OpenApiCtxData>`. See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Plan 55 complete
+- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54, 55 complete. Plan 28 superseded by 47. Plan 55: `_ctx`/`Ctx` renamed to `_meta`/`Meta` on `RouteNode`; `getHttpCtx`→`getHttpMeta`, `getOpenApiCtx`→`getOpenApiMeta`. See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -37,14 +37,14 @@ interface RouteNode<
   C extends RouteNode<unknown, any, any, any, any>[] = [],
   Context = never,
   SectionParams extends string = never,
-  Ctx = Record<string, unknown>,
+  Meta = Record<string, unknown>,
 > {
   _type: R; // phantom (undefined as never)
   schema: z.ZodObject<any, any> | null;
   path: string;
   children: C;
   context?: Context; // concrete — carries runtime data
-  _ctx?: Ctx; // typed plugin-context bag; HttpContextData for httpRoute(), OpenApiCtxData for openApiRoute()
+  _meta?: Meta; // typed plugin-metadata bag; HttpContextData for httpRoute(), OpenApiCtxData for openApiRoute()
 }
 
 type ChildUnion<C extends RouteNode<unknown, any, any, any, any>[]> = FlattenChildrenImpl<C>[number];

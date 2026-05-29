@@ -73,7 +73,7 @@ export function walkParse(
       tag: getTag(node.schema),
     };
 
-    const contextQuerySchema = (node._ctx as { querySchema?: z.ZodObject<any, any> } | undefined)?.querySchema;
+    const contextQuerySchema = (node._meta as { querySchema?: z.ZodObject<any, any> } | undefined)?.querySchema;
 
     if (contextQuerySchema) {
       const rawQuery: Record<string, unknown> = {};

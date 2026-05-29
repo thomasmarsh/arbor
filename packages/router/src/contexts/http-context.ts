@@ -16,8 +16,8 @@ export interface HttpContextData {
   rateLimit?: { windowMs: number; maxRequests: number };
 }
 
-export function getHttpCtx(node: { _ctx?: Record<string, unknown> }): HttpContextData | undefined {
-  return node._ctx as HttpContextData | undefined;
+export function getHttpMeta(node: { _meta?: Record<string, unknown> }): HttpContextData | undefined {
+  return node._meta as HttpContextData | undefined;
 }
 
 export interface HttpContext<
@@ -109,7 +109,7 @@ export function httpRoute<
     segments: parseSegments(path),
     children: (children ?? []) as [...C],
     context: undefined as never,
-    _ctx: {
+    _meta: {
       method,
       ...(options.body ? { bodySchema: options.body } : {}),
       ...(options.query ? { querySchema: options.query } : {}),

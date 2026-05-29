@@ -34,17 +34,17 @@ describe('openApiRoute', () => {
     });
 
     expect(r.path).toBe('users/:id/');
-    expect(r._ctx).toBeDefined();
-    expect(r._ctx?.method).toBe('GET');
-    expect(r._ctx?.meta).toEqual({ summary: 'Get a user' });
-    expect(r._ctx?.responseSchemas).toBeDefined();
+    expect(r._meta).toBeDefined();
+    expect(r._meta?.method).toBe('GET');
+    expect(r._meta?.meta).toEqual({ summary: 'Get a user' });
+    expect(r._meta?.responseSchemas).toBeDefined();
   });
 
   it('stores responseSchemas with numeric keys', () => {
     const r = openApiRoute(GetUser, 'GET', 'users/:id/', {
       response: { 200: UserResp },
     });
-    expectTypeOf(r._ctx!.responseSchemas!).toEqualTypeOf<Record<number, z.ZodType>>();
+    expectTypeOf(r._meta!.responseSchemas!).toEqualTypeOf<Record<number, z.ZodType>>();
   });
 
   it('infers OpenApiContext with meta field', () => {
@@ -52,7 +52,7 @@ describe('openApiRoute', () => {
       response: { 200: UserResp },
       meta: { summary: 'Get a user' },
     });
-    expect(r._ctx).toBeDefined();
+    expect(r._meta).toBeDefined();
 
     type Ctx = InferContext<typeof r>;
     expectTypeOf<Ctx['method']>().toEqualTypeOf<'GET'>();
@@ -65,7 +65,7 @@ describe('openApiRoute', () => {
       response: { 200: UserResp },
     });
 
-    expect(r._ctx?.meta).toBeUndefined();
+    expect(r._meta?.meta).toBeUndefined();
     expect(r.path).toBe('users/:id/');
   });
 

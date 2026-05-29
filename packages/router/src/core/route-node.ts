@@ -47,13 +47,13 @@ export type InferContext<N extends { context?: unknown }> = N extends { context?
 //   schema        — null for section nodes; the Zod schema for route nodes.
 //   children      — concrete array of child RouteNodes.
 //   context       — optional DI bag set by context-aware factory helpers.
-//   _ctx          — opaque plugin metadata bag (typed by context accessors in contexts/).
+//   _meta         — opaque plugin metadata bag (typed by context accessors in contexts/).
 export interface RouteNode<
   R,
   C extends RouteNode<unknown, any, any, any, any>[] = [],
   Context = never,
   SectionParams extends string = never,
-  Ctx = Record<string, unknown>,
+  Meta = Record<string, unknown>,
 > {
   _type: R;
   _sectionParams?: SectionParams;
@@ -62,7 +62,7 @@ export interface RouteNode<
   segments: Segment[];
   children: C;
   context?: Context;
-  _ctx?: Ctx;
+  _meta?: Meta;
 }
 
 // ─── Depth-counter machinery ──────────────────────────────────────────────────

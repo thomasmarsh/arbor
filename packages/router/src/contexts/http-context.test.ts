@@ -56,14 +56,14 @@ describe('httpRoute', () => {
     expect(r.path).toBe(':id/');
     expect(r.schema).toBe(GetUser);
     expect(r.children).toEqual([]);
-    expect(r._ctx).toBeDefined();
+    expect(r._meta).toBeDefined();
   });
 
   it('infers method from the constructor', () => {
     const r = httpRoute(GetUser, 'GET', ':id/', {
       response: { 200: UserResponse },
     });
-    expect(r._ctx).toBeDefined();
+    expect(r._meta).toBeDefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['method']>().toEqualTypeOf<'GET'>();
@@ -73,7 +73,7 @@ describe('httpRoute', () => {
     const r = httpRoute(GetUser, 'GET', ':id/', {
       response: { 200: UserResponse },
     });
-    expect(r._ctx).toBeDefined();
+    expect(r._meta).toBeDefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['body']>().toEqualTypeOf<never>();
@@ -83,7 +83,7 @@ describe('httpRoute', () => {
     const r = httpRoute(GetUser, 'GET', ':id/', {
       response: { 200: UserResponse },
     });
-    expect(r._ctx).toBeDefined();
+    expect(r._meta).toBeDefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['response']>().toEqualTypeOf<{ 200: { id: string; email: string } }>();
@@ -97,7 +97,7 @@ describe('httpRoute', () => {
       body: BodySchema,
       response: { 201: UserResponse },
     });
-    expect(r._ctx).toBeDefined();
+    expect(r._meta).toBeDefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['method']>().toEqualTypeOf<'POST'>();
@@ -111,7 +111,7 @@ describe('httpRoute', () => {
     const r = httpRoute(GetUser, 'GET', ':id/', {
       response: { 200: UserResponse, 404: ErrorResponse },
     });
-    expect(r._ctx).toBeDefined();
+    expect(r._meta).toBeDefined();
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['response']>().toEqualTypeOf<{
@@ -127,7 +127,7 @@ describe('httpRoute', () => {
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['query']>().toEqualTypeOf<never>();
-    expect(r._ctx).toBeDefined();
+    expect(r._meta).toBeDefined();
   });
 
   it('infers query type from Zod schema', () => {
@@ -141,10 +141,10 @@ describe('httpRoute', () => {
 
     type T = InferContext<typeof r>;
     expectTypeOf<T['query']>().toEqualTypeOf<{ page: number; search?: string | undefined }>();
-    expect(r._ctx).toBeDefined();
+    expect(r._meta).toBeDefined();
   });
 
-  it('stores querySchema in _ctx at runtime', () => {
+  it('stores querySchema in _meta at runtime', () => {
     const ListUsers = z.object({ tag: z.literal('list-users') });
     const QuerySchema = z.object({ page: z.number() });
 
@@ -153,7 +153,7 @@ describe('httpRoute', () => {
       response: { 200: UserResponse },
     });
 
-    expect(r._ctx?.querySchema).toBe(QuerySchema);
+    expect(r._meta?.querySchema).toBe(QuerySchema);
   });
 
   describe('response header descriptors', () => {
@@ -163,7 +163,7 @@ describe('httpRoute', () => {
       const r = httpRoute(GetUser, 'GET', ':id/', {
         response: { 200: { body: UserResponse, headers: HeaderSchema } },
       });
-      expect(r._ctx).toBeDefined();
+      expect(r._meta).toBeDefined();
 
       type T = InferContext<typeof r>;
       expectTypeOf<T['response']>().toEqualTypeOf<{
@@ -175,21 +175,21 @@ describe('httpRoute', () => {
       const r = httpRoute(GetUser, 'GET', ':id/', {
         response: { 200: { body: UserResponse, headers: HeaderSchema } },
       });
-      expect(r._ctx?.responseSchemas?.[200]).toBe(UserResponse);
+      expect(r._meta?.responseSchemas?.[200]).toBe(UserResponse);
     });
 
     it('stores header schema in responseHeaderSchemas', () => {
       const r = httpRoute(GetUser, 'GET', ':id/', {
         response: { 200: { body: UserResponse, headers: HeaderSchema } },
       });
-      expect(r._ctx?.responseHeaderSchemas?.[200]).toBe(HeaderSchema);
+      expect(r._meta?.responseHeaderSchemas?.[200]).toBe(HeaderSchema);
     });
 
     it('bare ZodType still works and has no responseHeaderSchemas entry', () => {
       const r = httpRoute(GetUser, 'GET', ':id/', {
         response: { 200: UserResponse },
       });
-      expect(r._ctx?.responseHeaderSchemas).toBeUndefined();
+      expect(r._meta?.responseHeaderSchemas).toBeUndefined();
     });
 
     it('mixed descriptor and bare ZodType in same route', () => {
@@ -200,10 +200,10 @@ describe('httpRoute', () => {
           404: ErrorResponse,
         },
       });
-      expect(r._ctx?.responseSchemas?.[200]).toBe(UserResponse);
-      expect(r._ctx?.responseSchemas?.[404]).toBe(ErrorResponse);
-      expect(r._ctx?.responseHeaderSchemas?.[200]).toBe(HeaderSchema);
-      expect(r._ctx?.responseHeaderSchemas?.[404]).toBeUndefined();
+      expect(r._meta?.responseSchemas?.[200]).toBe(UserResponse);
+      expect(r._meta?.responseSchemas?.[404]).toBe(ErrorResponse);
+      expect(r._meta?.responseHeaderSchemas?.[200]).toBe(HeaderSchema);
+      expect(r._meta?.responseHeaderSchemas?.[404]).toBeUndefined();
     });
   });
 });

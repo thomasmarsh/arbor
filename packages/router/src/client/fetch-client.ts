@@ -3,7 +3,7 @@
 import { Result } from '@arbor/common';
 import type z from 'zod';
 import type { HttpContext, HttpResponseUnion } from '../contexts/http-context.js';
-import { getHttpCtx } from '../contexts/http-context.js';
+import { getHttpMeta } from '../contexts/http-context.js';
 import type { RouteNode } from '../core/route-node.js';
 import { getTag, type WalkNode } from '../core/walk.js';
 
@@ -54,7 +54,7 @@ export interface TypedClient<
 function buildMethodMap(nodes: WalkNode[]): Record<string, string> {
   const map: Record<string, string> = {};
   for (const node of nodes) {
-    const httpCtx = getHttpCtx(node);
+    const httpCtx = getHttpMeta(node);
     if (node.schema !== null && httpCtx?.method) {
       const tag = getTag(node.schema);
       if (tag) map[tag] = httpCtx.method;
@@ -69,7 +69,7 @@ function buildMethodMap(nodes: WalkNode[]): Record<string, string> {
 function buildResponseSchemaMap(nodes: WalkNode[]): Record<string, Record<number, z.ZodType>> {
   const map: Record<string, Record<number, z.ZodType>> = {};
   for (const node of nodes) {
-    const httpCtx = getHttpCtx(node);
+    const httpCtx = getHttpMeta(node);
     if (node.schema !== null && httpCtx?.responseSchemas) {
       const tag = getTag(node.schema);
       if (tag) map[tag] = httpCtx.responseSchemas;
