@@ -58,11 +58,12 @@ Rationale for ordering:
 
 - **29**: Typed response headers. Extends handler return type and OpenAPI spec.
 - **30**: Typed request headers. Extends `ctx` shape; same validation pattern as plan 25.
-- **31 spike**: Typed HTTP API client architecture. Resolves Q8 (package boundary
-  and generation strategy). Depends on 22+23 being settled and 29+30 drafted.
-  Opens a new implementation plan if the spike is green.
+- **31 spike**: ✓ Done. Typed HTTP API client architecture spike. Resolved Q8;
+  opened plan 48.
+- **48**: Typed HTTP client — options API (`{body?, headers?}`), `HttpResponseUnion`
+  return type, `./client` and `./server` subpath exports. Opens after plan 31.
 - **35**: Multipart/streaming body parsing (S1). Depends on plan 22 (ctx shape).
-  Can proceed in parallel with 29/30/31.
+  Can proceed in parallel with 29/30/48.
 
 ---
 
@@ -78,13 +79,17 @@ Rationale for ordering:
 - **41**: Examples directory. First batch (`basic-server`, `nested-routes`,
   `query-params`) lands after plan 22. Add further examples as each feature
   plan completes.
-- **44**: Type-safe middleware pipeline. Prerequisite for 36, 37, 38, 39, 40.
-  Must land before any plan that declares route-level middleware.
-- **45**: Pluggable error mapping. Extends plan 25's catch block; may simplify
-  if 44 lands first.
-- **36**: Per-route rate limiting. Becomes a built-in middleware after plan 44.
-- **37**: Telemetry decorator (`withMetrics`). Server-output wrapper; independent
-  of middleware pipeline but clean to implement after.
+- **44**: ~~Type-safe middleware pipeline~~ **Superseded by plan 49 spike.**
+  Use handler enrichers (`withEnricher`) instead — see plan 49.
+- **49 spike**: ✓ Done. Handler enrichers validated as middleware replacement.
+  `withEnricher` + `composeEnrichers` in `src/server/enrichers.ts`. Plans 36,
+  37, 38, 39, 40 each get a named enricher; no pipeline runner needed.
+- **50**: Publish enrichers to public API + redirect plans 36–40. **Next.**
+  Exports `Enricher`/`withEnricher`/`composeEnrichers`; closes plan 44;
+  updates plans 36–40 dependency sections to reference `withEnricher`.
+- **45**: Pluggable error mapping. Extends plan 25's catch block.
+- **36**: Per-route rate limiting. Implement as `withRateLimit` enricher.
+- **37**: Telemetry decorator (`withMetrics`). Implement as `withMetrics` enricher.
 
 ---
 
@@ -113,8 +118,7 @@ Rationale for ordering:
 
 - **Plan 24** (TanStack bridge spike): Do not start until plans 19–23 complete.
   See Q4 + Q6. If undeferred, lives in `packages/router-tanstack`.
-- **Client SDK implementation plan** (number TBD): Opens from plan 31 spike
-  result. No plan number assigned until Q8 is resolved.
+- **Plan 48** (typed HTTP client): Opens from plan 31 spike. See plan 48.
 - **Radix tree router** (spec.enhancements Phase 4): Performance optimization.
   Not planned until a benchmark shows O(N) lookup is a real bottleneck.
 
@@ -150,10 +154,13 @@ Rationale for ordering:
 | 41   | Examples directory                                         |
 | 42   | Edge and corner case tests                                 |
 | 43   | Type inference depth / complexity limits — spike           |
-| 44   | Type-safe middleware pipeline (enhancements Ph.2 #2)       |
+| 44   | ~~Type-safe middleware pipeline~~ — superseded by plan 49  |
+| 45   | Pluggable error mapping engine (enhancements Ph.2 #3)      |
 | 46   | Spike: restructure `Derive`/`ChildUnion` — ✓ done          |
 | 47   | Remove `_child` phantom via depth-counter                  |
-| 45   | Pluggable error mapping engine (enhancements Ph.2 #3)      |
+| 48   | Typed HTTP client: options API + headers + subpath exports |
+| 49   | Spike: handler enrichers as middleware alt. — ✓ done       |
+| 50   | Publish enrichers API; redirect plans 36–40                |
 
 ---
 

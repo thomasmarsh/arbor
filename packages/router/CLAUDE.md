@@ -68,6 +68,28 @@ type Derive<N> = N extends RouteNode<unknown, any, any, any> ? FlattenChildrenIm
 8. **Preserve tests**: Never delete or break past tests. Fix the refactor to match.
 9. **One phase at a time**: Complete the current phase in `plan/` fully before starting the next.
 
+## Examples (`examples/`)
+
+Self-contained runnable demos in `examples/`. Run them as a smoke test with `pnpm run examples`.
+
+**Keep them current**: when a plan changes the public API, update any example that exercises it. The examples are the human-facing documentation — stale examples are worse than no examples.
+
+| File | What it shows |
+| --- | --- |
+| `basic-server.ts` | `createServer` + `handle()` dispatch |
+| `basic-client.ts` | `createClient.fetch()` with typed responses |
+| `query-params.ts` | `httpRoute` with a Zod query schema |
+| `nested-routes.ts` | Nested `route()` tree; `parse()` + `print()` roundtrip |
+| `openapi-output.ts` | `generateSpec()` → stdout JSON |
+| `auth-protected.ts` | _Pending plan 39_ |
+
+**Rules for examples**:
+
+- Import only from `../src/index.js` (no publish step needed).
+- No `expect`/`describe` — real code only.
+- Every example must produce visible output when run with `tsx`.
+- Add the new entry to the table above when you add a file.
+
 ## Planning
 
 When planning, use the following rules:
