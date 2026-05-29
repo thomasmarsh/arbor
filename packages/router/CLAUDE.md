@@ -81,6 +81,7 @@ Self-contained runnable demos in `examples/`. Run them as a smoke test with `pnp
 | `query-params.ts` | `httpRoute` with a Zod query schema |
 | `nested-routes.ts` | Nested `route()` tree; `parse()` + `print()` roundtrip |
 | `openapi-output.ts` | `generateSpec()` → stdout JSON |
+| `enrichers.ts` | `withEnricher` + `composeEnrichers` — pre-handler auth/plan checks |
 | `auth-protected.ts` | _Pending plan 39_ |
 
 **Rules for examples**:

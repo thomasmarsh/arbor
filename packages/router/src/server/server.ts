@@ -5,6 +5,11 @@ interface BodyValidator {
   safeParse(data: unknown): { success: boolean; data?: unknown; error?: unknown };
 }
 
+export interface ErrorMapEntry {
+  match: (e: unknown) => boolean;
+  response: (e: unknown) => { status: number; body: unknown };
+}
+
 export interface HandlerCtx<
   CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown>>,
   Routes,
@@ -39,6 +44,7 @@ export function createServer<
     parse(url: URL): Result<Route, string>;
   },
   handlers: HandlerMap<Map, Route>,
+  options?: { errorMap?: ErrorMapEntry[] },
 ) {
   return {
     async handle(
@@ -117,7 +123,15 @@ export function createServer<
             };
             if (handlerResult.headers) response.headers = handlerResult.headers;
             return response;
-          } catch {
+          } catch (e) {
+            if (options?.errorMap) {
+              for (const entry of options.errorMap) {
+                if (entry.match(e)) {
+                  const mapped = entry.response(e);
+                  return { status: mapped.status, body: mapped.body };
+                }
+              }
+            }
             return { status: 500, body: { error: 'internal server error' } };
           }
         },

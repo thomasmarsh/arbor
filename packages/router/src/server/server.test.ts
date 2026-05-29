@@ -277,4 +277,102 @@ describe('createServer', () => {
       expect(result.status).not.toBe(500);
     });
   });
+
+  describe('errorMap', () => {
+    class ConflictError extends Error {}
+    class NotFoundError extends Error {
+      constructor(public resource: string) {
+        super(`${resource} not found`);
+      }
+    }
+
+    const serverWithErrorMap = createServer(
+      router,
+      {
+        'get-user': () => {
+          throw new ConflictError('duplicate');
+        },
+        'create-user': (ctx) =>
+          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
+        'search-items': () => Promise.reject(new NotFoundError('items')),
+      },
+      {
+        errorMap: [
+          {
+            match: (e) => e instanceof ConflictError,
+            response: () => ({ status: 409 as const, body: { error: 'conflict' } }),
+          },
+          {
+            match: (e) => e instanceof NotFoundError,
+            response: (e) => ({ status: 404 as const, body: { error: (e as NotFoundError).message } }),
+          },
+        ],
+      },
+    );
+
+    it('returns the mapped status when error matches', async () => {
+      const result = await serverWithErrorMap.handle(new URL('https://example.com/users/1'), 'GET');
+      expect(result.status).toBe(409);
+      expect((result.body as Record<string, unknown>)['error']).toBe('conflict');
+    });
+
+    it('passes error to response factory', async () => {
+      const result = await serverWithErrorMap.handle(new URL('https://example.com/items'), 'GET');
+      expect(result.status).toBe(404);
+      expect((result.body as Record<string, unknown>)['error']).toBe('items not found');
+    });
+
+    it('returns 500 when no entry matches', async () => {
+      const s = createServer(
+        router,
+        {
+          'get-user': () => {
+            throw new ConflictError('x');
+          },
+          'create-user': (ctx) =>
+            Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
+          'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+        },
+        {
+          errorMap: [
+            {
+              match: (e) => e instanceof NotFoundError,
+              response: () => ({ status: 404 as const, body: { error: 'not found' } }),
+            },
+          ],
+        },
+      );
+      const result = await s.handle(new URL('https://example.com/users/1'), 'GET');
+      expect(result.status).toBe(500);
+    });
+
+    it('first matching entry wins', async () => {
+      const s = createServer(
+        router,
+        {
+          'get-user': () => {
+            throw new ConflictError('x');
+          },
+          'create-user': (ctx) =>
+            Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
+          'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+        },
+        {
+          errorMap: [
+            {
+              match: () => true,
+              response: () => ({ status: 409 as const, body: { error: 'first' } }),
+            },
+            {
+              match: () => true,
+              response: () => ({ status: 503 as const, body: { error: 'second' } }),
+            },
+          ],
+        },
+      );
+      const result = await s.handle(new URL('https://example.com/users/1'), 'GET');
+      expect(result.status).toBe(409);
+      expect((result.body as Record<string, unknown>)['error']).toBe('first');
+    });
+  });
 });
