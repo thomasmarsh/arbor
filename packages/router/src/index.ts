@@ -14,7 +14,7 @@ export {
 } from './core/define-routes.js';
 
 // HTTP
-export { createClient, type FetchLike } from './client/fetch-client.js';
+export { createClient, type FetchLike, type TypedClient } from './client/fetch-client.js';
 export { type Enricher, composeEnrichers, withEnricher } from './server/enrichers.js';
 export { httpRoute, type HttpContext, type HttpMethod } from './contexts/http-context.js';
 export { createMemoryStore, type RateLimitPolicy, type RateLimitStore, withRateLimit } from './server/rate-limit.js';
