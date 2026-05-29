@@ -19,6 +19,7 @@ export { type Enricher, composeEnrichers, withEnricher } from './server/enricher
 export { httpRoute, type HttpContext, type HttpMethod } from './contexts/http-context.js';
 export { createMemoryStore, type RateLimitPolicy, type RateLimitStore, withRateLimit } from './server/rate-limit.js';
 export { createServer, type ErrorMapEntry, type HandlerMap, type RateLimitKeyResolver } from './server/server.js';
+export { withMetrics, type MetricsEmitter, type RequestMetric } from './server/with-metrics.js';
 
 // OpenAPI
 export { openApiRoute, type OpenApiContext, type OpenApiMeta } from './contexts/openapi-context.js';

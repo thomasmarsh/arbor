@@ -205,7 +205,7 @@ describe('createServer', () => {
   describe('handle', () => {
     it('dispatches a GET request', async () => {
       const result = await server.handle(new URL('https://example.com/users/123'), 'GET');
-      expect(result).toEqual({ status: 200, body: { id: '123', email: 'test@test.com' } });
+      expect(result).toMatchObject({ status: 200, body: { id: '123', email: 'test@test.com' } });
     });
 
     it('returns 404 for unknown routes', async () => {
@@ -218,27 +218,27 @@ describe('createServer', () => {
         name: 'Alice',
         email: 'alice@test.com',
       });
-      expect(result).toEqual({ status: 201, body: { id: '1', email: 'alice@test.com' } });
+      expect(result).toMatchObject({ status: 201, body: { id: '1', email: 'alice@test.com' } });
     });
 
     it('returns 405 when method does not match', async () => {
       const result = await server.handle(new URL('https://example.com/users/123'), 'DELETE');
-      expect(result).toEqual({ status: 405, body: { error: 'method not allowed' } });
+      expect(result).toMatchObject({ status: 405, body: { error: 'method not allowed' } });
     });
 
     it('returns 405 for POST to a GET-only route', async () => {
       const result = await server.handle(new URL('https://example.com/users/123'), 'POST');
-      expect(result).toEqual({ status: 405, body: { error: 'method not allowed' } });
+      expect(result).toMatchObject({ status: 405, body: { error: 'method not allowed' } });
     });
 
     it('passes coerced query params to handler', async () => {
       const result = await server.handle(new URL('https://example.com/items?page=5'), 'GET');
-      expect(result).toEqual({ status: 200, body: { count: 5 } });
+      expect(result).toMatchObject({ status: 200, body: { count: 5 } });
     });
 
     it('applies query schema defaults when no params provided', async () => {
       const result = await server.handle(new URL('https://example.com/items'), 'GET');
-      expect(result).toEqual({ status: 200, body: { count: 1 } });
+      expect(result).toMatchObject({ status: 200, body: { count: 1 } });
     });
 
     it('returns 400 when body fails bodySchema validation', async () => {

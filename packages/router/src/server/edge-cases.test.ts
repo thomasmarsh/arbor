@@ -26,7 +26,7 @@ describe('Server over single-route router', () => {
       only: () => Promise.resolve({ status: 200 as const, body: { ok: true } }),
     });
     const result = await server.handle(new URL('https://example.com/only'), 'GET');
-    expect(result).toEqual({ status: 200, body: { ok: true } });
+    expect(result).toMatchObject({ status: 200, body: { ok: true } });
   });
 });
 
@@ -73,7 +73,7 @@ describe('Body and query types', () => {
       search: (ctx) => Promise.resolve({ status: 200 as const, body: { id: String(ctx.query.page) } }),
     });
     const result = await server.handle(new URL('https://example.com/search'), 'GET');
-    expect(result).toEqual({ status: 200, body: { id: '1' } });
+    expect(result).toMatchObject({ status: 200, body: { id: '1' } });
   });
 
   it('route with optional query param present: value is accessible', async () => {
@@ -83,7 +83,7 @@ describe('Body and query types', () => {
       search: (ctx) => Promise.resolve({ status: 200 as const, body: { id: ctx.query.q ?? 'none' } }),
     });
     const result = await server.handle(new URL('https://example.com/search?q=hello'), 'GET');
-    expect(result).toEqual({ status: 200, body: { id: 'hello' } });
+    expect(result).toMatchObject({ status: 200, body: { id: 'hello' } });
   });
 });
 
@@ -101,7 +101,7 @@ describe('Path segment edge cases in server', () => {
         Promise.resolve({ status: 200 as const, body: { result: `${ctx.params.x}+${ctx.params.y}` } }),
     });
     const result = await server.handle(new URL('https://example.com/foo/bar'), 'GET');
-    expect(result).toEqual({ status: 200, body: { result: 'foo+bar' } });
+    expect(result).toMatchObject({ status: 200, body: { result: 'foo+bar' } });
   });
 
   it('consecutive path params: params correctly typed in handler', () => {
@@ -123,7 +123,7 @@ describe('Path segment edge cases in server', () => {
       'catch-all': () => Promise.resolve({ status: 200 as const, body: { matched: true } }),
     });
     const result = await server.handle(new URL('https://example.com/any/path/here'), 'GET');
-    expect(result).toEqual({ status: 200, body: { matched: true } });
+    expect(result).toMatchObject({ status: 200, body: { matched: true } });
   });
 });
 
@@ -148,7 +148,7 @@ describe('HTTP method edge cases', () => {
 
   it('DELETE route: dispatches correctly', async () => {
     const result = await server.handle(new URL('https://example.com/items/42/delete'), 'DELETE');
-    expect(result).toEqual({ status: 204, body: { id: '42' } });
+    expect(result).toMatchObject({ status: 204, body: { id: '42' } });
   });
 
   it('DELETE route: returns 405 for GET request', async () => {
@@ -162,7 +162,7 @@ describe('HTTP method edge cases', () => {
       'PUT',
       { name: 'updated' },
     );
-    expect(result).toEqual({ status: 200, body: { id: '42' } });
+    expect(result).toMatchObject({ status: 200, body: { id: '42' } });
   });
 
   it('PUT route with invalid body: returns 400', async () => {

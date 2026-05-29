@@ -34,7 +34,7 @@ export type HandlerMap<
 
 const DEFAULT_MAX_BODY_SIZE = 1024 * 1024;
 
-interface DispatchResult { status: number; body: unknown; headers?: Record<string, string> }
+interface DispatchResult { status: number; body: unknown; headers?: Record<string, string>; tag: string }
 
 export type RateLimitKeyResolver = (req: { url: URL; headers: Record<string, string> }) => string;
 
@@ -82,7 +82,7 @@ export function createServer<
 
     const expected = router.methodMap[tag];
     if (expected && expected !== method) {
-      return { status: 405, body: { error: 'method not allowed' } };
+      return { status: 405, body: { error: 'method not allowed' }, tag };
     }
 
     const rlPolicy = router.rateLimitMap?.[tag];
@@ -97,18 +97,19 @@ export function createServer<
           status: 429,
           body: { error: 'too many requests' },
           headers: { 'retry-after': String(Math.ceil(rlPolicy.windowMs / 1000)) },
+          tag,
         };
       }
     }
 
     const handler = (handlers as Record<string, UntypedHandler>)[tag];
-    if (!handler) return { status: 404, body: { error: `no handler for tag: ${tag}` } };
+    if (!handler) return { status: 404, body: { error: `no handler for tag: ${tag}` }, tag };
 
     let validatedBody: unknown = body;
     const bodySchema = router.bodySchemaMap[tag];
     if (bodySchema) {
       const result = bodySchema.safeParse(body);
-      if (!result.success) return { status: 400, body: { error: 'invalid request body' } };
+      if (!result.success) return { status: 400, body: { error: 'invalid request body' }, tag };
       validatedBody = result.data;
     }
 
@@ -116,7 +117,7 @@ export function createServer<
     const headerSchema = router.headerSchemaMap?.[tag];
     if (headerSchema) {
       const result = headerSchema.safeParse(headers);
-      if (!result.success) return { status: 400, body: { error: 'invalid request headers' } };
+      if (!result.success) return { status: 400, body: { error: 'invalid request headers' }, tag };
       validatedHeaders = result.data;
     }
 
@@ -136,7 +137,7 @@ export function createServer<
         }
       }
 
-      const response: DispatchResult = { status: handlerResult.status, body: handlerResult.body };
+      const response: DispatchResult = { status: handlerResult.status, body: handlerResult.body, tag };
       if (handlerResult.headers) response.headers = handlerResult.headers;
       return response;
     } catch (e) {
@@ -144,11 +145,11 @@ export function createServer<
         for (const entry of options.errorMap) {
           if (entry.match(e)) {
             const mapped = entry.response(e);
-            return { status: mapped.status, body: mapped.body };
+            return { status: mapped.status, body: mapped.body, tag };
           }
         }
       }
-      return { status: 500, body: { error: 'internal server error' } };
+      return { status: 500, body: { error: 'internal server error' }, tag };
     }
   }
 
@@ -160,7 +161,7 @@ export function createServer<
   ): Promise<DispatchResult> {
     return router.parse(url).fold(
       (route) => executeRoute(route, url, method, body, headers),
-      (error) => Promise.resolve({ status: 404, body: { error } }),
+      (error) => Promise.resolve({ status: 404, body: { error }, tag: 'unmatched' }),
     );
   }
 
@@ -170,15 +171,15 @@ export function createServer<
       method: string,
       body?: unknown,
       headers?: Record<string, string>,
-    ): Promise<{ status: number; body: unknown; headers?: Record<string, string> }> {
+    ): Promise<{ status: number; body: unknown; headers?: Record<string, string>; tag: string }> {
       return dispatch(url, method, body, headers ?? {});
     },
 
     async handleRequest(
       request: Request,
-    ): Promise<{ status: number; body: unknown; headers?: Record<string, string> }> {
+    ): Promise<{ status: number; body: unknown; headers?: Record<string, string>; tag: string }> {
       const bodyResult = await parseBody(request, maxBodySize);
-      if (!bodyResult.ok) return { status: bodyResult.status, body: bodyResult.body };
+      if (!bodyResult.ok) return { status: bodyResult.status, body: bodyResult.body, tag: 'unmatched' };
       const headers: Record<string, string> = {};
       request.headers.forEach((v, k) => { headers[k] = v; });
       return dispatch(new URL(request.url), request.method, bodyResult.data, headers);
