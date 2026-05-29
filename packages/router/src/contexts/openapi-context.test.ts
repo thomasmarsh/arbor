@@ -40,6 +40,13 @@ describe('openApiRoute', () => {
     expect(r._ctx?.responseSchemas).toBeDefined();
   });
 
+  it('stores responseSchemas with numeric keys', () => {
+    const r = openApiRoute(GetUser, 'GET', 'users/:id/', {
+      response: { 200: UserResp },
+    });
+    expectTypeOf(r._ctx!.responseSchemas!).toEqualTypeOf<Record<number, z.ZodType>>();
+  });
+
   it('infers OpenApiContext with meta field', () => {
     const r = openApiRoute(GetUser, 'GET', 'users/:id/', {
       response: { 200: UserResp },

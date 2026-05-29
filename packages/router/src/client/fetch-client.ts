@@ -22,7 +22,7 @@ interface RouterArg<Route> {
   _type: Route;
   _ctxMap: Record<string, HttpContext<any, any, any, any>>;
   print(route: Route): string;
-  children: RouteNode<unknown, unknown, any, any>[];
+  children: RouteNode<unknown, unknown, any, any, any>[];
 }
 
 function buildMethodMap(nodes: WalkNode[]): Record<string, string> {

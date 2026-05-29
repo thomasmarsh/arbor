@@ -57,10 +57,23 @@ TanStack work is additive; the runtime safety floor comes first.
 
 ---
 
-## Q7 — Remove the `_child` phantom field? ✓
+## Q7 — Remove the `_child` phantom field? ✗ (blocked)
 
-**Resolution**: Yes, remove it. Own plan (28), done after plan 19 since both
-touch `RouteNode`. Prefer more small plans over fewer large ones.
+**Resolution REVISED**: Cannot be removed as stated. `_child: Child` is a
+load-bearing memoization field for TypeScript's type inference engine.
+
+**Why it cannot be removed**: `Derive<N>` reads `Child` via `infer Child`
+matched against `_child: Child`. Without this structural anchor, recovering
+`Child` from a `RouteNode<R, Child, C, ...>` requires calling `ChildUnion<C>`
+directly inside `Derive`. But `ChildUnion` calls `Derive` for each child node,
+creating mutual recursion. TypeScript hits its instantiation depth limit
+(`TS2589: Type instantiation is excessively deep`) even for shallow trees (3
+levels in the test suite). The current design uses `_child` as a precomputed
+cache — each `Derive<N>` call is O(1) vs. O(tree-depth) without it.
+
+**Possible future path**: Restructure `Derive`/`ChildUnion` so they are not
+mutually recursive before attempting field removal. This is a larger type
+surgery and warrants its own plan.
 **See**: 28.remove-child-phantom.md
 
 ---

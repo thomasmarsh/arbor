@@ -32,7 +32,7 @@ type InferResponseMap<R extends Record<number, z.ZodType>> = {
 export function httpRoute<
   S extends z.ZodObject<any, any>,
   Method extends HttpMethod,
-  C extends RouteNode<unknown, unknown, any, any>[] = [],
+  C extends RouteNode<unknown, unknown, any, any, any>[] = [],
   Body = never,
   Res extends Record<number, z.ZodType> = Record<number, z.ZodType>,
   Q extends z.ZodObject<any, any> | undefined = undefined,

@@ -110,7 +110,7 @@ describe('defineRoutes', () => {
 
     function printRoute(router: ReturnType<typeof defineRoutes>, route: unknown): string {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      return router.print(route as any);
+      return router.print(route as any, undefined as any);
     }
 
     for (const path of paths) {
@@ -174,6 +174,11 @@ describe('defineRoutes', () => {
     it('prints through a section when params are in child', () => {
       const url = sectionRouter.print({ child: { tag: 'project', projectId: 42 } }, { orgId: 'acme' });
       expect(url).toBe('/orgs/acme/42');
+    });
+
+    it('omitting a required section param is a compile error', () => {
+      // @ts-expect-error — orgId is required for this section router
+      sectionRouter.print({ child: { tag: 'project', projectId: 42 } });
     });
 
     it('section path params are not preserved in parse result', () => {

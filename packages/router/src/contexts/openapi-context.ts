@@ -10,7 +10,7 @@ import type { HttpContext, HttpMethod } from './http-context.js';
 interface OpenApiContextData {
   method: HttpMethod;
   bodySchema?: z.ZodType;
-  responseSchemas: Record<string, z.ZodType>;
+  responseSchemas: Record<number, z.ZodType>;
   meta?: OpenApiMeta;
 }
 
@@ -41,7 +41,7 @@ type InferResponseMap<R extends Record<number, z.ZodType>> = {
 export function openApiRoute<
   S extends z.ZodObject<any, any>,
   Method extends HttpMethod,
-  C extends RouteNode<unknown, unknown, any, any>[] = [],
+  C extends RouteNode<unknown, unknown, any, any, any>[] = [],
   Body = never,
   Res extends Record<number, z.ZodType> = Record<number, z.ZodType>,
 >(
@@ -200,7 +200,7 @@ function walkSpec(
 }
 
 export function generateSpec(
-  router: { children: RouteNode<unknown, unknown, any, any>[] },
+  router: { children: RouteNode<unknown, unknown, any, any, any>[] },
   info: { title: string; version: string },
 ): Record<string, unknown> {
   const paths: Record<string, Record<string, unknown>> = {};

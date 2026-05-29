@@ -2,14 +2,23 @@
 
 import { Result } from '@arbor/common';
 import type z from 'zod';
-import type { ChildUnion, CtxMap, RouteNode } from './route-node.js';
+import type { ChildUnion, CtxMap, ExtractPathParams, RouteNode } from './route-node.js';
 import { parseSegments } from './segments.js';
 import { type ParseDiag, type WalkNode, buildUrl, getTag, walkParse, walkPrint } from './walk.js';
+
+type CollectChildSectionParams<C extends RouteNode<unknown, unknown, any, any, any>[]> = {
+  [K in keyof C]: C[K] extends RouteNode<any, any, any, any, infer SP> ? SP : never;
+}[number];
+
+type AllSectionParams<C extends RouteNode<unknown, unknown, any, any, any>[]> = {
+  [K in keyof C]: C[K] extends RouteNode<any, any, any, any, infer SP> ? SP : never;
+}[number];
 
 export {
   type ChildUnion,
   type CtxMap,
   type Derive,
+  type ExtractPathParams,
   type Flatten,
   type InferContext,
   type InferRoute,
@@ -21,7 +30,7 @@ export type { ParseDiag } from './walk.js';
 
 export function route<
   S extends z.ZodObject<any, any>,
-  C extends RouteNode<unknown, unknown, any, any>[] = [],
+  C extends RouteNode<unknown, unknown, any, any, any>[] = [],
 >(
   schema: S,
   path: string,
@@ -38,10 +47,13 @@ export function route<
   };
 }
 
-export function section<C extends RouteNode<unknown, unknown, any, any>[]>(
-  path: string,
+export function section<
+  Path extends string,
+  C extends RouteNode<unknown, unknown, any, any, any>[],
+>(
+  path: Path,
   children: [...C],
-): RouteNode<never, ChildUnion<C>, [...C]> {
+): RouteNode<never, ChildUnion<C>, [...C], never, ExtractPathParams<Path> | CollectChildSectionParams<C>> {
   return {
     _type: undefined as never,
     _child: undefined as never,
@@ -82,10 +94,25 @@ function collectMethods(nodes: WalkNode[]): Record<string, string> {
   return map;
 }
 
-export function defineRoutes<C extends RouteNode<unknown, unknown, any, any>[] = []>(
+function collectBodySchemas(nodes: WalkNode[]): Record<string, z.ZodType> {
+  const map: Record<string, z.ZodType> = {};
+  for (const node of nodes) {
+    if (node.schema !== null && node._ctx?.bodySchema) {
+      const tag = getTag(node.schema);
+      if (tag) map[tag] = node._ctx.bodySchema;
+    }
+    if (node.children.length > 0) {
+      Object.assign(map, collectBodySchemas(node.children as WalkNode[]));
+    }
+  }
+  return map;
+}
+
+export function defineRoutes<C extends RouteNode<unknown, unknown, any, any, any>[] = []>(
   children: [...C],
 ) {
   type Route = ChildUnion<C>;
+  type SP = AllSectionParams<[...C]>;
 
   const nodes = children as WalkNode[];
 
@@ -97,29 +124,47 @@ export function defineRoutes<C extends RouteNode<unknown, unknown, any, any>[] =
   }
 
   const methodMap = collectMethods(nodes);
+  const bodySchemaMap = collectBodySchemas(nodes);
 
   return {
     _type: undefined as never as Route,
     _ctxMap: undefined as never as CtxMap<[...C]>,
     children,
     methodMap,
+    bodySchemaMap,
 
     parse(url: URL): Result<Route, string> {
-      const segments = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+      let segments: string[];
+      try {
+        segments = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+      } catch {
+        return Result.failure(`invalid URL encoding: ${url.pathname}`);
+      }
       const raw = walkParse(nodes, segments, url.searchParams);
       if (!raw) return Result.failure(`no route: ${url.pathname}`);
       return Result.success(raw) as Result<Route, string>;
     },
 
     parseDiagnostics(url: URL): { result: Result<Route, string>; diagnostics: ParseDiag[] } {
-      const segs = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+      let segs: string[];
+      try {
+        segs = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+      } catch {
+        return { result: Result.failure(`invalid URL encoding: ${url.pathname}`), diagnostics: [] };
+      }
       const diag: ParseDiag[] = [];
       const raw = walkParse(nodes, segs, url.searchParams, {}, diag);
       if (!raw) return { result: Result.failure(`no route: ${url.pathname}`), diagnostics: diag };
       return { result: Result.success(raw) as Result<Route, string>, diagnostics: diag };
     },
 
-    print(route: Route, sectionParams?: Record<string, string | number>): string {
+    print(
+      route: Route,
+      ...args: [SP] extends [never]
+        ? [sectionParams?: Record<string, string | number>]
+        : [sectionParams: Record<SP, string | number>]
+    ): string {
+      const sectionParams = args[0];
       const result = walkPrint(nodes, route, {
         segments: [],
         paramNames: new Set(),

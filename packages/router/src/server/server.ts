@@ -2,6 +2,10 @@ import type { Result } from '@arbor/common';
 import type { HttpContext, HttpMethod } from '../contexts/http-context.js';
 import type { ResponseUnion } from '../core/route-node.js';
 
+interface BodyValidator {
+  safeParse(data: unknown): { success: boolean; data?: unknown; error?: unknown };
+}
+
 export type HandlerMap<
   CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown>>,
   Routes,
@@ -21,6 +25,7 @@ export function createServer<
     _type: Route;
     _ctxMap: Map;
     methodMap: Record<string, string>;
+    bodySchemaMap: Record<string, BodyValidator>;
     parse(url: URL): Result<Route, string>;
   },
   handlers: HandlerMap<Map, Route>,
@@ -28,11 +33,11 @@ export function createServer<
   return {
     async handle(url: URL, method: string, body?: unknown): Promise<{ status: number; body: unknown }> {
       return router.parse(url).fold(
-        (route) => {
+        async (route) => {
           const tag = route.tag;
           const expected = router.methodMap[tag];
           if (expected && expected !== method) {
-            return Promise.resolve({ status: 405, body: { error: 'method not allowed' } });
+            return { status: 405, body: { error: 'method not allowed' } };
           }
           const handler = (
             handlers as Record<
@@ -41,9 +46,24 @@ export function createServer<
             >
           )[tag];
           if (!handler) {
-            return Promise.resolve({ status: 404, body: { error: `no handler for tag: ${tag}` } });
+            return { status: 404, body: { error: `no handler for tag: ${tag}` } };
           }
-          return handler(route, body, (route as Record<string, unknown>)['query']);
+
+          let validatedBody: unknown = body;
+          const bodySchema = router.bodySchemaMap[tag];
+          if (bodySchema) {
+            const result = bodySchema.safeParse(body);
+            if (!result.success) {
+              return { status: 400, body: { error: 'invalid request body' } };
+            }
+            validatedBody = result.data;
+          }
+
+          try {
+            return await handler(route, validatedBody, (route as Record<string, unknown>)['query']);
+          } catch {
+            return { status: 500, body: { error: 'internal server error' } };
+          }
         },
         (error) => Promise.resolve({ status: 404, body: { error } }),
       );

@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Ready to begin `plan/20.print-section-params.md`.
-- **Current Status**: Plans 19–28 queued (24 deferred). See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Ready to begin `plan/27.normalize-status-code-types.md` (next in queue).
+- **Current Status**: Plan 28 blocked (see Q7 in `questions.md`); plan 46 spike added to Wave 1 to unblock it. Plans 20–27 queued (24 deferred). See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -21,9 +21,9 @@
 
 ## Working Commands
 
-- Test suite: `npm test`
-- Type checking: `npm run typecheck`
-- Verification chain: `npm test && npm run typecheck`
+- Test suite: `pnpm test`
+- Type checking: `pnpm run typecheck`
+- Verification chain: `pnpm test && pnpm run typecheck && pnpm run lint`
 
 NOTE: Path structure described in `plan/spec.topology.md`
 

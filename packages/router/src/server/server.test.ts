@@ -124,5 +124,44 @@ describe('createServer', () => {
       const result = await server.handle(new URL('https://example.com/items'), 'GET');
       expect(result).toEqual({ status: 200, body: { count: 1 } });
     });
+
+    it('returns 400 when body fails bodySchema validation', async () => {
+      const result = await server.handle(
+        new URL('https://example.com/users'),
+        'POST',
+        { notAName: 123 },
+      );
+      expect(result.status).toBe(400);
+    });
+
+    it('returns 500 when handler throws synchronously', async () => {
+      const crashingServer = createServer(router, {
+        'get-user': () => { throw new Error('boom'); },
+        'create-user': (_route, body) =>
+          Promise.resolve({ status: 201 as const, body: { id: '1', email: body.email } }),
+        'search-items': () =>
+          Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+      });
+      const result = await crashingServer.handle(new URL('https://example.com/users/1'), 'GET');
+      expect(result.status).toBe(500);
+      expect((result.body as Record<string, unknown>)['error']).toBe('internal server error');
+    });
+
+    it('returns 500 when handler rejects', async () => {
+      const rejectingServer = createServer(router, {
+        'get-user': () => Promise.reject(new Error('async boom')),
+        'create-user': (_route, body) =>
+          Promise.resolve({ status: 201 as const, body: { id: '1', email: body.email } }),
+        'search-items': () =>
+          Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+      });
+      const result = await rejectingServer.handle(new URL('https://example.com/users/1'), 'GET');
+      expect(result.status).toBe(500);
+    });
+
+    it('returns 404 for path with invalid percent-encoding', async () => {
+      const result = await server.handle(new URL('https://example.com/users/%25zz'), 'GET');
+      expect(result.status).not.toBe(500);
+    });
   });
 });

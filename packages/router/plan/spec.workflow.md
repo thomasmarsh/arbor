@@ -7,16 +7,18 @@ Work through numbered plans in this sequence. Complete each fully (tests passing
 ### Current queue (plans 19–23)
 
 ```text
-19 → 28 → 21 → 27 → 25 → 20 → 22 → 26 → 23
+19 → 21 → 27 → 25 → 20 → 22 → 26 → 23
 ```
 
 Plan 24 (TanStack bridge) is **deferred** — do not start until 19–23 are complete.
+Plan 28 (`_child` removal) is **blocked** — see Q7 in `questions.md`. Spike 46
+must validate an approach first; a new implementation plan (28b) will follow.
 
 Rationale for ordering:
 
 - **19 first**: Phantom/runtime context split. Adds `_ctx`; unblocks all plans that read runtime schemas cast-free (25, 22, 23).
-- **28 after 19**: Remove the redundant `_child` phantom field. Both plans touch `RouteNode`; doing them back-to-back keeps diffs small and avoids re-reading the same file later.
-- **21 after 28**: Smallest plan — `Route extends { tag: string }` bound. Independent, zero-risk.
+- **28 removed from queue**: Blocked. `_child` is a load-bearing type memoization field; removing it causes `TS2589` due to mutual recursion in `Derive`/`ChildUnion`. See plan 46 spike.
+- **21 after 19**: Smallest plan — `Route extends { tag: string }` bound. Independent, zero-risk.
 - **27 after 21**: Normalize `Record<number>` vs `Record<string>` for response status codes. Small, independent; must land before the OpenAPI generator (23).
 - **25 after 19**: Server body validation and error boundary. Critical production safety floor. Needs `_ctx.bodySchema` from plan 19.
 - **20 after 25**: Section params in `print()` via full phantom threading (Q1). Type machinery is fresh from 19.
@@ -31,6 +33,7 @@ Rationale for ordering:
 ```text
 42 (edge case tests)
 43 spike (inference limits)   ← independent, can run in parallel with 42
+46 spike (derive restructure) ← independent, can run in parallel with 42/43
 ```
 
 - **42**: Edge and corner case tests. Builds directly on plan 26's test framework.
@@ -38,6 +41,11 @@ Rationale for ordering:
 - **43 spike**: Benchmark type inference depth/complexity. Independent; run
   at any point after plan 19. If the spike reveals a real problem, a new plan
   is opened before continuing.
+- **46 spike**: Restructure `Derive`/`ChildUnion` to eliminate mutual recursion,
+  unblocking plan 28 (`_child` removal). Explores a single-recursive mapped type
+  (`FlattenChildren`) that avoids the `TS2589` depth limit. If green, opens a
+  new implementation plan (28b). If red, closes plan 28 permanently. Independent
+  of all wave-1 work; can run in parallel with 42 and 43.
 
 ---
 
@@ -143,6 +151,7 @@ Rationale for ordering:
 | 42   | Edge and corner case tests                                 |
 | 43   | Type inference depth / complexity limits — spike           |
 | 44   | Type-safe middleware pipeline (enhancements Ph.2 #2)       |
+| 46   | Spike: restructure `Derive`/`ChildUnion` (unblocks plan 28)|
 | 45   | Pluggable error mapping engine (enhancements Ph.2 #3)      |
 
 ---
