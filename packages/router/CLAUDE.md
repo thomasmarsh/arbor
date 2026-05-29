@@ -82,6 +82,7 @@ Self-contained runnable demos in `examples/`. Run them as a smoke test with `pnp
 | `nested-routes.ts` | Nested `route()` tree; `parse()` + `print()` roundtrip |
 | `openapi-output.ts` | `generateSpec()` → stdout JSON |
 | `enrichers.ts` | `withEnricher` + `composeEnrichers` — pre-handler auth/plan checks |
+| `typed-client.ts` | `createClient` options object API; typed request headers; `TypedClient` utility type |
 | `auth-protected.ts` | _Pending plan 39_ |
 
 **Rules for examples**:

@@ -3,7 +3,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { httpRoute } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
-import { createClient, type FetchLike } from './fetch-client.js';
+import { createClient, type FetchLike, type TypedClient } from './fetch-client.js';
 
 describe('createClient', () => {
   const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
@@ -14,6 +14,11 @@ describe('createClient', () => {
   const CreateBody = z.object({ name: z.string(), email: z.string() });
   const SearchQuery = z.object({ page: z.number().default(1) });
   const SearchResp = z.object({ count: z.number() });
+
+  const AuthHeader = z.object({ authorization: z.string() });
+  const RespHeader = z.object({ 'x-request-id': z.string() });
+  const ProtectedRoute = z.object({ tag: z.literal('protected') });
+  const HeaderResp = z.object({ id: z.string() });
 
   const router = defineRoutes([
     httpRoute(GetUser, 'GET', 'users/:id/', {
@@ -26,6 +31,10 @@ describe('createClient', () => {
     httpRoute(SearchItems, 'GET', 'items/', {
       query: SearchQuery,
       response: { 200: SearchResp },
+    }),
+    httpRoute(ProtectedRoute, 'GET', 'protected/', {
+      headers: AuthHeader,
+      response: { 200: { body: HeaderResp, headers: RespHeader } },
     }),
   ]);
 
@@ -60,7 +69,7 @@ describe('createClient', () => {
     it('POST route requires body argument', async () => {
       const result = await client.fetch(
         { tag: 'create-user' },
-        { name: 'Alice', email: 'alice@test.com' },
+        { body: { name: 'Alice', email: 'alice@test.com' } },
       );
       expectTypeOf(result).toEqualTypeOf<{ status: 201; body: { id: string; email: string } }>();
       expect(result.status).toBe(200);
@@ -89,7 +98,7 @@ describe('createClient', () => {
       });
 
       const client = createClient('https://example.com', router, { fetch: fetchFn });
-      await client.fetch({ tag: 'create-user' }, { name: 'Alice', email: 'alice@test.com' });
+      await client.fetch({ tag: 'create-user' }, { body: { name: 'Alice', email: 'alice@test.com' } });
 
       expect(capturedUrl).toBe('https://example.com/users');
     });
@@ -156,7 +165,7 @@ describe('createClient', () => {
       });
 
       const client = createClient('https://example.com', router, { fetch: fetchFn });
-      await client.fetch({ tag: 'create-user' }, { name: 'Alice', email: 'alice@test.com' });
+      await client.fetch({ tag: 'create-user' }, { body: { name: 'Alice', email: 'alice@test.com' } });
 
       expect(capturedMethod).toBe('POST');
     });
@@ -176,7 +185,7 @@ describe('createClient', () => {
       };
 
       const client = createClient('https://example.com', router, { fetch: fetchFn });
-      await client.fetch({ tag: 'create-user' }, { name: 'Alice', email: 'alice@test.com' });
+      await client.fetch({ tag: 'create-user' }, { body: { name: 'Alice', email: 'alice@test.com' } });
 
       expect(JSON.parse(capturedBody)).toEqual({ name: 'Alice', email: 'alice@test.com' });
       expect(capturedHeaders['Content-Type']).toBe('application/json');
@@ -304,6 +313,69 @@ describe('createClient', () => {
       const client = createClient('https://example.com', router, { fetch: fetchFn });
 
       expectTypeOf(client.fetch({ tag: 'get-user', id: '1' })).toEqualTypeOf<
+        Promise<
+          | { status: 200; body: { id: string; email: string } }
+          | { status: 404; body: { error: string } }
+        >
+      >();
+    });
+  });
+
+  describe('request headers', () => {
+    const fetchFn = mockFetch(() => ({ status: 200, body: { id: '1' } }));
+    const client = createClient('https://example.com', router, { fetch: fetchFn });
+
+    it('accepts headers for a route that declares them', async () => {
+      const result = await client.fetch(
+        { tag: 'protected' },
+        { headers: { authorization: 'Bearer token' } },
+      );
+      expect(result.status).toBe(200);
+    });
+
+    it('sends request headers in the outgoing fetch call', async () => {
+      let capturedHeaders: Record<string, string> = {};
+      const trackFetch: FetchLike = (_url, init) => {
+        capturedHeaders = init.headers ?? {};
+        return Promise.resolve({ status: 200, json: () => Promise.resolve({ id: '1' }) });
+      };
+      const c = createClient('https://example.com', router, { fetch: trackFetch });
+      await c.fetch({ tag: 'protected' }, { headers: { authorization: 'Bearer xyz' } });
+      expect(capturedHeaders['authorization']).toBe('Bearer xyz');
+    });
+
+    it('type: omitting headers on a headers-only route is a type error', () => {
+      // @ts-expect-error — headers is required for this route
+      void client.fetch({ tag: 'protected' }, {});
+    });
+
+    it('type: passing headers on a route without headers is a type error', () => {
+      // @ts-expect-error — 'headers' is excess for a route with no header schema
+      void client.fetch({ tag: 'get-user', id: '1' }, { headers: { authorization: 'x' } });
+    });
+  });
+
+  describe('response headers', () => {
+    it('return type includes headers for routes with response header schema', () => {
+      const fetchFn = mockFetch(() => ({ status: 200, body: { id: '1' } }));
+      const client = createClient('https://example.com', router, { fetch: fetchFn });
+
+      expectTypeOf(
+        client.fetch({ tag: 'protected' }, { headers: { authorization: 'Bearer t' } }),
+      ).toEqualTypeOf<
+        Promise<{ status: 200; body: { id: string }; headers: { 'x-request-id': string } }>
+      >();
+    });
+
+    it('TypedClient utility type can annotate a variable holding a client', () => {
+      const fetchFn = mockFetch(() => ({ status: 200, body: {} }));
+      type Router = typeof router;
+      type Route = Router['_type'];
+      type Map = Router['_ctxMap'];
+      const typed: TypedClient<Route, Map> = createClient('https://example.com', router, {
+        fetch: fetchFn,
+      });
+      expectTypeOf(typed.fetch({ tag: 'get-user', id: '1' })).toEqualTypeOf<
         Promise<
           | { status: 200; body: { id: string; email: string } }
           | { status: 404; body: { error: string } }
