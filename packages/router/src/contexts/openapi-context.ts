@@ -2,8 +2,8 @@
 
 import type z from 'zod';
 import type { RouteNode } from '../core/define-routes.js';
-import { parseSegments } from '../core/segments.js';
 import type { HttpContext, HttpMethod } from './http-context.js';
+import { httpRoute } from './http-context.js';
 
 
 export interface OpenApiMeta {
@@ -43,20 +43,11 @@ export function openApiRoute<
   [...C],
   OpenApiContext<Method, Body, InferResponseMap<Res>>
 > {
-  return {
-    _type: undefined as never,
-    schema,
-    path,
-    segments: parseSegments(path),
-    children: (children ?? []) as [...C],
-    context: undefined as never,
-    _ctx: {
-      method,
-      ...(options.meta ? { meta: options.meta } : {}),
-      ...(options.body ? { bodySchema: options.body } : {}),
-      responseSchemas: options.response,
-    },
-  };
+  const node = httpRoute(schema, method, path, { ...(options.body ? { body: options.body } : {}), response: options.response }, children);
+  if (options.meta) {
+    (node._ctx as Record<string, unknown>)['meta'] = options.meta;
+  }
+  return node as RouteNode<z.infer<S>, [...C], OpenApiContext<Method, Body, InferResponseMap<Res>>>;
 }
 
 export { generateSpec } from '../openapi/generate-spec.js';
