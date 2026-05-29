@@ -1,5 +1,6 @@
 import type { Result } from '@arbor/common';
 import type { HttpContext, HttpMethod, HttpResponseUnion } from '../contexts/http-context.js';
+import { parseBody } from './parse-body.js';
 
 interface BodyValidator {
   safeParse(data: unknown): { success: boolean; data?: unknown; error?: unknown };
@@ -30,6 +31,8 @@ export type HandlerMap<
   ) => Promise<HttpResponseUnion<CtxMap[Tag]['response']>>;
 };
 
+const DEFAULT_MAX_BODY_SIZE = 1024 * 1024;
+
 export function createServer<
   Route extends { tag: string },
   Map extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown>>,
@@ -44,16 +47,17 @@ export function createServer<
     parse(url: URL): Result<Route, string>;
   },
   handlers: HandlerMap<Map, Route>,
-  options?: { errorMap?: ErrorMapEntry[] },
+  options?: { errorMap?: ErrorMapEntry[]; maxBodySize?: number },
 ) {
-  return {
-    async handle(
-      url: URL,
-      method: string,
-      body?: unknown,
-      headers?: Record<string, string>,
-    ): Promise<{ status: number; body: unknown; headers?: Record<string, string> }> {
-      return router.parse(url).fold(
+  const maxBodySize = options?.maxBodySize ?? DEFAULT_MAX_BODY_SIZE;
+
+  async function dispatch(
+    url: URL,
+    method: string,
+    body: unknown,
+    headers: Record<string, string>,
+  ): Promise<{ status: number; body: unknown; headers?: Record<string, string> }> {
+    return router.parse(url).fold(
         async (route) => {
           const tag = route.tag;
           const expected = router.methodMap[tag];
@@ -87,7 +91,7 @@ export function createServer<
           let validatedHeaders: unknown = undefined;
           const headerSchema = router.headerSchemaMap?.[tag];
           if (headerSchema) {
-            const result = headerSchema.safeParse(headers ?? {});
+            const result = headerSchema.safeParse(headers);
             if (!result.success) {
               return { status: 400, body: { error: 'invalid request headers' } };
             }
@@ -137,6 +141,26 @@ export function createServer<
         },
         (error) => Promise.resolve({ status: 404, body: { error } }),
       );
+  }
+
+  return {
+    async handle(
+      url: URL,
+      method: string,
+      body?: unknown,
+      headers?: Record<string, string>,
+    ): Promise<{ status: number; body: unknown; headers?: Record<string, string> }> {
+      return dispatch(url, method, body, headers ?? {});
+    },
+
+    async handleRequest(
+      request: Request,
+    ): Promise<{ status: number; body: unknown; headers?: Record<string, string> }> {
+      const bodyResult = await parseBody(request, maxBodySize);
+      if (!bodyResult.ok) return { status: bodyResult.status, body: bodyResult.body };
+      const headers: Record<string, string> = {};
+      request.headers.forEach((v, k) => { headers[k] = v; });
+      return dispatch(new URL(request.url), request.method, bodyResult.data, headers);
     },
   };
 }

@@ -278,6 +278,82 @@ describe('createServer', () => {
     });
   });
 
+  describe('handleRequest', () => {
+    const UploadRoute = z.object({ tag: z.literal('upload') });
+    const UploadBody = z.object({ file: z.instanceof(File) });
+    const uploadRouter = defineRoutes([
+      httpRoute(UploadRoute, 'POST', 'upload/', {
+        body: UploadBody,
+        response: { 200: z.object({ filename: z.string() }) },
+      }),
+    ]);
+
+    it('dispatches JSON body via handleRequest', async () => {
+      const s = createServer(router, {
+        'get-user': () => Promise.resolve({ status: 200 as const, body: { id: '1', email: 'a@b.com' } }),
+        'create-user': (ctx) =>
+          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
+        'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+      });
+      const req = new Request('https://example.com/users', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'Alice', email: 'alice@test.com' }),
+      });
+      const result = await s.handleRequest(req);
+      expect(result.status).toBe(201);
+    });
+
+    it('handles multipart/form-data with File field', async () => {
+      const s = createServer(uploadRouter, {
+        upload: (ctx) =>
+          Promise.resolve({ status: 200, body: { filename: ctx.body.file.name } }),
+      });
+      const fd = new FormData();
+      fd.append('file', new File(['hello'], 'hello.txt', { type: 'text/plain' }));
+      const req = new Request('https://example.com/upload/', { method: 'POST', body: fd });
+      const result = await s.handleRequest(req);
+      expect(result.status).toBe(200);
+      expect((result.body as { filename: string }).filename).toBe('hello.txt');
+    });
+
+    it('returns 415 for unsupported content-type', async () => {
+      const s = createServer(router, {
+        'get-user': () => Promise.resolve({ status: 200 as const, body: { id: '1', email: 'a@b.com' } }),
+        'create-user': (ctx) =>
+          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
+        'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+      });
+      const req = new Request('https://example.com/users', {
+        method: 'POST',
+        headers: { 'content-type': 'application/xml' },
+        body: '<user/>',
+      });
+      const result = await s.handleRequest(req);
+      expect(result.status).toBe(415);
+    });
+
+    it('returns 413 when content-length exceeds maxBodySize', async () => {
+      const s = createServer(
+        router,
+        {
+          'get-user': () => Promise.resolve({ status: 200 as const, body: { id: '1', email: 'a@b.com' } }),
+          'create-user': (ctx) =>
+            Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
+          'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+        },
+        { maxBodySize: 100 },
+      );
+      const req = new Request('https://example.com/users', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'content-length': '200' },
+        body: JSON.stringify({ name: 'Alice', email: 'alice@test.com' }),
+      });
+      const result = await s.handleRequest(req);
+      expect(result.status).toBe(413);
+    });
+  });
+
   describe('errorMap', () => {
     class ConflictError extends Error {}
     class NotFoundError extends Error {
