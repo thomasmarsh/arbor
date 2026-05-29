@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Ready to begin `26.type-level-test-coverage.md` (next in queue).
-- **Current Status**: Plans 19, 21, 25, 20, 27, 22 complete. Plan 28 blocked (see Q7 in `questions.md`); plan 46 spike added to Wave 1 to unblock it. Plans 26, 23 remain (24 deferred). See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Ready to begin `23` (next in queue).
+- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26 complete. Plan 28 blocked (see Q7 in `questions.md`); plan 46 spike added to Wave 1 to unblock it. Plan 23 remains (24 deferred). See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 

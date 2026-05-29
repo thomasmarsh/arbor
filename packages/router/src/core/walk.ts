@@ -8,7 +8,13 @@ export type ParseDiag =
   | { kind: 'segment-mismatch'; path: string; urlSegments: string[] }
   | { kind: 'schema-error'; path: string; issues: z.core.$ZodIssue[] };
 
-export type WalkNode = RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any, any>[], any, any>;
+export type WalkNode = RouteNode<
+  unknown,
+  unknown,
+  RouteNode<unknown, unknown, any, any, any>[],
+  any,
+  any
+>;
 
 export function getShape(schema: z.ZodObject<any, any>): Record<string, z.z.ZodType> {
   const s = schema.shape as Record<string, z.z.ZodType> | (() => Record<string, z.z.ZodType>);
@@ -184,7 +190,14 @@ export function buildUrl(
     `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`;
 
   const topLevel = Object.entries(allParams)
-    .filter(([k, v]) => k !== 'tag' && k !== 'child' && k !== 'query' && !result.paramNames.has(k) && v !== undefined)
+    .filter(
+      ([k, v]) =>
+        k !== 'tag' &&
+        k !== 'child' &&
+        k !== 'query' &&
+        !result.paramNames.has(k) &&
+        v !== undefined,
+    )
     .map(toParam);
 
   const querySubObj = allParams['query'];

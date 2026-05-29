@@ -55,7 +55,10 @@ describe('createServer', () => {
         },
         'create-user': (ctx) => {
           expectTypeOf(ctx.body).toEqualTypeOf<{ name: string; email: string }>();
-          return Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } });
+          return Promise.resolve({
+            status: 201 as const,
+            body: { id: '1', email: ctx.body.email },
+          });
         },
         'search-items': (ctx) => {
           expectTypeOf(ctx.query).toEqualTypeOf<{ page: number }>();
@@ -95,11 +98,10 @@ describe('createServer', () => {
     });
 
     it('forwards body to POST handler', async () => {
-      const result = await server.handle(
-        new URL('https://example.com/users'),
-        'POST',
-        { name: 'Alice', email: 'alice@test.com' },
-      );
+      const result = await server.handle(new URL('https://example.com/users'), 'POST', {
+        name: 'Alice',
+        email: 'alice@test.com',
+      });
       expect(result).toEqual({ status: 201, body: { id: '1', email: 'alice@test.com' } });
     });
 
@@ -124,21 +126,20 @@ describe('createServer', () => {
     });
 
     it('returns 400 when body fails bodySchema validation', async () => {
-      const result = await server.handle(
-        new URL('https://example.com/users'),
-        'POST',
-        { notAName: 123 },
-      );
+      const result = await server.handle(new URL('https://example.com/users'), 'POST', {
+        notAName: 123,
+      });
       expect(result.status).toBe(400);
     });
 
     it('returns 500 when handler throws synchronously', async () => {
       const crashingServer = createServer(router, {
-        'get-user': () => { throw new Error('boom'); },
+        'get-user': () => {
+          throw new Error('boom');
+        },
         'create-user': (ctx) =>
           Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
-        'search-items': () =>
-          Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+        'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
       });
       const result = await crashingServer.handle(new URL('https://example.com/users/1'), 'GET');
       expect(result.status).toBe(500);
@@ -150,8 +151,7 @@ describe('createServer', () => {
         'get-user': () => Promise.reject(new Error('async boom')),
         'create-user': (ctx) =>
           Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
-        'search-items': () =>
-          Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+        'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
       });
       const result = await rejectingServer.handle(new URL('https://example.com/users/1'), 'GET');
       expect(result.status).toBe(500);
