@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type z from 'zod';
-import type { ChildUnion, RouteNode } from '../core/define-routes.js';
+import type { RouteNode } from '../core/define-routes.js';
 import { parseSegments } from '../core/segments.js';
 import type { HttpContext, HttpMethod } from './http-context.js';
 
@@ -29,7 +29,7 @@ type InferResponseMap<R extends Record<number, z.ZodType>> = {
 export function openApiRoute<
   S extends z.ZodObject<any, any>,
   Method extends HttpMethod,
-  C extends RouteNode<unknown, unknown, any, any, any>[] = [],
+  C extends RouteNode<unknown, any, any, any>[] = [],
   Body = never,
   Res extends Record<number, z.ZodType> = Record<number, z.ZodType>,
 >(
@@ -40,13 +40,11 @@ export function openApiRoute<
   children?: [...C],
 ): RouteNode<
   z.infer<S>,
-  [ChildUnion<C>] extends [never] ? never : ChildUnion<C>,
   [...C],
   OpenApiContext<Method, Body, InferResponseMap<Res>>
 > {
   return {
     _type: undefined as never,
-    _child: undefined as never,
     schema,
     path,
     segments: parseSegments(path),

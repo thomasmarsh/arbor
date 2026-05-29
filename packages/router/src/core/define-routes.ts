@@ -6,12 +6,12 @@ import type { ChildUnion, CtxMap, ExtractPathParams, RouteNode } from './route-n
 import { parseSegments } from './segments.js';
 import { type ParseDiag, type WalkNode, buildUrl, getTag, walkParse, walkPrint } from './walk.js';
 
-type CollectChildSectionParams<C extends RouteNode<unknown, unknown, any, any, any>[]> = {
-  [K in keyof C]: C[K] extends RouteNode<any, any, any, any, infer SP> ? SP : never;
+type CollectChildSectionParams<C extends RouteNode<unknown, any, any, any>[]> = {
+  [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP> ? SP : never;
 }[number];
 
-type AllSectionParams<C extends RouteNode<unknown, unknown, any, any, any>[]> = {
-  [K in keyof C]: C[K] extends RouteNode<any, any, any, any, infer SP> ? SP : never;
+type AllSectionParams<C extends RouteNode<unknown, any, any, any>[]> = {
+  [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP> ? SP : never;
 }[number];
 
 export {
@@ -30,15 +30,14 @@ export type { ParseDiag } from './walk.js';
 
 export function route<
   S extends z.ZodObject<any, any>,
-  C extends RouteNode<unknown, unknown, any, any, any>[] = [],
+  C extends RouteNode<unknown, any, any, any>[] = [],
 >(
   schema: S,
   path: string,
   children?: [...C],
-): RouteNode<z.infer<S>, [ChildUnion<C>] extends [never] ? never : ChildUnion<C>, [...C]> {
+): RouteNode<z.infer<S>, [...C]> {
   return {
     _type: undefined as never,
-    _child: undefined as never,
 
     schema,
     path,
@@ -49,14 +48,13 @@ export function route<
 
 export function section<
   Path extends string,
-  C extends RouteNode<unknown, unknown, any, any, any>[],
+  C extends RouteNode<unknown, any, any, any>[],
 >(
   path: Path,
   children: [...C],
-): RouteNode<never, ChildUnion<C>, [...C], never, ExtractPathParams<Path> | CollectChildSectionParams<C>> {
+): RouteNode<never, [...C], never, ExtractPathParams<Path> | CollectChildSectionParams<C>> {
   return {
     _type: undefined as never,
-    _child: undefined as never,
 
     schema: null,
     path,
@@ -108,7 +106,7 @@ function collectBodySchemas(nodes: WalkNode[]): Record<string, z.ZodType> {
   return map;
 }
 
-export function defineRoutes<C extends RouteNode<unknown, unknown, any, any, any>[] = []>(
+export function defineRoutes<C extends RouteNode<unknown, any, any, any>[] = []>(
   children: [...C],
 ) {
   type Route = ChildUnion<C>;

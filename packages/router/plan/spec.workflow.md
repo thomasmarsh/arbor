@@ -31,21 +31,21 @@ Rationale for ordering:
 ### Wave 1 — Diagnostics and test foundation (after plan 23)
 
 ```text
-42 (edge case tests)
-43 spike (inference limits)   ← independent, can run in parallel with 42
-46 spike (derive restructure) ← independent, can run in parallel with 42/43
+42 ✓ (edge case tests)
+46 ✓ (derive restructure spike)
+47   ← NEXT: remove _child via FlattenChildrenImpl
+43   (inference limits benchmark — run after 47 lands)
 ```
 
-- **42**: Edge and corner case tests. Builds directly on plan 26's test framework.
-  No new runtime code — pure test-writing.
-- **43 spike**: Benchmark type inference depth/complexity. Independent; run
-  at any point after plan 19. If the spike reveals a real problem, a new plan
-  is opened before continuing.
-- **46 spike**: Restructure `Derive`/`ChildUnion` to eliminate mutual recursion,
-  unblocking plan 28 (`_child` removal). Explores a single-recursive mapped type
-  (`FlattenChildren`) that avoids the `TS2589` depth limit. If green, opens a
-  new implementation plan (28b). If red, closes plan 28 permanently. Independent
-  of all wave-1 work; can run in parallel with 42 and 43.
+- **42**: ✓ Done.
+- **46 spike**: ✓ Done. Depth-counter approach (`FlattenChildrenImpl<C, D>`)
+  passes all assertions including a 4-level tree; plan 47 opened.
+- **47**: Remove `_child` phantom field. Replace `Derive`/`ChildUnion` with
+  `FlattenChildrenImpl`. Unblocks plan 28. **Next in queue.**
+- **43 spike**: Benchmark type inference depth/complexity with the new
+  `FlattenChildrenImpl` implementation (which has a 15-level cap by default).
+  Measures tsc wall-clock time and TS2589 threshold vs. tree depth/breadth.
+  Run after plan 47 so the benchmark tests the new implementation.
 
 ---
 
@@ -151,7 +151,8 @@ Rationale for ordering:
 | 42   | Edge and corner case tests                                 |
 | 43   | Type inference depth / complexity limits — spike           |
 | 44   | Type-safe middleware pipeline (enhancements Ph.2 #2)       |
-| 46   | Spike: restructure `Derive`/`ChildUnion` (unblocks plan 28)|
+| 46   | Spike: restructure `Derive`/`ChildUnion` — ✓ done          |
+| 47   | Remove `_child` phantom via depth-counter                  |
 | 45   | Pluggable error mapping engine (enhancements Ph.2 #3)      |
 
 ---

@@ -128,7 +128,7 @@ function walkSpec(
 }
 
 export function generateSpec(
-  router: { children: RouteNode<unknown, unknown, any, any, any>[] },
+  router: { children: RouteNode<unknown, any, any, any>[] },
   info: { title: string; version: string },
 ): Record<string, unknown> {
   const paths: Record<string, Record<string, unknown>> = {};

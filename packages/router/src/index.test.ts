@@ -39,12 +39,12 @@ it('exports all public functions as functions', () => {
 });
 
 it('type exports resolve', () => {
-  expectTypeOf<RouteNode<unknown, unknown>>().not.toBeNever();
-  expectTypeOf<InferRoute<RouteNode<{ path: '/a' }, never>>>().not.toBeNever();
-  expectTypeOf<InferContext<RouteNode<{ path: '/a' }, never>>>().toBeNever();
+  expectTypeOf<RouteNode<unknown>>().not.toBeNever();
+  expectTypeOf<InferRoute<RouteNode<{ path: '/a' }>>>().not.toBeNever();
+  expectTypeOf<InferContext<RouteNode<{ path: '/a' }>>>().toBeNever();
   expectTypeOf<ChildUnion<[]>>().toBeNever();
   expectTypeOf<CtxMap<never>>().not.toBeNever();
-  expectTypeOf<Derive<RouteNode<{ path: '/a' }, never>>>().not.toBeNever();
+  expectTypeOf<Derive<RouteNode<{ path: '/a' }>>>().not.toBeNever();
   expectTypeOf<Flatten<{ a: 1 }>>().not.toBeNever();
   expectTypeOf<ResponseUnion<never>>().toBeNever();
   expectTypeOf<HttpContext<'GET', unknown, Record<number, unknown>>>().not.toBeNever();

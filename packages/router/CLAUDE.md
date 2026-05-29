@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Ready to begin `23` (next in queue).
-- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26 complete. Plan 28 blocked (see Q7 in `questions.md`); plan 46 spike added to Wave 1 to unblock it. Plan 23 remains (24 deferred). See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Ready to begin `43` (next in queue).
+- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47 complete. Plan 28 superseded by 47. Plan 43 (inference benchmark) follows 47. See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -34,30 +34,26 @@ _URL router with full TS type inference without codegen. Route type is a nested 
 ```typescript
 interface RouteNode<
   R,
-  Child,
-  C extends RouteNode<unknown, unknown, any, any>[] = [],
+  C extends RouteNode<unknown, any, any, any>[] = [],
   Context = never,
+  SectionParams extends string = never,
 > {
   _type: R; // phantom (undefined as never)
-  _child: Child; // phantom (undefined as never)
   schema: z.ZodObject<any, any> | null;
   path: string;
   children: C;
   context?: Context; // concrete — carries runtime data
 }
 
-type ChildUnion<C extends RouteNode<unknown, unknown, any, any>[]> = {
-  [K in keyof C]: Derive<C[K]>;
-}[number];
+type ChildUnion<C extends RouteNode<unknown, any, any, any>[]> =
+  FlattenChildrenImpl<C>[number];
 
-type Derive<N> =
-  N extends RouteNode<infer R, infer Child, any, any>
-    ? [R] extends [never]
-      ? Flatten<{ child: Child }>
-      : [Child] extends [never]
-        ? Flatten<R>
-        : Flatten<R & { child?: Child }>
-    : never;
+type Derive<N> = N extends RouteNode<unknown, any, any, any>
+  ? FlattenChildrenImpl<[N]>[0]
+  : never;
+// FlattenChildrenImpl is a single self-recursive mapped type with a depth
+// counter (up to 15 levels). Eliminates the mutual recursion that blocked
+// removing _child.
 ```
 
 - The core types like RouteNode should be as domain independent as much as possible. We use the `Context` type parameter in preference to baking in understanding of different schemes or protocols

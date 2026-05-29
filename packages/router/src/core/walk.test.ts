@@ -20,18 +20,15 @@ describe('walkParse', () => {
     page: z.coerce.number().default(1),
   });
 
-  const nodes: RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any>[], any>[] = [
+  const nodes: RouteNode<unknown, RouteNode<unknown, any, any, any>[], any>[] = [
     {
       _type: undefined,
-      _child: undefined,
-
       schema: Users,
       path: 'users/',
       segments: parseSegments('users/'),
       children: [
         {
           _type: undefined,
-          _child: undefined,
 
           schema: User,
           path: ':id/',
@@ -39,7 +36,6 @@ describe('walkParse', () => {
           children: [
             {
               _type: undefined,
-              _child: undefined,
 
               schema: Settings,
               path: 'settings/',
@@ -52,15 +48,12 @@ describe('walkParse', () => {
     },
     {
       _type: undefined,
-      _child: undefined,
-
       schema: Org,
       path: 'orgs/:orgId/',
       segments: parseSegments('orgs/:orgId/'),
       children: [
         {
           _type: undefined,
-          _child: undefined,
 
           schema: Project,
           path: '#projectId/',
@@ -68,7 +61,6 @@ describe('walkParse', () => {
           children: [
             {
               _type: undefined,
-              _child: undefined,
 
               schema: Issue,
               path: ':issueId/',
@@ -169,10 +161,9 @@ describe('walkParse', () => {
       limit: z.coerce.number().optional(),
     });
 
-    const searchNodes: RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any>[], any>[] = [
+    const searchNodes: RouteNode<unknown, RouteNode<unknown, any, any, any>[], any>[] = [
       {
         _type: undefined,
-        _child: undefined,
         schema: SearchSchema,
         path: 'search/',
         segments: parseSegments('search/'),
@@ -216,13 +207,11 @@ describe('walkParse', () => {
   describe('section nodes', () => {
     const sectionNodes: RouteNode<
       unknown,
-      unknown,
-      RouteNode<unknown, unknown, any, any>[],
+      RouteNode<unknown, any, any, any>[],
       any
     >[] = [
       {
         _type: undefined,
-        _child: undefined,
 
         schema: null,
         path: 'orgs/:orgId/',
@@ -230,7 +219,6 @@ describe('walkParse', () => {
         children: [
           {
             _type: undefined,
-            _child: undefined,
 
             schema: Project,
             path: '#projectId/',
@@ -255,13 +243,11 @@ describe('walkParse', () => {
   describe('nested sections (section > section > route)', () => {
     const nestedSectionNodes: RouteNode<
       unknown,
-      unknown,
-      RouteNode<unknown, unknown, any, any>[],
+      RouteNode<unknown, any, any, any>[],
       any
     >[] = [
       {
         _type: undefined,
-        _child: undefined,
 
         schema: null,
         path: 'orgs/:orgId/',
@@ -269,7 +255,6 @@ describe('walkParse', () => {
         children: [
           {
             _type: undefined,
-            _child: undefined,
 
             schema: null,
             path: 'projects/',
@@ -277,7 +262,6 @@ describe('walkParse', () => {
             children: [
               {
                 _type: undefined,
-                _child: undefined,
 
                 schema: Issue,
                 path: ':issueId/',
@@ -358,10 +342,9 @@ describe('walkParse', () => {
     });
 
     it('does not push segment-mismatch for section nodes (schema === null)', () => {
-      const sectionOnlyNodes: RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any>[], any>[] = [
+      const sectionOnlyNodes: RouteNode<unknown, RouteNode<unknown, any, any, any>[], any>[] = [
         {
           _type: undefined,
-          _child: undefined,
           schema: null,
           path: 'orgs/:orgId/',
           segments: parseSegments('orgs/:orgId/'),
@@ -388,18 +371,15 @@ describe('walkPrint', () => {
     page: z.coerce.number().default(1),
   });
 
-  const nodes: RouteNode<unknown, unknown, RouteNode<unknown, unknown, any, any>[], any>[] = [
+  const nodes: RouteNode<unknown, RouteNode<unknown, any, any, any>[], any>[] = [
     {
       _type: undefined,
-      _child: undefined,
-
       schema: Users,
       path: 'users/',
       segments: parseSegments('users/'),
       children: [
         {
           _type: undefined,
-          _child: undefined,
 
           schema: User,
           path: ':id/',
@@ -407,7 +387,6 @@ describe('walkPrint', () => {
           children: [
             {
               _type: undefined,
-              _child: undefined,
 
               schema: Settings,
               path: 'settings/',
@@ -420,15 +399,12 @@ describe('walkPrint', () => {
     },
     {
       _type: undefined,
-      _child: undefined,
-
       schema: Org,
       path: 'orgs/:orgId/',
       segments: parseSegments('orgs/:orgId/'),
       children: [
         {
           _type: undefined,
-          _child: undefined,
 
           schema: Project,
           path: '#projectId/',
@@ -436,7 +412,6 @@ describe('walkPrint', () => {
           children: [
             {
               _type: undefined,
-              _child: undefined,
 
               schema: Issue,
               path: ':issueId/',
@@ -609,13 +584,11 @@ describe('walkPrint', () => {
   describe('section nodes', () => {
     const sectionNodes: RouteNode<
       unknown,
-      unknown,
-      RouteNode<unknown, unknown, any, any>[],
+      RouteNode<unknown, any, any, any>[],
       any
     >[] = [
       {
         _type: undefined,
-        _child: undefined,
 
         schema: null,
         path: 'orgs/:orgId/',
@@ -623,7 +596,6 @@ describe('walkPrint', () => {
         children: [
           {
             _type: undefined,
-            _child: undefined,
 
             schema: Project,
             path: '#projectId/',
@@ -645,13 +617,11 @@ describe('walkPrint', () => {
   describe('nested sections (section > section > route)', () => {
     const nestedSectionNodes: RouteNode<
       unknown,
-      unknown,
-      RouteNode<unknown, unknown, any, any>[],
+      RouteNode<unknown, any, any, any>[],
       any
     >[] = [
       {
         _type: undefined,
-        _child: undefined,
 
         schema: null,
         path: 'orgs/:orgId/',
@@ -659,7 +629,6 @@ describe('walkPrint', () => {
         children: [
           {
             _type: undefined,
-            _child: undefined,
 
             schema: null,
             path: 'projects/',
@@ -667,7 +636,6 @@ describe('walkPrint', () => {
             children: [
               {
                 _type: undefined,
-                _child: undefined,
 
                 schema: Issue,
                 path: ':issueId/',
