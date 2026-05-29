@@ -19,9 +19,5 @@ export { httpRoute, type HttpContext, type HttpMethod } from './contexts/http-co
 export { createServer, type HandlerMap } from './server/server.js';
 
 // OpenAPI
-export {
-  generateSpec,
-  openApiRoute,
-  type OpenApiContext,
-  type OpenApiMeta,
-} from './contexts/openapi-context.js';
+export { openApiRoute, type OpenApiContext, type OpenApiMeta } from './contexts/openapi-context.js';
+export { generateSpec } from './openapi/index.js';

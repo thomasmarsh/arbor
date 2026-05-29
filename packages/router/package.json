@@ -9,6 +9,10 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./openapi": {
+      "import": "./dist/openapi/index.js",
+      "types": "./dist/openapi/index.d.ts"
     }
   },
   "scripts": {
