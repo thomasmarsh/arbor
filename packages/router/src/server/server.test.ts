@@ -86,6 +86,56 @@ describe('createServer', () => {
     });
   });
 
+  describe('response headers', () => {
+    const TaggedWithHeaders = z.object({ tag: z.literal('get-with-headers'), id: z.string() });
+    const HeaderSchema = z.object({ 'x-request-id': z.string() });
+    const routerWithHeaders = defineRoutes([
+      httpRoute(TaggedWithHeaders, 'GET', 'items/:id/', {
+        response: { 200: { body: UserResp, headers: HeaderSchema } },
+      }),
+    ]);
+
+    it('handler return type includes headers when declared', () => {
+      createServer(routerWithHeaders, {
+        'get-with-headers': (ctx) => {
+          const ret = {
+            status: 200 as const,
+            body: { id: ctx.params.id, email: 'a@b.com' },
+            headers: { 'x-request-id': 'abc' },
+          };
+          expectTypeOf(ret).toExtend<{
+            status: 200;
+            body: { id: string; email: string };
+            headers: { 'x-request-id': string };
+          }>();
+          return Promise.resolve(ret);
+        },
+      });
+      expect(true).toBe(true);
+    });
+
+    it('passes response headers through handle', async () => {
+      const s = createServer(routerWithHeaders, {
+        'get-with-headers': () =>
+          Promise.resolve({
+            status: 200 as const,
+            body: { id: '1', email: 'test@test.com' },
+            headers: { 'x-request-id': 'test-id' },
+          }),
+      });
+      const result = await s.handle(new URL('https://example.com/items/1'), 'GET');
+      expect(result.status).toBe(200);
+      expect((result as { headers?: Record<string, string> }).headers?.['x-request-id']).toBe(
+        'test-id',
+      );
+    });
+
+    it('handle result has no headers key when none returned', async () => {
+      const result = await server.handle(new URL('https://example.com/users/123'), 'GET');
+      expect('headers' in result).toBe(false);
+    });
+  });
+
   describe('handle', () => {
     it('dispatches a GET request', async () => {
       const result = await server.handle(new URL('https://example.com/users/123'), 'GET');

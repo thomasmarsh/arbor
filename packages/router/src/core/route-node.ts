@@ -24,6 +24,7 @@ export interface RouteCtx {
   method?: string;
   bodySchema?: z.ZodType;
   responseSchemas?: Record<number, z.ZodType>;
+  responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
   querySchema?: z.ZodObject<any, any>;
   meta?: Record<string, unknown>;
   [key: string]: unknown;

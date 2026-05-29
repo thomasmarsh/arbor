@@ -155,4 +155,55 @@ describe('httpRoute', () => {
 
     expect(r._ctx?.querySchema).toBe(QuerySchema);
   });
+
+  describe('response header descriptors', () => {
+    const HeaderSchema = z.object({ 'x-request-id': z.uuid() });
+
+    it('infers headers type from descriptor object', () => {
+      const r = httpRoute(GetUser, 'GET', ':id/', {
+        response: { 200: { body: UserResponse, headers: HeaderSchema } },
+      });
+      expect(r._ctx).toBeDefined();
+
+      type T = InferContext<typeof r>;
+      expectTypeOf<T['response']>().toEqualTypeOf<{
+        200: { body: { id: string; email: string }; headers: { 'x-request-id': string } };
+      }>();
+    });
+
+    it('stores body schema in responseSchemas when using descriptor', () => {
+      const r = httpRoute(GetUser, 'GET', ':id/', {
+        response: { 200: { body: UserResponse, headers: HeaderSchema } },
+      });
+      expect(r._ctx?.responseSchemas?.[200]).toBe(UserResponse);
+    });
+
+    it('stores header schema in responseHeaderSchemas', () => {
+      const r = httpRoute(GetUser, 'GET', ':id/', {
+        response: { 200: { body: UserResponse, headers: HeaderSchema } },
+      });
+      expect(r._ctx?.responseHeaderSchemas?.[200]).toBe(HeaderSchema);
+    });
+
+    it('bare ZodType still works and has no responseHeaderSchemas entry', () => {
+      const r = httpRoute(GetUser, 'GET', ':id/', {
+        response: { 200: UserResponse },
+      });
+      expect(r._ctx?.responseHeaderSchemas).toBeUndefined();
+    });
+
+    it('mixed descriptor and bare ZodType in same route', () => {
+      const ErrorResponse = z.object({ error: z.string() });
+      const r = httpRoute(GetUser, 'GET', ':id/', {
+        response: {
+          200: { body: UserResponse, headers: HeaderSchema },
+          404: ErrorResponse,
+        },
+      });
+      expect(r._ctx?.responseSchemas?.[200]).toBe(UserResponse);
+      expect(r._ctx?.responseSchemas?.[404]).toBe(ErrorResponse);
+      expect(r._ctx?.responseHeaderSchemas?.[200]).toBe(HeaderSchema);
+      expect(r._ctx?.responseHeaderSchemas?.[404]).toBeUndefined();
+    });
+  });
 });

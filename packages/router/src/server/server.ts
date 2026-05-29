@@ -1,6 +1,5 @@
 import type { Result } from '@arbor/common';
-import type { HttpContext, HttpMethod } from '../contexts/http-context.js';
-import type { ResponseUnion } from '../core/route-node.js';
+import type { HttpContext, HttpMethod, HttpResponseUnion } from '../contexts/http-context.js';
 
 interface BodyValidator {
   safeParse(data: unknown): { success: boolean; data?: unknown; error?: unknown };
@@ -22,7 +21,7 @@ export type HandlerMap<
 > = {
   [Tag in keyof CtxMap & string]: (
     ctx: HandlerCtx<CtxMap, Routes, Tag>,
-  ) => Promise<ResponseUnion<CtxMap[Tag]['response']>>;
+  ) => Promise<HttpResponseUnion<CtxMap[Tag]['response']>>;
 };
 
 export function createServer<
@@ -34,12 +33,17 @@ export function createServer<
     _ctxMap: Map;
     methodMap: Record<string, string>;
     bodySchemaMap: Record<string, BodyValidator>;
+    responseHeaderSchemaMap?: Record<string, Record<number, BodyValidator>>;
     parse(url: URL): Result<Route, string>;
   },
   handlers: HandlerMap<Map, Route>,
 ) {
   return {
-    async handle(url: URL, method: string, body?: unknown): Promise<{ status: number; body: unknown }> {
+    async handle(
+      url: URL,
+      method: string,
+      body?: unknown,
+    ): Promise<{ status: number; body: unknown; headers?: Record<string, string> }> {
       return router.parse(url).fold(
         async (route) => {
           const tag = route.tag;
@@ -50,7 +54,11 @@ export function createServer<
           const handler = (
             handlers as Record<
               string,
-              (ctx: { params: unknown; body: unknown; query: unknown }) => Promise<{ status: number; body: unknown }>
+              (ctx: { params: unknown; body: unknown; query: unknown }) => Promise<{
+                status: number;
+                body: unknown;
+                headers?: Record<string, string>;
+              }>
             >
           )[tag];
           if (!handler) {
@@ -72,7 +80,29 @@ export function createServer<
             const params = Object.fromEntries(
               Object.entries(routeRecord).filter(([k]) => k !== 'tag' && k !== 'child' && k !== 'query'),
             );
-            return await handler({ params, body: validatedBody, query: routeRecord['query'] });
+            const handlerResult = await handler({
+              params,
+              body: validatedBody,
+              query: routeRecord['query'],
+            });
+
+            const headerSchemas = router.responseHeaderSchemaMap?.[tag];
+            if (headerSchemas && handlerResult.headers) {
+              const statusSchema = headerSchemas[handlerResult.status];
+              if (statusSchema) {
+                const parsed = statusSchema.safeParse(handlerResult.headers);
+                if (!parsed.success) {
+                  console.warn('[router] response header validation failed:', parsed.error);
+                }
+              }
+            }
+
+            const response: { status: number; body: unknown; headers?: Record<string, string> } = {
+              status: handlerResult.status,
+              body: handlerResult.body,
+            };
+            if (handlerResult.headers) response.headers = handlerResult.headers;
+            return response;
           } catch {
             return { status: 500, body: { error: 'internal server error' } };
           }

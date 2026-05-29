@@ -11,6 +11,7 @@ interface OpenApiContextData {
   method: HttpMethod;
   bodySchema?: z.ZodType;
   responseSchemas: Record<number, z.ZodType>;
+  responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
   meta?: OpenApiMeta;
 }
 
@@ -106,7 +107,9 @@ function walkSpec(
 
       const responses: Record<string, unknown> = {};
       for (const [status, respSchema] of Object.entries(ctx.responseSchemas)) {
-        responses[status] = {
+        const statusNum = Number(status);
+        const headerSchema = ctx.responseHeaderSchemas?.[statusNum];
+        const entry: Record<string, unknown> = {
           description: 'Response',
           content: {
             'application/json': {
@@ -114,6 +117,16 @@ function walkSpec(
             },
           },
         };
+        if (headerSchema) {
+          const shape = headerSchema.shape as Record<string, z.ZodType>;
+          entry['headers'] = Object.fromEntries(
+            Object.entries(shape).map(([name, fieldSchema]) => [
+              name,
+              { schema: zodToJsonSchema(fieldSchema) },
+            ]),
+          );
+        }
+        responses[status] = entry;
       }
       operation['responses'] = responses;
 
