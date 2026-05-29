@@ -12,6 +12,7 @@ export interface HttpContextData {
   responseSchemas: Record<number, z.ZodType>;
   responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
   querySchema?: z.ZodObject<any, any>;
+  rateLimit?: { windowMs: number; maxRequests: number };
 }
 
 export interface HttpContext<
@@ -66,7 +67,7 @@ export function httpRoute<
   schema: S,
   method: Method,
   path: string,
-  options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H },
+  options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H; rateLimit?: { windowMs: number; maxRequests: number } },
   children?: [...C],
 ): RouteNode<
   z.infer<S> & (Q extends z.ZodObject<any, any> ? { query: z.infer<Q> } : unknown),
@@ -106,6 +107,7 @@ export function httpRoute<
       ...(options.body ? { bodySchema: options.body } : {}),
       ...(options.query ? { querySchema: options.query } : {}),
       ...(options.headers ? { headerSchema: options.headers } : {}),
+      ...(options.rateLimit ? { rateLimit: options.rateLimit } : {}),
       responseSchemas,
       ...(hasHeaderSchemas ? { responseHeaderSchemas } : {}),
     },

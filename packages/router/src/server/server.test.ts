@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { httpRoute } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
+import { createMemoryStore } from './rate-limit.js';
 import { createServer } from './server.js';
 
 describe('createServer', () => {
@@ -351,6 +352,60 @@ describe('createServer', () => {
       });
       const result = await s.handleRequest(req);
       expect(result.status).toBe(413);
+    });
+  });
+
+  describe('rate limiting', () => {
+    const LoginSchema = z.object({ tag: z.literal('login') });
+    const rateLimitedRouter = defineRoutes([
+      httpRoute(LoginSchema, 'POST', 'auth/login/', {
+        rateLimit: { windowMs: 60_000, maxRequests: 5 },
+        response: { 200: z.object({ ok: z.boolean() }) },
+      }),
+    ]);
+    const handlers = {
+      login: () => Promise.resolve({ status: 200 as const, body: { ok: true } }),
+    };
+
+    it('allows requests within the limit', async () => {
+      const store = createMemoryStore();
+      const s = createServer(rateLimitedRouter, handlers, { rateLimitStore: store });
+      for (let i = 0; i < 5; i++) {
+        const result = await s.handle(new URL('https://example.com/auth/login/'), 'POST');
+        expect(result.status).toBe(200);
+      }
+    });
+
+    it('returns 429 on the request exceeding the limit', async () => {
+      const store = createMemoryStore();
+      const s = createServer(rateLimitedRouter, handlers, { rateLimitStore: store });
+      for (let i = 0; i < 5; i++) {
+        await s.handle(new URL('https://example.com/auth/login/'), 'POST');
+      }
+      const result = await s.handle(new URL('https://example.com/auth/login/'), 'POST');
+      expect(result.status).toBe(429);
+    });
+
+    it('sets Retry-After header on 429', async () => {
+      const store = createMemoryStore();
+      const s = createServer(rateLimitedRouter, handlers, { rateLimitStore: store });
+      for (let i = 0; i < 5; i++) {
+        await s.handle(new URL('https://example.com/auth/login/'), 'POST');
+      }
+      const result = await s.handle(new URL('https://example.com/auth/login/'), 'POST');
+      expect((result as { headers?: Record<string, string> }).headers?.['retry-after']).toBe('60');
+    });
+
+    it('calls custom key resolver with url and headers', async () => {
+      const store = createMemoryStore();
+      let capturedKey: string | undefined;
+      const keyResolver = ({ headers }: { url: URL; headers: Record<string, string> }) => {
+        capturedKey = headers['x-client-id'] ?? 'anon';
+        return capturedKey;
+      };
+      const s = createServer(rateLimitedRouter, handlers, { rateLimitStore: store, rateLimitKeyResolver: keyResolver });
+      await s.handle(new URL('https://example.com/auth/login/'), 'POST', undefined, { 'x-client-id': 'client-99' });
+      expect(capturedKey).toBe('client-99');
     });
   });
 

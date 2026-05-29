@@ -27,6 +27,7 @@ export interface RouteCtx {
   responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
   querySchema?: z.ZodObject<any, any>;
   headerSchema?: z.ZodObject<any, any>;
+  rateLimit?: { windowMs: number; maxRequests: number };
   meta?: Record<string, unknown>;
   [key: string]: unknown;
 }

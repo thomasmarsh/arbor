@@ -136,6 +136,22 @@ function collectResponseHeaderSchemas(
   return map;
 }
 
+function collectRateLimits(
+  nodes: WalkNode[],
+): Record<string, { windowMs: number; maxRequests: number }> {
+  const map: Record<string, { windowMs: number; maxRequests: number }> = {};
+  for (const node of nodes) {
+    if (node.schema !== null && node._ctx?.rateLimit) {
+      const tag = getTag(node.schema);
+      if (tag) map[tag] = node._ctx.rateLimit;
+    }
+    if (node.children.length > 0) {
+      Object.assign(map, collectRateLimits(node.children as WalkNode[]));
+    }
+  }
+  return map;
+}
+
 export function defineRoutes<C extends RouteNode<unknown, any, any, any>[] = []>(
   children: [...C],
 ) {
@@ -155,6 +171,7 @@ export function defineRoutes<C extends RouteNode<unknown, any, any, any>[] = []>
   const bodySchemaMap = collectBodySchemas(nodes);
   const responseHeaderSchemaMap = collectResponseHeaderSchemas(nodes);
   const headerSchemaMap = collectRequestHeaderSchemas(nodes);
+  const rateLimitMap = collectRateLimits(nodes);
 
   return {
     _type: undefined as never as Route,
@@ -164,6 +181,7 @@ export function defineRoutes<C extends RouteNode<unknown, any, any, any>[] = []>
     bodySchemaMap,
     responseHeaderSchemaMap,
     headerSchemaMap,
+    rateLimitMap,
 
     parse(url: URL): Result<Route, string> {
       let segments: string[];
