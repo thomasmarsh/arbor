@@ -9,7 +9,7 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export interface HttpContextData {
   method: HttpMethod;
   bodySchema?: z.ZodType;
-  responseSchemas: Record<number, z.ZodType>;
+  responseSchemas?: Record<number, z.ZodType>;
   responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
   querySchema?: z.ZodObject<any, any>;
   headerSchema?: z.ZodObject<any, any>;
@@ -63,7 +63,7 @@ export type HttpResponseUnion<Resp> = {
 export function httpRoute<
   S extends z.ZodObject<any, any>,
   Method extends HttpMethod,
-  C extends RouteNode<unknown, any, any, any>[] = [],
+  C extends RouteNode<unknown, any, any, any, any>[] = [],
   Body = never,
   Res extends Record<number, ResponseDescriptor> = Record<number, ResponseDescriptor>,
   Q extends z.ZodObject<any, any> | undefined = undefined,
@@ -77,7 +77,9 @@ export function httpRoute<
 ): RouteNode<
   z.infer<S> & (Q extends z.ZodObject<any, any> ? { query: z.infer<Q> } : unknown),
   [...C],
-  HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never, H extends z.ZodObject<any, any> ? z.infer<H> : never>
+  HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never, H extends z.ZodObject<any, any> ? z.infer<H> : never>,
+  never,
+  HttpContextData
 > {
   const responseSchemas: Record<number, z.ZodType> = {};
   const responseHeaderSchemas: Record<number, z.ZodObject<any, any>> = {};

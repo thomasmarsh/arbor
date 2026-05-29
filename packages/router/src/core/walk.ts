@@ -10,7 +10,8 @@ export type ParseDiag =
 
 export type WalkNode = RouteNode<
   unknown,
-  RouteNode<unknown, any, any, any>[],
+  RouteNode<unknown, any, any, any, any>[],
+  any,
   any,
   any
 >;

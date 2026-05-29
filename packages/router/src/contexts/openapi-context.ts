@@ -36,7 +36,7 @@ type InferResponseMap<R extends Record<number, z.ZodType>> = {
 export function openApiRoute<
   S extends z.ZodObject<any, any>,
   Method extends HttpMethod,
-  C extends RouteNode<unknown, any, any, any>[] = [],
+  C extends RouteNode<unknown, any, any, any, any>[] = [],
   Body = never,
   Res extends Record<number, z.ZodType> = Record<number, z.ZodType>,
 >(
@@ -48,13 +48,15 @@ export function openApiRoute<
 ): RouteNode<
   z.infer<S>,
   [...C],
-  OpenApiContext<Method, Body, InferResponseMap<Res>>
+  OpenApiContext<Method, Body, InferResponseMap<Res>>,
+  never,
+  OpenApiCtxData
 > {
   const node = httpRoute(schema, method, path, { ...(options.body ? { body: options.body } : {}), response: options.response }, children);
   if (options.meta) {
-    (node._ctx as Record<string, unknown>)['meta'] = options.meta;
+    (node._ctx as OpenApiCtxData).meta = options.meta;
   }
-  return node as RouteNode<z.infer<S>, [...C], OpenApiContext<Method, Body, InferResponseMap<Res>>>;
+  return node as RouteNode<z.infer<S>, [...C], OpenApiContext<Method, Body, InferResponseMap<Res>>, never, OpenApiCtxData>;
 }
 
 export { generateSpec } from '../openapi/generate-spec.js';

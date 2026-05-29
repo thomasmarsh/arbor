@@ -18,20 +18,6 @@ export type ExtractPathParams<Path extends string> =
       : never;
 
 
-// Opaque plugin-context bag. HTTP/OpenAPI fields are defined here to allow dot-notation
-// access under noPropertyAccessFromIndexSignature. Removal tracked in plan 54.
-export interface RouteCtx {
-  method?: string;
-  bodySchema?: z.ZodType;
-  responseSchemas?: Record<number, z.ZodType>;
-  responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
-  querySchema?: z.ZodObject<any, any>;
-  headerSchema?: z.ZodObject<any, any>;
-  rateLimit?: { windowMs: number; maxRequests: number };
-  meta?: Record<string, unknown>;
-  [key: string]: unknown;
-}
-
 export type InferRoute<R extends { _type: unknown }> = R['_type'];
 
 export type InferContext<N extends { context?: unknown }> = N extends { context?: infer C }
@@ -64,9 +50,10 @@ export type InferContext<N extends { context?: unknown }> = N extends { context?
 //   _ctx          — opaque plugin metadata bag (typed by context accessors in contexts/).
 export interface RouteNode<
   R,
-  C extends RouteNode<unknown, any, any, any>[] = [],
+  C extends RouteNode<unknown, any, any, any, any>[] = [],
   Context = never,
   SectionParams extends string = never,
+  Ctx = Record<string, unknown>,
 > {
   _type: R;
   _sectionParams?: SectionParams;
@@ -75,7 +62,7 @@ export interface RouteNode<
   segments: Segment[];
   children: C;
   context?: Context;
-  _ctx?: RouteCtx;
+  _ctx?: Ctx;
 }
 
 // ─── Depth-counter machinery ──────────────────────────────────────────────────
@@ -132,12 +119,13 @@ type IsAny<T> = 0 extends 1 & T ? true : false;
 // suppresses distributivity over unions, giving exact equality checks.
 
 type FlattenChildrenImpl<
-  C extends RouteNode<unknown, any, any, any>[],
+  C extends RouteNode<unknown, any, any, any, any>[],
   D extends ValidDepth = 14,
 > = {
   [K in keyof C]: C[K] extends RouteNode<
     infer R,
-    infer GC extends RouteNode<unknown, any, any, any>[],
+    infer GC extends RouteNode<unknown, any, any, any, any>[],
+    any,
     any,
     any
   >
@@ -166,10 +154,10 @@ type FlattenChildrenImpl<
 // Replaces the old two-alias mutual recursion (Derive ↔ ChildUnion) that
 // triggered TS2589 even on 3-level trees once _child was removed.
 export type Derive<N> =
-  N extends RouteNode<unknown, any, any, any> ? FlattenChildrenImpl<[N]>[0] : never;
+  N extends RouteNode<unknown, any, any, any, any> ? FlattenChildrenImpl<[N]>[0] : never;
 
 // Union of derived shapes for all nodes in a children tuple.
-export type ChildUnion<C extends RouteNode<unknown, any, any, any>[]> =
+export type ChildUnion<C extends RouteNode<unknown, any, any, any, any>[]> =
   FlattenChildrenImpl<C>[number];
 
 // Maps a status-code record to a discriminated union of `{ status, body }` pairs.
@@ -179,8 +167,8 @@ export type ResponseUnion<Resp> = {
 
 // Builds a map of route tag → Context type for all tagged nodes in C.
 // Used by createServer to index handler DI contexts by route tag.
-export type CtxMap<C extends RouteNode<unknown, any, any, any>[]> = {
-  [N in C[number] as N extends RouteNode<{ tag: infer T extends string }, any, any, any>
+export type CtxMap<C extends RouteNode<unknown, any, any, any, any>[]> = {
+  [N in C[number] as N extends RouteNode<{ tag: infer T extends string }, any, any, any, any>
     ? T
-    : never]: N extends RouteNode<any, any, infer Ctx, any> ? Ctx : never;
+    : never]: N extends RouteNode<any, any, infer Ctx, any, any> ? Ctx : never;
 };

@@ -33,7 +33,7 @@ interface RouterArg<Route> {
   _type: Route;
   _ctxMap: Record<string, HttpContext<any, any, any, any, any>>;
   print(route: Route): string;
-  children: RouteNode<unknown, any, any, any>[];
+  children: RouteNode<unknown, any, any, any, any>[];
 }
 
 export interface TypedClient<

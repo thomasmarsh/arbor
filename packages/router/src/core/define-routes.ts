@@ -7,12 +7,12 @@ import type { ChildUnion, CtxMap, ExtractPathParams, RouteNode } from './route-n
 import { parseSegments } from './segments.js';
 import { type ParseDiag, type WalkNode, buildUrl, getTag, walkParse, walkPrint } from './walk.js';
 
-type CollectChildSectionParams<C extends RouteNode<unknown, any, any, any>[]> = {
-  [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP> ? SP : never;
+type CollectChildSectionParams<C extends RouteNode<unknown, any, any, any, any>[]> = {
+  [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP, any> ? SP : never;
 }[number];
 
-type AllSectionParams<C extends RouteNode<unknown, any, any, any>[]> = {
-  [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP> ? SP : never;
+type AllSectionParams<C extends RouteNode<unknown, any, any, any, any>[]> = {
+  [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP, any> ? SP : never;
 }[number];
 
 export {
@@ -31,7 +31,7 @@ export type { ParseDiag } from './walk.js';
 
 export function route<
   S extends z.ZodObject<any, any>,
-  C extends RouteNode<unknown, any, any, any>[] = [],
+  C extends RouteNode<unknown, any, any, any, any>[] = [],
 >(
   schema: S,
   path: string,
@@ -49,7 +49,7 @@ export function route<
 
 export function section<
   Path extends string,
-  C extends RouteNode<unknown, any, any, any>[],
+  C extends RouteNode<unknown, any, any, any, any>[],
 >(
   path: Path,
   children: [...C],
@@ -157,7 +157,7 @@ function collectRateLimits(
   return map;
 }
 
-export function defineRoutes<C extends RouteNode<unknown, any, any, any>[] = []>(
+export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] = []>(
   children: [...C],
 ) {
   type Route = ChildUnion<C>;

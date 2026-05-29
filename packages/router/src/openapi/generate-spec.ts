@@ -110,7 +110,7 @@ function walkSpec(
       }
 
       const responses: Record<string, unknown> = {};
-      for (const [status, respSchema] of Object.entries(ctx.responseSchemas)) {
+      for (const [status, respSchema] of Object.entries(ctx.responseSchemas ?? {})) {
         const statusNum = Number(status);
         const headerSchema = ctx.responseHeaderSchemas?.[statusNum];
         const entry: Record<string, unknown> = {
@@ -145,7 +145,7 @@ function walkSpec(
 }
 
 export function generateSpec(
-  router: { children: RouteNode<unknown, any, any, any>[] },
+  router: { children: RouteNode<unknown, any, any, any, any>[] },
   info: { title: string; version: string },
 ): Record<string, unknown> {
   const paths: Record<string, Record<string, unknown>> = {};
