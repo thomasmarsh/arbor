@@ -12,14 +12,13 @@ interface NoOpts {
   headers?: never;
 }
 
-type RequestOpts<Ctx extends HttpContext<any, any, any, any, any>> =
-  [Ctx['body']] extends [never]
-    ? [Ctx['headers']] extends [never]
-      ? NoOpts
-      : { headers: Ctx['headers'] }
-    : [Ctx['headers']] extends [never]
-      ? { body: Ctx['body'] }
-      : { body: Ctx['body']; headers?: Ctx['headers'] };
+type RequestOpts<Ctx extends HttpContext<any, any, any, any, any>> = [Ctx['body']] extends [never]
+  ? [Ctx['headers']] extends [never]
+    ? NoOpts
+    : { headers: Ctx['headers'] }
+  : [Ctx['headers']] extends [never]
+    ? { body: Ctx['body'] }
+    : { body: Ctx['body']; headers?: Ctx['headers'] };
 
 export type FetchLike = (
   url: string,
@@ -124,7 +123,9 @@ export function createClient<
 
       const response = await fetchFn(url, init);
       const responseBody = await response.json();
-      const responseObj = { status: response.status, body: responseBody } as HttpResponseUnion<Map[Tag]['response']>;
+      const responseObj = { status: response.status, body: responseBody } as HttpResponseUnion<
+        Map[Tag]['response']
+      >;
 
       if (validate) {
         const schema = responseSchemaMap[tag]?.[response.status];
