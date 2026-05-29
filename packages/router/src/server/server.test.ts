@@ -136,6 +136,71 @@ describe('createServer', () => {
     });
   });
 
+  describe('request headers', () => {
+    const HeaderRoute = z.object({ tag: z.literal('get-with-req-headers'), id: z.string() });
+    const ReqHeaderSchema = z.object({
+      'x-tenant-id': z.uuid(),
+      'accept-language': z.string().optional(),
+    });
+    const routerWithReqHeaders = defineRoutes([
+      httpRoute(HeaderRoute, 'GET', 'reports/:id/', {
+        headers: ReqHeaderSchema,
+        response: { 200: UserResp },
+      }),
+    ]);
+
+    it('returns 400 when required header is missing', async () => {
+      const s = createServer(routerWithReqHeaders, {
+        'get-with-req-headers': () =>
+          Promise.resolve({ status: 200 as const, body: { id: '1', email: 'a@b.com' } }),
+      });
+      const result = await s.handle(new URL('https://example.com/reports/1'), 'GET', undefined, {});
+      expect(result.status).toBe(400);
+    });
+
+    it('passes validated headers to handler ctx', async () => {
+      const tenantId = '550e8400-e29b-41d4-a716-446655440000';
+      const s = createServer(routerWithReqHeaders, {
+        'get-with-req-headers': (ctx) =>
+          Promise.resolve({ status: 200 as const, body: { id: ctx.headers['x-tenant-id'], email: 'a@b.com' } }),
+      });
+      const result = await s.handle(
+        new URL('https://example.com/reports/1'),
+        'GET',
+        undefined,
+        { 'x-tenant-id': tenantId },
+      );
+      expect(result.status).toBe(200);
+      expect((result.body as { id: string }).id).toBe(tenantId);
+    });
+
+    it('handler headers is typed correctly', () => {
+      createServer(routerWithReqHeaders, {
+        'get-with-req-headers': (ctx) => {
+          expectTypeOf(ctx.headers).toEqualTypeOf<{
+            'x-tenant-id': string;
+            'accept-language'?: string | undefined;
+          }>();
+          return Promise.resolve({ status: 200 as const, body: { id: '1', email: 'a@b.com' } });
+        },
+      });
+      expect(true).toBe(true);
+    });
+
+    it('headers is never for routes without header schema', () => {
+      createServer(router, {
+        'get-user': (ctx) => {
+          expectTypeOf(ctx.headers).toEqualTypeOf<never>();
+          return Promise.resolve({ status: 200 as const, body: { id: '1', email: '' } });
+        },
+        'create-user': (ctx) =>
+          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
+        'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+      });
+      expect(true).toBe(true);
+    });
+  });
+
   describe('handle', () => {
     it('dispatches a GET request', async () => {
       const result = await server.handle(new URL('https://example.com/users/123'), 'GET');

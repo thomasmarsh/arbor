@@ -19,11 +19,13 @@ export interface HttpContext<
   Body,
   Response extends Record<number, unknown>,
   Query = never,
+  Headers = never,
 > {
   method: Method;
   body: Body;
   response: Response;
   query: Query;
+  headers: Headers;
 }
 
 // A response for a single status code: either a bare Zod body schema or an
@@ -59,16 +61,17 @@ export function httpRoute<
   Body = never,
   Res extends Record<number, ResponseDescriptor> = Record<number, ResponseDescriptor>,
   Q extends z.ZodObject<any, any> | undefined = undefined,
+  H extends z.ZodObject<any, any> | undefined = undefined,
 >(
   schema: S,
   method: Method,
   path: string,
-  options: { body?: z.ZodType<Body>; response: Res; query?: Q },
+  options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H },
   children?: [...C],
 ): RouteNode<
   z.infer<S> & (Q extends z.ZodObject<any, any> ? { query: z.infer<Q> } : unknown),
   [...C],
-  HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never>
+  HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never, H extends z.ZodObject<any, any> ? z.infer<H> : never>
 > {
   const responseSchemas: Record<number, z.ZodType> = {};
   const responseHeaderSchemas: Record<number, z.ZodObject<any, any>> = {};
@@ -102,6 +105,7 @@ export function httpRoute<
       method,
       ...(options.body ? { bodySchema: options.body } : {}),
       ...(options.query ? { querySchema: options.query } : {}),
+      ...(options.headers ? { headerSchema: options.headers } : {}),
       responseSchemas,
       ...(hasHeaderSchemas ? { responseHeaderSchemas } : {}),
     },

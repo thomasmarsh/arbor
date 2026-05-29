@@ -106,6 +106,20 @@ function collectBodySchemas(nodes: WalkNode[]): Record<string, z.ZodType> {
   return map;
 }
 
+function collectRequestHeaderSchemas(nodes: WalkNode[]): Record<string, z.ZodObject<any, any>> {
+  const map: Record<string, z.ZodObject<any, any>> = {};
+  for (const node of nodes) {
+    if (node.schema !== null && node._ctx?.headerSchema) {
+      const tag = getTag(node.schema);
+      if (tag) map[tag] = node._ctx.headerSchema;
+    }
+    if (node.children.length > 0) {
+      Object.assign(map, collectRequestHeaderSchemas(node.children as WalkNode[]));
+    }
+  }
+  return map;
+}
+
 function collectResponseHeaderSchemas(
   nodes: WalkNode[],
 ): Record<string, Record<number, z.ZodObject<any, any>>> {
@@ -140,6 +154,7 @@ export function defineRoutes<C extends RouteNode<unknown, any, any, any>[] = []>
   const methodMap = collectMethods(nodes);
   const bodySchemaMap = collectBodySchemas(nodes);
   const responseHeaderSchemaMap = collectResponseHeaderSchemas(nodes);
+  const headerSchemaMap = collectRequestHeaderSchemas(nodes);
 
   return {
     _type: undefined as never as Route,
@@ -148,6 +163,7 @@ export function defineRoutes<C extends RouteNode<unknown, any, any, any>[] = []>
     methodMap,
     bodySchemaMap,
     responseHeaderSchemaMap,
+    headerSchemaMap,
 
     parse(url: URL): Result<Route, string> {
       let segments: string[];

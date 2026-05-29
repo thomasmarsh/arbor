@@ -6,17 +6,18 @@ interface BodyValidator {
 }
 
 export interface HandlerCtx<
-  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown>>,
+  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown>>,
   Routes,
   Tag extends keyof CtxMap & string,
 > {
   params: Omit<Extract<Routes, { tag: Tag }>, 'tag' | 'child' | 'query'>;
   body: CtxMap[Tag]['body'];
   query: CtxMap[Tag]['query'];
+  headers: CtxMap[Tag]['headers'];
 }
 
 export type HandlerMap<
-  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown>>,
+  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown>>,
   Routes,
 > = {
   [Tag in keyof CtxMap & string]: (
@@ -26,7 +27,7 @@ export type HandlerMap<
 
 export function createServer<
   Route extends { tag: string },
-  Map extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown>>,
+  Map extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown>>,
 >(
   router: {
     _type: Route;
@@ -34,6 +35,7 @@ export function createServer<
     methodMap: Record<string, string>;
     bodySchemaMap: Record<string, BodyValidator>;
     responseHeaderSchemaMap?: Record<string, Record<number, BodyValidator>>;
+    headerSchemaMap?: Record<string, BodyValidator>;
     parse(url: URL): Result<Route, string>;
   },
   handlers: HandlerMap<Map, Route>,
@@ -43,6 +45,7 @@ export function createServer<
       url: URL,
       method: string,
       body?: unknown,
+      headers?: Record<string, string>,
     ): Promise<{ status: number; body: unknown; headers?: Record<string, string> }> {
       return router.parse(url).fold(
         async (route) => {
@@ -54,7 +57,7 @@ export function createServer<
           const handler = (
             handlers as Record<
               string,
-              (ctx: { params: unknown; body: unknown; query: unknown }) => Promise<{
+              (ctx: { params: unknown; body: unknown; query: unknown; headers: unknown }) => Promise<{
                 status: number;
                 body: unknown;
                 headers?: Record<string, string>;
@@ -75,6 +78,16 @@ export function createServer<
             validatedBody = result.data;
           }
 
+          let validatedHeaders: unknown = undefined;
+          const headerSchema = router.headerSchemaMap?.[tag];
+          if (headerSchema) {
+            const result = headerSchema.safeParse(headers ?? {});
+            if (!result.success) {
+              return { status: 400, body: { error: 'invalid request headers' } };
+            }
+            validatedHeaders = result.data;
+          }
+
           try {
             const routeRecord = route as Record<string, unknown>;
             const params = Object.fromEntries(
@@ -84,6 +97,7 @@ export function createServer<
               params,
               body: validatedBody,
               query: routeRecord['query'],
+              headers: validatedHeaders,
             });
 
             const headerSchemas = router.responseHeaderSchemaMap?.[tag];

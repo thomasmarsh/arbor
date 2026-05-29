@@ -2,7 +2,7 @@
 
 ## Active Focus
 
-- **Current Task**: Wave 1 complete. Next: Wave 2 (plans 29 → 30 → 31 spike / 35).
+- **Current Task**: Plan 30
 - **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43 complete. Plan 28 superseded by 47. See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
@@ -45,12 +45,9 @@ interface RouteNode<
   context?: Context; // concrete — carries runtime data
 }
 
-type ChildUnion<C extends RouteNode<unknown, any, any, any>[]> =
-  FlattenChildrenImpl<C>[number];
+type ChildUnion<C extends RouteNode<unknown, any, any, any>[]> = FlattenChildrenImpl<C>[number];
 
-type Derive<N> = N extends RouteNode<unknown, any, any, any>
-  ? FlattenChildrenImpl<[N]>[0]
-  : never;
+type Derive<N> = N extends RouteNode<unknown, any, any, any> ? FlattenChildrenImpl<[N]>[0] : never;
 // FlattenChildrenImpl is a single self-recursive mapped type with a depth
 // counter (up to 15 levels). Eliminates the mutual recursion that blocked
 // removing _child.

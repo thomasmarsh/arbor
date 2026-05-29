@@ -12,6 +12,7 @@ interface OpenApiContextData {
   bodySchema?: z.ZodType;
   responseSchemas: Record<number, z.ZodType>;
   responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
+  headerSchema?: z.ZodObject<any, any>;
   meta?: OpenApiMeta;
 }
 
@@ -81,7 +82,20 @@ function walkSpec(
         });
       }
 
-      const parameters = [...pathParams, ...queryParams];
+      const headerParams: Record<string, unknown>[] = [];
+      if (ctx.headerSchema) {
+        const shape = ctx.headerSchema.shape as Record<string, z.ZodType>;
+        for (const [name, fieldSchema] of Object.entries(shape)) {
+          headerParams.push({
+            name,
+            in: 'header',
+            required: !(fieldSchema instanceof z.ZodOptional) && !(fieldSchema instanceof z.ZodDefault),
+            schema: zodToJsonSchema(fieldSchema),
+          });
+        }
+      }
+
+      const parameters = [...pathParams, ...queryParams, ...headerParams];
 
       const operation: Record<string, unknown> = {};
       if (ctx.meta?.operationId) {
