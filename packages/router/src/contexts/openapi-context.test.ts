@@ -78,10 +78,10 @@ describe('openApiRoute', () => {
     ]);
 
     const server = createServer(router, {
-      'get-user': (route) => {
+      'get-user': (ctx) => {
         return Promise.resolve({
           status: 200 as const,
-          body: { id: route.id, email: 'test@test.com' },
+          body: { id: ctx.params.id, email: 'test@test.com' },
         });
       },
     });

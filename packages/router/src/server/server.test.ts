@@ -29,56 +29,54 @@ describe('createServer', () => {
   ]);
 
   const server = createServer(router, {
-    'get-user': (route) => {
+    'get-user': (ctx) => {
       return Promise.resolve({
         status: 200 as const,
-        body: { id: route.id, email: 'test@test.com' },
+        body: { id: ctx.params.id, email: 'test@test.com' },
       });
     },
-    'create-user': (_route, body) => {
-      return Promise.resolve({ status: 201 as const, body: { id: '1', email: body.email } });
+    'create-user': (ctx) => {
+      return Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } });
     },
-    'search-items': (_route, _body, query) => {
-      return Promise.resolve({ status: 200 as const, body: { count: query.page } });
+    'search-items': (ctx) => {
+      return Promise.resolve({ status: 200 as const, body: { count: ctx.query.page } });
     },
   });
 
   describe('type inference', () => {
     it('handler receives correct route param types', () => {
       createServer(router, {
-        'get-user': (route) => {
-          expectTypeOf(route).toEqualTypeOf<{ tag: 'get-user'; id: string }>();
+        'get-user': (ctx) => {
+          expectTypeOf(ctx.params).toEqualTypeOf<{ id: string }>();
           return Promise.resolve({
             status: 200 as const,
-            body: { id: route.id, email: 'a@b.com' },
+            body: { id: ctx.params.id, email: 'a@b.com' },
           });
         },
-        'create-user': (route, body) => {
-          expectTypeOf(route).toEqualTypeOf<{ tag: 'create-user' }>();
-          expectTypeOf(body).toEqualTypeOf<{ name: string; email: string }>();
-          return Promise.resolve({ status: 201 as const, body: { id: '1', email: body.email } });
+        'create-user': (ctx) => {
+          expectTypeOf(ctx.body).toEqualTypeOf<{ name: string; email: string }>();
+          return Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } });
         },
-        'search-items': (route, _body, query) => {
-          expectTypeOf(route).toEqualTypeOf<{ tag: 'search-items'; query: { page: number } }>();
-          expectTypeOf(query).toEqualTypeOf<{ page: number }>();
-          return Promise.resolve({ status: 200 as const, body: { count: query.page } });
+        'search-items': (ctx) => {
+          expectTypeOf(ctx.query).toEqualTypeOf<{ page: number }>();
+          return Promise.resolve({ status: 200 as const, body: { count: ctx.query.page } });
         },
       });
     });
 
     it('query is never for routes without explicit query schema', () => {
       createServer(router, {
-        'get-user': (_route, _body, query) => {
-          expectTypeOf(query).toEqualTypeOf<never>();
+        'get-user': (ctx) => {
+          expectTypeOf(ctx.query).toEqualTypeOf<never>();
           return Promise.resolve({ status: 200 as const, body: { id: '1', email: '' } });
         },
-        'create-user': (_route, _body, query) => {
-          expectTypeOf(query).toEqualTypeOf<never>();
+        'create-user': (ctx) => {
+          expectTypeOf(ctx.query).toEqualTypeOf<never>();
           return Promise.resolve({ status: 201 as const, body: { id: '1', email: '' } });
         },
-        'search-items': (_route, _body, query) => {
-          expectTypeOf(query).toEqualTypeOf<{ page: number }>();
-          return Promise.resolve({ status: 200 as const, body: { count: query.page } });
+        'search-items': (ctx) => {
+          expectTypeOf(ctx.query).toEqualTypeOf<{ page: number }>();
+          return Promise.resolve({ status: 200 as const, body: { count: ctx.query.page } });
         },
       });
       expect(true).toBe(true);
@@ -137,8 +135,8 @@ describe('createServer', () => {
     it('returns 500 when handler throws synchronously', async () => {
       const crashingServer = createServer(router, {
         'get-user': () => { throw new Error('boom'); },
-        'create-user': (_route, body) =>
-          Promise.resolve({ status: 201 as const, body: { id: '1', email: body.email } }),
+        'create-user': (ctx) =>
+          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
         'search-items': () =>
           Promise.resolve({ status: 200 as const, body: { count: 0 } }),
       });
@@ -150,8 +148,8 @@ describe('createServer', () => {
     it('returns 500 when handler rejects', async () => {
       const rejectingServer = createServer(router, {
         'get-user': () => Promise.reject(new Error('async boom')),
-        'create-user': (_route, body) =>
-          Promise.resolve({ status: 201 as const, body: { id: '1', email: body.email } }),
+        'create-user': (ctx) =>
+          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
         'search-items': () =>
           Promise.resolve({ status: 200 as const, body: { count: 0 } }),
       });
