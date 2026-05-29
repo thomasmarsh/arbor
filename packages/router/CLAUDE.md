@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Ready to begin `plan/18.improve-type-safety.md`.
-- **Current Status**: 18 remaining. See `plan/spec.workflow.md` for execution order. (to be updated soon)
+- **Current Task**: Ready to begin `plan/20.print-section-params.md`.
+- **Current Status**: Plans 19–28 queued (24 deferred). See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -60,6 +60,8 @@ type Derive<N> =
     : never;
 ```
 
+- The core types like RouteNode should be as domain independent as much as possible. We use the `Context` type parameter in preference to baking in understanding of different schemes or protocols
+
 ## Non-Negotiable Working Style
 
 0. **Break down work per session:** No refactor binges or endless pontificating. If a change too large, requires extensive decision-making, raises serious concerns, or otherwise would burn tokens, take either or both of these actions: a) add/update `plan/questions.md` for user consideration, and/or b) add tech debt plans in the `plan/` directory in format `plan/
@@ -72,3 +74,17 @@ type Derive<N> =
 7. **Phantom types**: `_type` and `_child` are strictly `undefined as never` at runtime. Used for inference only.
 8. **Preserve tests**: Never delete or break past tests. Fix the refactor to match.
 9. **One phase at a time**: Complete the current phase in `plan/` fully before starting the next.
+
+## Planning
+
+When planning, use the following rules:
+
+- Place a plan document in plan/ (using the next available number). Format: `plan/<sequence>.<topic>.md`
+- Update `plan/questions.md` if there are open questions for me to resolve
+- Update `plan/spec.workflow.md` if you need to change order or give other meta work direction
+- Every plan document must include the sections:
+  - Context
+  - Goal
+  - Change Surface
+  - Dependencies
+  - Success Criteria

@@ -4,40 +4,148 @@
 
 Work through numbered plans in this sequence. Complete each fully (tests passing, typecheck clean) before starting the next.
 
+### Current queue (plans 19–23)
+
 ```text
-19 → 21 → 20 → 22 → 23 → 24
+19 → 28 → 21 → 27 → 25 → 20 → 22 → 26 → 23
 ```
+
+Plan 24 (TanStack bridge) is **deferred** — do not start until 19–23 are complete.
 
 Rationale for ordering:
 
-- **19 first**: Phantom/runtime context split. Eliminates the root `as unknown as` casts and makes `_ctx` accessible without casting everywhere downstream. Unblocks 22 and 23.
-- **21 next**: Smallest plan — just adds `Route extends { tag: string }` bound. Independent, low-risk, good warm-up.
-- **20 after 21**: Section params in `print()`. Depends on decisions in `questions.md` (Q1). If full phantom threading, do it here while the type machinery is fresh from 19.
-- **22 after 19**: Server DI context. Needs `_ctx` (from 19) to read schemas cast-free. Blocked on Q2 answer.
-- **23 after 19+22**: OpenAPI generator. Builds on the clean `_ctx` access from 19 and the unified handler shape from 22.
-- **24 (spike) any time**: TanStack bridge feasibility — read-only research, can run in parallel with any plan above.
+- **19 first**: Phantom/runtime context split. Adds `_ctx`; unblocks all plans that read runtime schemas cast-free (25, 22, 23).
+- **28 after 19**: Remove the redundant `_child` phantom field. Both plans touch `RouteNode`; doing them back-to-back keeps diffs small and avoids re-reading the same file later.
+- **21 after 28**: Smallest plan — `Route extends { tag: string }` bound. Independent, zero-risk.
+- **27 after 21**: Normalize `Record<number>` vs `Record<string>` for response status codes. Small, independent; must land before the OpenAPI generator (23).
+- **25 after 19**: Server body validation and error boundary. Critical production safety floor. Needs `_ctx.bodySchema` from plan 19.
+- **20 after 25**: Section params in `print()` via full phantom threading (Q1). Type machinery is fresh from 19.
+- **22 after 19+25**: Server DI context with namespaced `ctx` shape (Q2). Builds on a validated foundation from plan 25.
+- **26 after 20+22**: Type-level test expansion. Section-param test requires plan 20; handler-exhaustiveness test requires the plan 22 handler shape.
+- **23 after 27+22**: OpenAPI generator, full-tree approach (Q3). Needs normalized status code types (27) and the unified context shape (22).
+
+---
+
+### Wave 1 — Diagnostics and test foundation (after plan 23)
+
+```text
+42 (edge case tests)
+43 spike (inference limits)   ← independent, can run in parallel with 42
+```
+
+- **42**: Edge and corner case tests. Builds directly on plan 26's test framework.
+  No new runtime code — pure test-writing.
+- **43 spike**: Benchmark type inference depth/complexity. Independent; run
+  at any point after plan 19. If the spike reveals a real problem, a new plan
+  is opened before continuing.
+
+---
+
+### Wave 2 — API contract surface (after plan 22+23)
+
+```text
+29 → 30 → 31 spike
+        ↘ 35
+```
+
+- **29**: Typed response headers. Extends handler return type and OpenAPI spec.
+- **30**: Typed request headers. Extends `ctx` shape; same validation pattern as plan 25.
+- **31 spike**: Typed HTTP API client architecture. Resolves Q8 (package boundary
+  and generation strategy). Depends on 22+23 being settled and 29+30 drafted.
+  Opens a new implementation plan if the spike is green.
+- **35**: Multipart/streaming body parsing (S1). Depends on plan 22 (ctx shape).
+  Can proceed in parallel with 29/30/31.
+
+---
+
+### Wave 3 — Infrastructure layer (after wave 2 + plan 22)
+
+```text
+41 (examples)   ← start after plan 22; add examples as features land
+44 → 45
+44 → 36
+44 → 37
+```
+
+- **41**: Examples directory. First batch (`basic-server`, `nested-routes`,
+  `query-params`) lands after plan 22. Add further examples as each feature
+  plan completes.
+- **44**: Type-safe middleware pipeline. Prerequisite for 36, 37, 38, 39, 40.
+  Must land before any plan that declares route-level middleware.
+- **45**: Pluggable error mapping. Extends plan 25's catch block; may simplify
+  if 44 lands first.
+- **36**: Per-route rate limiting. Becomes a built-in middleware after plan 44.
+- **37**: Telemetry decorator (`withMetrics`). Server-output wrapper; independent
+  of middleware pipeline but clean to implement after.
+
+---
+
+### Wave 4 — Security stack (after plan 44)
+
+```text
+38 → 33
+39 → 34
+39 → 40
+32 (after 29 + 30 + Q10 resolved)
+```
+
+- **38**: CORS/CSRF server wrapper (SEC1). Functional decorator; reads per-route
+  `cors` field from plan 33.
+- **33**: Per-route CORS policy. Extends plan 38's server-level config.
+- **39**: JWT/session authentication contracts (SEC2). `protectedRoute` factory.
+- **40**: RBAC authorization (SEC3). Sits on top of plan 39.
+- **34**: API key authentication. Distinct auth strategy; follows the
+  `protectedRoute` composition pattern from plan 39.
+- **32**: Cookie handling. Blocked on Q10 (WinterCG CookieStore vs. custom
+  abstraction) and plans 29+30 (validated contract inputs pattern).
+
+---
+
+### Deferred
+
+- **Plan 24** (TanStack bridge spike): Do not start until plans 19–23 complete.
+  See Q4 + Q6. If undeferred, lives in `packages/router-tanstack`.
+- **Client SDK implementation plan** (number TBD): Opens from plan 31 spike
+  result. No plan number assigned until Q8 is resolved.
+- **Radix tree router** (spec.enhancements Phase 4): Performance optimization.
+  Not planned until a benchmark shows O(N) lookup is a real bottleneck.
+
+---
 
 ## Phase Mapping (Plans → Roadmap)
 
-| Plan | Roadmap item                                       |
-| ---- | -------------------------------------------------- |
-| 18   | Eliminate unjustified casts (done)                 |
-| 19   | Phantom/runtime context split                      |
-| 20   | Type-safe section params in `print()`              |
-| 21   | `Route extends { tag: string }` constraint         |
-| 22   | Server handler DI context (enhancements Ph.2 #1)   |
-| 23   | OpenAPI spec generator (enhancements Ph.3 #1)      |
-| 24   | TanStack bridge spike (spec.tanstack-bridge.md)    |
+| Plan | Roadmap item                                               |
+| ---- | ---------------------------------------------------------- |
+| 18   | Eliminate unjustified casts (done)                         |
+| 19   | Phantom/runtime context split                              |
+| 20   | Type-safe section params in `print()`                      |
+| 21   | `Route extends { tag: string }` constraint                 |
+| 22   | Server handler DI context (enhancements Ph.2 #1)           |
+| 23   | OpenAPI spec generator (enhancements Ph.3 #1)              |
+| 24   | TanStack bridge spike — DEFERRED                           |
+| 25   | Server body validation and error boundary                  |
+| 26   | Expand type-level test coverage                            |
+| 27   | Normalize response status code types                       |
+| 28   | Remove redundant `_child` phantom field                    |
+| 29   | Typed response headers                                     |
+| 30   | Typed request headers as contract                          |
+| 31   | Typed HTTP API client — architecture spike                 |
+| 32   | Cookie handling in contract (blocked on Q10)               |
+| 33   | Per-route CORS policy override                             |
+| 34   | API key authentication strategy                            |
+| 35   | Multipart / streaming body parsing (roadmap S1)            |
+| 36   | Per-route rate limiting (roadmap S2 part 1)                |
+| 37   | Telemetry / metrics decorator (roadmap S2 part 2)          |
+| 38   | CORS / CSRF server wrapper (roadmap SEC1)                  |
+| 39   | JWT / session authentication contracts (roadmap SEC2)      |
+| 40   | RBAC authorization (roadmap SEC3)                          |
+| 41   | Examples directory                                         |
+| 42   | Edge and corner case tests                                 |
+| 43   | Type inference depth / complexity limits — spike           |
+| 44   | Type-safe middleware pipeline (enhancements Ph.2 #2)       |
+| 45   | Pluggable error mapping engine (enhancements Ph.2 #3)      |
 
-After plan 23, the next natural phases are:
-
-- **spec.enhancements.md Phase 2, items 2–3**: Type-safe middleware pipelines,
-  pluggable error mapping. These depend on the DI shape settled in plan 22.
-- **spec.roadmap.md Phase SEC1–SEC2**: CORS/CSRF, JWT/Session contracts.
-  Require middleware pipeline from Phase 2 to be in place.
-- **spec.roadmap.md Phase C1–C3**: Client-side loaders, lifecycle tracking,
-  search param inheritance. TanStack bridge spike (24) informs whether to build
-  natively or via adapter.
+---
 
 ## TDD Workflow Per Plan
 
@@ -55,4 +163,5 @@ A plan is complete when:
 - All new behavior is tested
 - No existing tests are broken
 - `npm test && npm run typecheck` passes clean
+- If `examples/` is present, then all examples are brought up to date with code changes
 - The plan file's CLAUDE.md entry is updated (status → complete)

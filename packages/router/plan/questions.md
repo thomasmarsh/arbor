@@ -3,70 +3,131 @@
 Questions that require product or architectural decisions before the relevant
 plan can proceed.
 
----
-
-## Q1 — `print()` section params: phantom threading vs. weak fix?
-
-**Relevant plan**: 20.print-section-params.md
-
-Two options:
-
-**a. Full phantom threading** — introduce a new phantom type `_sectionParams`
-tracking required param keys. Gives a compile-time error when section params
-are omitted. ~50–80 lines of type utilities.
-
-**b. Weak fix** — change `print(route: Route)` to
-`print(route: Route, sectionParams?: Record<string, string | number>)`. Removes
-the `as any` from call sites but does not make omission a type error.
-
-Which do you prefer? If (a), is this the right moment or should it be deferred
-until after the server DI work (plan 22)?
+All questions below are **resolved**. Decisions are recorded here for
+traceability; see the relevant plan files for how they are applied.
 
 ---
 
-## Q2 — Server DI context shape: flat or namespaced?
+## Q1 — `print()` section params: phantom threading vs. weak fix? ✓
 
-**Relevant plan**: 22.server-di-context.md
-
-Two shapes for the unified handler `ctx`:
-
-**a. Flat merge**
-```typescript
-handler: (ctx: { userId: string; page: number; name: string; req: Request }) => Response
-```
-Risk: param name collisions between path/query/body.
-
-**b. Namespaced**
-```typescript
-handler: (ctx: { params: { userId: string }; query: { page: number }; body: { name: string }; req: Request }) => Response
-```
-No collision risk. Slightly more verbose at call sites.
-
-Preference?
+**Resolution**: Full phantom threading (option a). Omitting a required section
+param must be a compile-time error. Weak fix rejected.
+**See**: 20.print-section-params.md
 
 ---
 
-## Q3 — OpenAPI generator: router-level or node-level?
+## Q2 — Server DI context shape: flat or namespaced? ✓
 
-**Relevant plan**: 23.openapi-generator.md
-
-The existing `generateSpec` test helper works at the single node level.
-Should plan 23 extend that helper OR write a new top-level utility that walks
-the full route tree and delegates to per-node logic?
-
-The full-tree approach is more useful but requires plan 19 to land first
-(cast-free `_ctx` access). OK to defer plan 23 until after plans 19–21?
+**Resolution**: Namespaced (option b) — `{ params, body, query, req }`.
+Verbosity at call sites accepted; can revisit if it becomes a problem.
+**See**: 22.server-di-context.md
 
 ---
 
-## Q4 — TanStack bridge: separate package or in-repo?
+## Q3 — OpenAPI generator: router-level or node-level? ✓
 
-**Relevant plan**: 24.spike-tanstack-bridge.md
+**Resolution**: Full-tree approach. A single `generateSpec(router)` walks the
+complete route tree. Deferred until plan 19 lands.
+**See**: 23.openapi-generator.md
 
-If the bridge is viable, should it live in:
+---
 
-**a.** `packages/router` as an opt-in sub-path export (`@arbor/router/tanstack`)
-**b.** A new package `packages/router-tanstack`
+## Q4 — TanStack bridge: separate package or in-repo? ✓
 
-(a) keeps the monorepo simple. (b) avoids making `@tanstack/react-router` a
-peer dep of every consumer of `@arbor/router`.
+**Resolution**: Separate package (`packages/router-tanstack`) if/when the
+work is undeferred. Work is currently deprioritized (see Q6).
+**See**: 24.spike-tanstack-bridge.md
+
+---
+
+## Q5 — Plan 22 scope: include body validation or keep it separate? ✓
+
+**Resolution**: Keep separate. Plan 25 (body validation + error boundary)
+lands first; plan 22 (DI refactor) builds on that foundation. Smaller diffs
+preferred.
+**See**: 25.server-validation-error-boundary.md, 22.server-di-context.md
+
+---
+
+## Q6 — TanStack bridge priority: now or after runtime safety is solid? ✓
+
+**Resolution**: Deferred. Do not start until plans 19–27 are complete.
+TanStack work is additive; the runtime safety floor comes first.
+**See**: 24.spike-tanstack-bridge.md
+
+---
+
+## Q7 — Remove the `_child` phantom field? ✓
+
+**Resolution**: Yes, remove it. Own plan (28), done after plan 19 since both
+touch `RouteNode`. Prefer more small plans over fewer large ones.
+**See**: 28.remove-child-phantom.md
+
+---
+
+## Q8 — Typed client: separate package or integrated? (open)
+
+**Plan 31 spike** must answer this before any client SDK implementation starts.
+
+**Q8a — Package boundary**: Does the typed client live as an export of
+`@arbor/router` (simpler, but risks pulling server code into browser bundles)
+or in a dedicated `@arbor/router-client` package?
+
+**Q8b — Generation strategy**: Does the client derive its types directly from
+`RouteNode` / `ServerHandlers` (tighter inference, coupled to internals), or
+from the OpenAPI JSON output (more portable, enables third-party spec interop)?
+
+**See**: 31.spike-typed-client.md
+
+---
+
+## Q9 — Header typing: new `RouteNode` field or extend the context type parameter? (open)
+
+Plans 29 and 30 need to add request and response header schemas to the route
+contract. Two options:
+
+**a) New dedicated fields** on the route factory (`headers`, `responseHeaders`)
+alongside `schema` and `query` — explicit, easy to read, adds fields to
+`RouteNode`.
+
+**b) Extend the `Context` type parameter** — keeps `RouteNode`'s field count
+stable but makes the contract shape less obvious to readers.
+
+The `Context` parameter is currently used for runtime data (auth markers,
+etc.). Mixing schema declarations in there may muddy its purpose.
+
+**See**: 29.typed-response-headers.md, 30.typed-request-headers.md
+
+---
+
+## Q10 — Cookie handling: WinterCG `CookieStore` vs. custom abstraction? (open)
+
+Plan 32 needs to extract cookies from the request. Two options:
+
+**a) WinterCG `CookieStore` API** — standard, zero-dependency, but not
+available in all WinterCG-compatible runtimes yet (notably Node.js < 22
+without a polyfill).
+
+**b) Parse the `Cookie` header string directly** with a small utility — more
+portable, no polyfill needed, trivially testable.
+
+Decision affects whether we add a polyfill dependency or accept the runtime
+compatibility constraint.
+
+**See**: 32.cookie-handling.md
+
+---
+
+## Q11 — Examples directory: co-located or top-level monorepo? (open)
+
+Plan 41 proposes `packages/router/examples/`. Two options:
+
+**a) Co-located** (`packages/router/examples/`) — simple, no extra package,
+examples import directly from `../src` without a publish step.
+
+**b) Top-level monorepo** (`examples/router/`) — consistent with how many
+monorepos organize user-facing demos; easier to grow into a docs site later.
+
+Resolved decision should be recorded before plan 41 begins.
+
+**See**: 41.examples-directory.md
