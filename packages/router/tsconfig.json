@@ -6,5 +6,5 @@
     "target": "ES2022",
     "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src", "examples", "scripts"]
 }

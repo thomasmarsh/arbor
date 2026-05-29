@@ -23,7 +23,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf dist *.tsbuildinfo",
-    "bench:inference": "tsx scripts/inference-bench.ts"
+    "bench:inference": "tsx scripts/inference-bench.ts",
+    "examples": "tsx examples/basic-server.ts && tsx examples/basic-client.ts && tsx examples/query-params.ts && tsx examples/nested-routes.ts && tsx examples/openapi-output.ts"
   },
   "dependencies": {
     "@arbor/common": "workspace:*",
