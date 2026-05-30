@@ -15,7 +15,7 @@ export {
 
 // HTTP
 export { createClient, type FetchLike, type TypedClient } from './client/fetch-client.js';
-export { type Enricher, composeEnrichers, withEnricher } from './server/enrichers.js';
+export { type Guard, composeGuards, withGuard } from './server/guard.js';
 export { withSession } from './server/with-session.js';
 export { withRbac } from './server/with-rbac.js';
 export { withApiKey, type ApiKeyOptions } from './server/with-api-key.js';

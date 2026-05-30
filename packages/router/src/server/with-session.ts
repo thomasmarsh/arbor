@@ -1,8 +1,8 @@
-import type { Enricher } from './enrichers.js';
+import type { Guard } from './guard.js';
 
 export function withSession<BaseCtx, Session>(
   resolveSession: (ctx: BaseCtx) => Promise<Session | null>,
-): Enricher<BaseCtx, { session: Session }> {
+): Guard<BaseCtx, { session: Session }> {
   return async (ctx) => {
     const session = await resolveSession(ctx);
     if (session === null) {

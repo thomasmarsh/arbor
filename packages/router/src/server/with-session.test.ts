@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { withEnricher } from './enrichers.js';
+import { withGuard } from './guard.js';
 import { withSession } from './with-session.js';
 
 interface Ctx {
@@ -22,8 +22,8 @@ const resolveSession = (ctx: Ctx): Promise<Session | null> => {
 describe('withSession', () => {
   describe('type inference', () => {
     it('session appears in enriched handler ctx', () => {
-      const enricher = withSession(resolveSession);
-      withEnricher(enricher, (ctx) => {
+      const guard = withSession(resolveSession);
+      withGuard(guard, (ctx) => {
         expectTypeOf(ctx.session).toEqualTypeOf<Session>();
         expectTypeOf(ctx.headers).toEqualTypeOf<Record<string, string>>();
         return Promise.resolve(new Response());
@@ -31,9 +31,9 @@ describe('withSession', () => {
       expect(true).toBe(true);
     });
 
-    it('return type of withSession is Enricher<BaseCtx, { session: Session }>', () => {
-      const enricher = withSession(resolveSession);
-      expectTypeOf(enricher).toEqualTypeOf<
+    it('return type of withSession is Guard<BaseCtx, { session: Session }>', () => {
+      const guard = withSession(resolveSession);
+      expectTypeOf(guard).toEqualTypeOf<
         (ctx: Ctx) => Promise<{ ok: true; ctx: Ctx & { session: Session } } | { ok: false; response: Response }>
       >();
     });
@@ -41,23 +41,23 @@ describe('withSession', () => {
 
   describe('runtime behaviour', () => {
     it('returns 401 when resolveSession returns null (missing token)', async () => {
-      const enricher = withSession(resolveSession);
-      const handler = withEnricher(enricher, () => Promise.resolve(new Response('ok')));
+      const guard = withSession(resolveSession);
+      const handler = withGuard(guard, () => Promise.resolve(new Response('ok')));
       const resp = await handler({ headers: {} });
       expect(resp.status).toBe(401);
     });
 
     it('returns 401 when resolveSession returns null (invalid token)', async () => {
-      const enricher = withSession(resolveSession);
-      const handler = withEnricher(enricher, () => Promise.resolve(new Response('ok')));
+      const guard = withSession(resolveSession);
+      const handler = withGuard(guard, () => Promise.resolve(new Response('ok')));
       const resp = await handler({ headers: { authorization: 'Bearer bad-token' } });
       expect(resp.status).toBe(401);
     });
 
     it('passes session to handler when token is valid', async () => {
-      const enricher = withSession(resolveSession);
+      const guard = withSession(resolveSession);
       let received: Session | undefined;
-      const handler = withEnricher(enricher, ({ session }) => {
+      const handler = withGuard(guard, ({ session }) => {
         received = session;
         return Promise.resolve(new Response('ok'));
       });
@@ -67,9 +67,9 @@ describe('withSession', () => {
     });
 
     it('does not call handler when session is missing', async () => {
-      const enricher = withSession(resolveSession);
+      const guard = withSession(resolveSession);
       let called = false;
-      const handler = withEnricher(enricher, () => {
+      const handler = withGuard(guard, () => {
         called = true;
         return Promise.resolve(new Response('ok'));
       });

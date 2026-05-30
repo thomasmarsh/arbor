@@ -1,5 +1,5 @@
-// withSession enricher: enforce authentication and inject a typed session into ctx.
-import { withEnricher, withSession } from '../src/index.js';
+// withSession guard: enforce authentication and inject a typed session into ctx.
+import { withGuard, withSession } from '../src/index.js';
 
 interface UserSession {
   userId: string;
@@ -20,9 +20,9 @@ const myWithSession = withSession<Ctx, UserSession>(async (ctx) => {
   return null;
 });
 
-// Handlers wrapped with withEnricher(myWithSession, ...) get `session` in ctx.
-// Without the enricher, `session` does not exist — enforced at compile time.
-const meHandler = withEnricher(myWithSession, async ({ session }) =>
+// Handlers wrapped with withGuard(myWithSession, ...) get `session` in ctx.
+// Without the guard, `session` does not exist — enforced at compile time.
+const meHandler = withGuard(myWithSession, async ({ session }) =>
   new Response(JSON.stringify({ id: session.userId, role: session.role }), {
     headers: { 'content-type': 'application/json' },
   }),

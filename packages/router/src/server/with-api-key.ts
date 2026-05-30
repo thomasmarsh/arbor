@@ -1,4 +1,4 @@
-import type { Enricher } from './enrichers.js';
+import type { Guard } from './guard.js';
 
 export interface ApiKeyOptions {
   via: 'header' | 'query';
@@ -8,7 +8,7 @@ export interface ApiKeyOptions {
 export function withApiKey<BaseCtx extends { headers?: Record<string, string>; query?: Record<string, string> }, Identity>(
   options: ApiKeyOptions,
   resolveApiKey: (key: string, ctx: BaseCtx) => Promise<Identity | null>,
-): Enricher<BaseCtx, { apiKey: Identity }> {
+): Guard<BaseCtx, { apiKey: Identity }> {
   return async (ctx) => {
     const raw = options.via === 'header'
       ? ctx.headers?.[options.name.toLowerCase()]

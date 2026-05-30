@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { withEnricher } from './enrichers.js';
+import { withGuard } from './guard.js';
 import { withApiKey } from './with-api-key.js';
 
 interface Ctx {
@@ -20,8 +20,8 @@ const resolveApiKey = (_key: string, _ctx: Ctx): Promise<KeyIdentity | null> => 
 describe('withApiKey', () => {
   describe('type inference', () => {
     it('apiKey appears in enriched handler ctx (header)', () => {
-      const enricher = withApiKey({ via: 'header', name: 'x-api-key' }, resolveApiKey);
-      withEnricher(enricher, (ctx) => {
+      const guard = withApiKey({ via: 'header', name: 'x-api-key' }, resolveApiKey);
+      withGuard(guard, (ctx) => {
         expectTypeOf(ctx.apiKey).toEqualTypeOf<KeyIdentity>();
         expectTypeOf(ctx.headers).toEqualTypeOf<Record<string, string>>();
         return Promise.resolve(new Response());
@@ -29,9 +29,9 @@ describe('withApiKey', () => {
       expect(true).toBe(true);
     });
 
-    it('return type is Enricher<Ctx, { apiKey: KeyIdentity }>', () => {
-      const enricher = withApiKey({ via: 'header', name: 'x-api-key' }, resolveApiKey);
-      expectTypeOf(enricher).toEqualTypeOf<
+    it('return type is Guard<Ctx, { apiKey: KeyIdentity }>', () => {
+      const guard = withApiKey({ via: 'header', name: 'x-api-key' }, resolveApiKey);
+      expectTypeOf(guard).toEqualTypeOf<
         (ctx: Ctx) => Promise<{ ok: true; ctx: Ctx & { apiKey: KeyIdentity } } | { ok: false; response: Response }>
       >();
     });
@@ -39,23 +39,23 @@ describe('withApiKey', () => {
 
   describe('runtime behaviour — header', () => {
     it('returns 401 when header is absent', async () => {
-      const enricher = withApiKey({ via: 'header', name: 'x-api-key' }, resolveApiKey);
-      const handler = withEnricher(enricher, () => Promise.resolve(new Response('ok')));
+      const guard = withApiKey({ via: 'header', name: 'x-api-key' }, resolveApiKey);
+      const handler = withGuard(guard, () => Promise.resolve(new Response('ok')));
       const resp = await handler({ headers: {}, query: {} });
       expect(resp.status).toBe(401);
     });
 
     it('returns 401 when key is invalid', async () => {
-      const enricher = withApiKey({ via: 'header', name: 'x-api-key' }, resolveApiKey);
-      const handler = withEnricher(enricher, () => Promise.resolve(new Response('ok')));
+      const guard = withApiKey({ via: 'header', name: 'x-api-key' }, resolveApiKey);
+      const handler = withGuard(guard, () => Promise.resolve(new Response('ok')));
       const resp = await handler({ headers: { 'x-api-key': 'bad-key' }, query: {} });
       expect(resp.status).toBe(401);
     });
 
     it('injects identity when key is valid', async () => {
-      const enricher = withApiKey({ via: 'header', name: 'x-api-key' }, resolveApiKey);
+      const guard = withApiKey({ via: 'header', name: 'x-api-key' }, resolveApiKey);
       let received: KeyIdentity | undefined;
-      const handler = withEnricher(enricher, ({ apiKey }) => {
+      const handler = withGuard(guard, ({ apiKey }) => {
         received = apiKey;
         return Promise.resolve(new Response('ok'));
       });
@@ -65,9 +65,9 @@ describe('withApiKey', () => {
     });
 
     it('does not call handler when key is missing', async () => {
-      const enricher = withApiKey({ via: 'header', name: 'x-api-key' }, resolveApiKey);
+      const guard = withApiKey({ via: 'header', name: 'x-api-key' }, resolveApiKey);
       let called = false;
-      const handler = withEnricher(enricher, () => {
+      const handler = withGuard(guard, () => {
         called = true;
         return Promise.resolve(new Response('ok'));
       });
@@ -78,16 +78,16 @@ describe('withApiKey', () => {
 
   describe('runtime behaviour — query', () => {
     it('returns 401 when query param is absent', async () => {
-      const enricher = withApiKey({ via: 'query', name: 'api_key' }, resolveApiKey);
-      const handler = withEnricher(enricher, () => Promise.resolve(new Response('ok')));
+      const guard = withApiKey({ via: 'query', name: 'api_key' }, resolveApiKey);
+      const handler = withGuard(guard, () => Promise.resolve(new Response('ok')));
       const resp = await handler({ headers: {}, query: {} });
       expect(resp.status).toBe(401);
     });
 
     it('injects identity when query key is valid', async () => {
-      const enricher = withApiKey({ via: 'query', name: 'api_key' }, resolveApiKey);
+      const guard = withApiKey({ via: 'query', name: 'api_key' }, resolveApiKey);
       let received: KeyIdentity | undefined;
-      const handler = withEnricher(enricher, ({ apiKey }) => {
+      const handler = withGuard(guard, ({ apiKey }) => {
         received = apiKey;
         return Promise.resolve(new Response('ok'));
       });

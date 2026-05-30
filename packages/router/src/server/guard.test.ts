@@ -1,19 +1,19 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { composeEnrichers, type Enricher, withEnricher } from './enrichers.js';
+import { composeGuards, type Guard, withGuard } from './guard.js';
 
 interface Base {
   params: { id: string };
 }
 
-describe('withEnricher', () => {
+describe('withGuard', () => {
   describe('type inference', () => {
     it('Extra fields appear in wrapped handler ctx', () => {
       interface Extra {
         session: { userId: string };
       }
-      const enricher: Enricher<Base, Extra> = (ctx) =>
+      const guard: Guard<Base, Extra> = (ctx) =>
         Promise.resolve({ ok: true, ctx: { ...ctx, session: { userId: '1' } } });
-      withEnricher(enricher, (ctx) => {
+      withGuard(guard, (ctx) => {
         expectTypeOf(ctx).toEqualTypeOf<Base & Extra>();
         expectTypeOf(ctx.session).toEqualTypeOf<{ userId: string }>();
         expectTypeOf(ctx.params).toEqualTypeOf<{ id: string }>();
@@ -21,20 +21,20 @@ describe('withEnricher', () => {
       });
     });
 
-    it('return type of withEnricher is (ctx: BaseCtx) => Promise<Response>', () => {
-      const enricher: Enricher<Base, { x: number }> = (ctx) =>
+    it('return type of withGuard is (ctx: BaseCtx) => Promise<Response>', () => {
+      const guard: Guard<Base, { x: number }> = (ctx) =>
         Promise.resolve({ ok: true, ctx: { ...ctx, x: 1 } });
-      const wrapped = withEnricher(enricher, () => Promise.resolve(new Response()));
+      const wrapped = withGuard(guard, () => Promise.resolve(new Response()));
       expectTypeOf(wrapped).toEqualTypeOf<(ctx: Base) => Promise<Response>>();
     });
   });
 
   describe('runtime behaviour', () => {
-    it('passes enriched ctx to handler when enricher succeeds', async () => {
-      const enricher: Enricher<Base, { session: string }> = (ctx) =>
+    it('passes enriched ctx to handler when guard succeeds', async () => {
+      const guard: Guard<Base, { session: string }> = (ctx) =>
         Promise.resolve({ ok: true, ctx: { ...ctx, session: 'tok-123' } });
       let received: string | undefined;
-      const handler = withEnricher(enricher, ({ session }) => {
+      const handler = withGuard(guard, ({ session }) => {
         received = session;
         return Promise.resolve(new Response());
       });
@@ -42,11 +42,11 @@ describe('withEnricher', () => {
       expect(received).toBe('tok-123');
     });
 
-    it('short-circuits without calling handler when enricher fails', async () => {
+    it('short-circuits without calling handler when guard fails', async () => {
       let called = false;
-      const shortCircuit: Enricher<Base, { x: number }> = () =>
+      const shortCircuit: Guard<Base, { x: number }> = () =>
         Promise.resolve({ ok: false, response: new Response(null, { status: 401 }) });
-      const handler = withEnricher(shortCircuit, () => {
+      const handler = withGuard(shortCircuit, () => {
         called = true;
         return Promise.resolve(new Response());
       });
@@ -57,21 +57,21 @@ describe('withEnricher', () => {
   });
 });
 
-describe('composeEnrichers', () => {
+describe('composeGuards', () => {
   describe('type inference', () => {
-    it('both enricher additions visible in innermost handler ctx', () => {
+    it('both guard additions visible in innermost handler ctx', () => {
       interface Session {
         session: string;
       }
       interface RateInfo {
         rateInfo: number;
       }
-      const withSession: Enricher<Base, Session> = (ctx) =>
+      const withSession: Guard<Base, Session> = (ctx) =>
         Promise.resolve({ ok: true, ctx: { ...ctx, session: 'tok' } });
-      const withRate: Enricher<Base & Session, RateInfo> = (ctx) =>
+      const withRate: Guard<Base & Session, RateInfo> = (ctx) =>
         Promise.resolve({ ok: true, ctx: { ...ctx, rateInfo: 42 } });
-      const composed = composeEnrichers(withSession, withRate);
-      withEnricher(composed, (ctx) => {
+      const composed = composeGuards(withSession, withRate);
+      withGuard(composed, (ctx) => {
         expectTypeOf(ctx).toEqualTypeOf<Base & Session & RateInfo>();
         return Promise.resolve(new Response());
       });
@@ -79,13 +79,13 @@ describe('composeEnrichers', () => {
   });
 
   describe('runtime behaviour', () => {
-    it('runs both enrichers and merges ctx', async () => {
-      const e1: Enricher<Base, { a: number }> = (ctx) => Promise.resolve({ ok: true, ctx: { ...ctx, a: 1 } });
-      const e2: Enricher<Base & { a: number }, { b: string }> = (ctx) =>
+    it('runs both guards and merges ctx', async () => {
+      const g1: Guard<Base, { a: number }> = (ctx) => Promise.resolve({ ok: true, ctx: { ...ctx, a: 1 } });
+      const g2: Guard<Base & { a: number }, { b: string }> = (ctx) =>
         Promise.resolve({ ok: true, ctx: { ...ctx, b: 'hi' } });
-      const composed = composeEnrichers(e1, e2);
+      const composed = composeGuards(g1, g2);
       let result: { a: number; b: string } | undefined;
-      const handler = withEnricher(composed, ({ a, b }) => {
+      const handler = withGuard(composed, ({ a, b }) => {
         result = { a, b };
         return Promise.resolve(new Response());
       });
@@ -93,17 +93,17 @@ describe('composeEnrichers', () => {
       expect(result).toEqual({ a: 1, b: 'hi' });
     });
 
-    it('short-circuits at first enricher without running second or handler', async () => {
+    it('short-circuits at first guard without running second or handler', async () => {
       let secondCalled = false;
       let handlerCalled = false;
-      const e1: Enricher<Base, { a: number }> = () =>
+      const g1: Guard<Base, { a: number }> = () =>
         Promise.resolve({ ok: false, response: new Response(null, { status: 403 }) });
-      const e2: Enricher<Base & { a: number }, { b: string }> = (ctx) => {
+      const g2: Guard<Base & { a: number }, { b: string }> = (ctx) => {
         secondCalled = true;
         return Promise.resolve({ ok: true, ctx: { ...ctx, b: 'hi' } });
       };
-      const composed = composeEnrichers(e1, e2);
-      const handler = withEnricher(composed, () => {
+      const composed = composeGuards(g1, g2);
+      const handler = withGuard(composed, () => {
         handlerCalled = true;
         return Promise.resolve(new Response());
       });
@@ -113,13 +113,13 @@ describe('composeEnrichers', () => {
       expect(resp.status).toBe(403);
     });
 
-    it('short-circuits at second enricher without running handler', async () => {
+    it('short-circuits at second guard without running handler', async () => {
       let handlerCalled = false;
-      const e1: Enricher<Base, { a: number }> = (ctx) => Promise.resolve({ ok: true, ctx: { ...ctx, a: 1 } });
-      const e2: Enricher<Base & { a: number }, { b: string }> = () =>
+      const g1: Guard<Base, { a: number }> = (ctx) => Promise.resolve({ ok: true, ctx: { ...ctx, a: 1 } });
+      const g2: Guard<Base & { a: number }, { b: string }> = () =>
         Promise.resolve({ ok: false, response: new Response(null, { status: 429 }) });
-      const composed = composeEnrichers(e1, e2);
-      const handler = withEnricher(composed, () => {
+      const composed = composeGuards(g1, g2);
+      const handler = withGuard(composed, () => {
         handlerCalled = true;
         return Promise.resolve(new Response());
       });

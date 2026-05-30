@@ -1,5 +1,5 @@
-// withRbac enricher: enforce role-based access control on top of withSession.
-import { composeEnrichers, withEnricher, withRbac, withSession } from '../src/index.js';
+// withRbac guard: enforce role-based access control on top of withSession.
+import { composeGuards, withGuard, withRbac, withSession } from '../src/index.js';
 
 interface UserSession {
   userId: string;
@@ -24,9 +24,9 @@ const myWithSession = withSession<Ctx, UserSession>(async (ctx) => {
 });
 
 // Compose session + RBAC: only 'admin' or 'super-user' may proceed.
-const adminOnly = composeEnrichers(myWithSession, withRbac(['admin', 'super-user']));
+const adminOnly = composeGuards(myWithSession, withRbac(['admin', 'super-user']));
 
-const deleteUserHandler = withEnricher(adminOnly, async ({ session }) =>
+const deleteUserHandler = withGuard(adminOnly, async ({ session }) =>
   Promise.resolve(
     new Response(JSON.stringify({ deleted: true, by: session.userId }), {
       headers: { 'content-type': 'application/json' },

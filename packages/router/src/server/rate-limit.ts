@@ -1,4 +1,4 @@
-import type { Enricher } from './enrichers.js';
+import type { Guard } from './guard.js';
 
 export interface RateLimitPolicy {
   windowMs: number;
@@ -39,7 +39,7 @@ export function withRateLimit<BaseCtx>(
   policy: RateLimitPolicy,
   store: RateLimitStore,
   keyResolver?: (ctx: BaseCtx) => string,
-): Enricher<BaseCtx, Record<never, never>> {
+): Guard<BaseCtx, Record<never, never>> {
   return async (ctx: BaseCtx) => {
     const key = keyResolver ? keyResolver(ctx) : 'default';
     const count = await store.increment(key, policy.windowMs);

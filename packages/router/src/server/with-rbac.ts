@@ -1,8 +1,8 @@
-import type { Enricher } from './enrichers.js';
+import type { Guard } from './guard.js';
 
 export function withRbac<BaseCtx extends { session: { roles: string[] } }>(
   requiredRoles: string[],
-): Enricher<BaseCtx, Record<never, never>> {
+): Guard<BaseCtx, Record<never, never>> {
   return (ctx) => {
     const { roles } = ctx.session;
     const hasRole = requiredRoles.some((r) => roles.includes(r));

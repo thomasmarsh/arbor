@@ -94,10 +94,10 @@ Self-contained runnable demos in `examples/`. Run them as a smoke test with `pnp
 | `query-params.ts`   | `httpRoute` with a Zod query schema                                                  |
 | `nested-routes.ts`  | Nested `route()` tree; `parse()` + `print()` roundtrip                               |
 | `openapi-output.ts` | `generateSpec()` → stdout JSON                                                       |
-| `enrichers.ts`      | `withEnricher` + `composeEnrichers` — pre-handler auth/plan checks                   |
+| `guards.ts`         | `withGuard` + `composeGuards` — pre-handler auth/plan checks                         |
 | `typed-client.ts`   | `createClient` options object API; typed request headers; `TypedClient` utility type |
-| `auth-protected.ts` | `withSession` enricher — JWT auth short-circuit, typed session in ctx                |
-| `rbac.ts`           | `withRbac` enricher — role-based 403 guard composed on top of `withSession`          |
+| `auth-protected.ts` | `withSession` guard — JWT auth short-circuit, typed session in ctx                   |
+| `rbac.ts`           | `withRbac` guard — role-based 403 check composed on top of `withSession`             |
 
 **Rules for examples**:
 

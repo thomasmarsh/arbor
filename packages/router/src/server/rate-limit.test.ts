@@ -38,30 +38,30 @@ describe('withRateLimit', () => {
 
   it('passes through when within limit', async () => {
     const store = createMemoryStore();
-    const enricher = withRateLimit(policy, store);
+    const guard = withRateLimit(policy, store);
     const ctx = { params: {} };
-    expect((await enricher(ctx)).ok).toBe(true);
-    expect((await enricher(ctx)).ok).toBe(true);
+    expect((await guard(ctx)).ok).toBe(true);
+    expect((await guard(ctx)).ok).toBe(true);
   });
 
   it('returns 429 when limit is exceeded', async () => {
     const store = createMemoryStore();
-    const enricher = withRateLimit(policy, store);
+    const guard = withRateLimit(policy, store);
     const ctx = { params: {} };
-    await enricher(ctx);
-    await enricher(ctx);
-    const r3 = await enricher(ctx);
+    await guard(ctx);
+    await guard(ctx);
+    const r3 = await guard(ctx);
     expect(r3.ok).toBe(false);
     if (!r3.ok) expect(r3.response.status).toBe(429);
   });
 
   it('sets Retry-After header when limit is exceeded', async () => {
     const store = createMemoryStore();
-    const enricher = withRateLimit(policy, store);
+    const guard = withRateLimit(policy, store);
     const ctx = {};
-    await enricher(ctx);
-    await enricher(ctx);
-    const r3 = await enricher(ctx);
+    await guard(ctx);
+    await guard(ctx);
+    const r3 = await guard(ctx);
     if (!r3.ok) expect(r3.response.headers.get('retry-after')).toBe('60');
   });
 
@@ -72,18 +72,18 @@ describe('withRateLimit', () => {
       resolved = `user:${ctx.userId}`;
       return resolved;
     };
-    const enricher = withRateLimit(policy, store, keyResolver);
-    await enricher({ userId: 'abc' });
+    const guard = withRateLimit(policy, store, keyResolver);
+    await guard({ userId: 'abc' });
     expect(resolved).toBe('user:abc');
   });
 
   it('different keys have independent limits', async () => {
     const store = createMemoryStore();
-    const enricher = withRateLimit(policy, store, (ctx: { id: string }) => ctx.id);
-    await enricher({ id: 'a' });
-    await enricher({ id: 'a' });
-    const aResult = await enricher({ id: 'a' }); // 'a' exceeded
-    const bResult = await enricher({ id: 'b' }); // 'b' first request
+    const guard = withRateLimit(policy, store, (ctx: { id: string }) => ctx.id);
+    await guard({ id: 'a' });
+    await guard({ id: 'a' });
+    const aResult = await guard({ id: 'a' }); // 'a' exceeded
+    const bResult = await guard({ id: 'b' }); // 'b' first request
     expect(aResult.ok).toBe(false);
     expect(bResult.ok).toBe(true);
   });
