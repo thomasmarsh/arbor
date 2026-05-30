@@ -1,11 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type z from 'zod';
-import type { Result } from '@arbor/common';
 import type { HttpContext, HttpMethod, HttpResponse, HttpResponseUnion } from '../contexts/http-context.js';
 import { collectHttpMaps } from '../contexts/http-context.js';
 import type { HttpWalkNode } from '../contexts/http-context.js';
-import type { RouteNode } from '../core/route-node.js';
+import type { AnyCtxMap, RouterContract } from '../core/router-contract.js';
 import { createMemoryStore, type RateLimitStore } from './rate-limit.js';
 import { parseBody } from './parse-body.js';
 
@@ -109,14 +106,9 @@ export function validateResponse(
 
 export function createServer<
   Route extends { tag: string },
-  Map extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown, unknown>>,
+  Map extends AnyCtxMap,
 >(
-  router: {
-    _type: Route;
-    _ctxMap: Map;
-    children: RouteNode<unknown, any, any, any, any>[];
-    parse(url: URL): Result<Route, string>;
-  },
+  router: RouterContract<Route, Map>,
   handlers: HandlerMap<Map, Route>,
   options?: {
     errorMap?: ErrorMapEntry[];

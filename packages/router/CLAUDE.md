@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 72 complete; Plan 75 is next
-- **Current Status**: Waves 0–6 complete (plans 18–65). Wave 7 complete (plans 82–84, 67–69). Wave 8 in progress: plans 71, 73, 72 complete. See `plan/work-order.md` for full queue.
+- **Current Task**: Plan 85 complete; Plan 75 is next
+- **Current Status**: Waves 0–6 complete (plans 18–65). Wave 7 complete (plans 82–84, 67–69). Wave 8 in progress: plans 71, 73, 72, 85 complete. See `plan/work-order.md` for full queue.
 
 ## Strict System Rules (Zero Preamble)
 

@@ -4,7 +4,7 @@ import { Result } from '@arbor/common';
 import type z from 'zod';
 import type { HttpContext, HttpResponseUnion } from '../contexts/http-context.js';
 import { getHttpMeta, type HttpWalkNode } from '../contexts/http-context.js';
-import type { RouteNode } from '../core/route-node.js';
+import type { AnyCtxMap, RouterContract } from '../core/router-contract.js';
 import { walkCollect } from '../core/walk.js';
 
 interface NoOpts {
@@ -12,7 +12,7 @@ interface NoOpts {
   headers?: never;
 }
 
-type RequestOpts<Ctx extends HttpContext<any, any, any, any, any>> = [Ctx['body']] extends [never]
+type RequestOpts<Ctx extends HttpContext<any, any, any, any, any, any>> = [Ctx['body']] extends [never]
   ? [Ctx['headers']] extends [never]
     ? NoOpts
     : { headers: Ctx['headers'] }
@@ -28,16 +28,9 @@ export type FetchLike = (
   json(): Promise<unknown>;
 }>;
 
-interface RouterArg<Route> {
-  _type: Route;
-  _ctxMap: Record<string, HttpContext<any, any, any, any, any>>;
-  print(route: Route): string;
-  children: RouteNode<unknown, any, any, any, any>[];
-}
-
 export interface TypedClient<
   Route extends { tag: string },
-  Map extends Record<string, HttpContext<any, any, any, any, any>>,
+  Map extends AnyCtxMap,
   Validate extends boolean = false,
 > {
   fetch<Tag extends keyof Map & string>(
@@ -52,11 +45,11 @@ export interface TypedClient<
 
 export function createClient<
   Route extends { tag: string },
-  Map extends Record<string, HttpContext<any, any, any, any, any>>,
+  Map extends AnyCtxMap,
   Validate extends boolean = false,
 >(
   baseUrl: string,
-  router: RouterArg<Route> & { _ctxMap: Map },
+  router: RouterContract<Route, Map>,
   options?: { fetch?: FetchLike; validate?: Validate },
 ): TypedClient<Route, Map, Validate> {
   const methodMap = walkCollect(router.children as HttpWalkNode[], (n) => getHttpMeta(n)?.method);

@@ -1,25 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import type { HttpContext, HttpMethod } from '../contexts/http-context.js';
-import type { RouteNode } from '../core/route-node.js';
-import type { Result } from '@arbor/common';
 import type { HandlerMap } from '../server/server.js';
 import { createServer } from '../server/server.js';
 import { createClient, type FetchLike, type TypedClient } from './fetch-client.js';
-
-interface RouterShape<Route, Map> {
-  _type: Route;
-  _ctxMap: Map;
-  children: RouteNode<unknown, any, any, any, any>[];
-  parse(url: URL): Result<Route, string>;
-  print(route: Route): string;
-}
+import type { AnyCtxMap, RouterContract } from '../core/router-contract.js';
 
 export function createTestClient<
   Route extends { tag: string },
-  Map extends Record<string, HttpContext<any, any, any, any, any>>,
+  Map extends AnyCtxMap,
 >(
-  router: RouterShape<Route, Map> & { _ctxMap: Map },
+  router: RouterContract<Route, Map>,
   handlers: HandlerMap<Map, Route>,
   options?: {
     baseUrl?: string;
@@ -28,17 +16,7 @@ export function createTestClient<
     };
   },
 ): TypedClient<Route, Map> {
-  const serverRouter = router as unknown as {
-    _type: Route;
-    _ctxMap: Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown, unknown>>;
-    children: RouteNode<unknown, any, any, any, any>[];
-    parse(url: URL): Result<Route, string>;
-  };
-  const server = createServer(
-    serverRouter,
-    handlers as unknown as HandlerMap<Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown, unknown>>, Route>,
-    options?.serverOptions,
-  );
+  const server = createServer(router, handlers, options?.serverOptions);
   const baseUrl = options?.baseUrl ?? 'http://localhost';
 
   const mockFetch: FetchLike = async (url, init) => {

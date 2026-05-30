@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { httpRoute, respond } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
+import type { RouterContract } from '../core/router-contract.js';
 import { createTestClient } from './test-client.js';
 
 describe('createTestClient', () => {
@@ -46,5 +47,16 @@ describe('createTestClient', () => {
     const result = await client.fetch({ tag: 'create-user' }, { body: { name: 'Bob' } });
     expectTypeOf(result).toEqualTypeOf<{ status: 201; body: { id: string; name: string } }>();
     expect(result).toEqual({ status: 201, body: { id: 'new', name: 'Bob' } });
+  });
+});
+
+describe('RouterContract assignability', () => {
+  it('router from defineRoutes is assignable to RouterContract', () => {
+    const GetItem = z.object({ tag: z.literal('get-item'), id: z.string() });
+    const _router = defineRoutes([
+      httpRoute(GetItem, 'GET', '/items/:id', { response: { 200: z.object({ id: z.string() }) } }),
+    ]);
+    type IsContract = typeof _router extends RouterContract<infer _R, infer _M> ? true : false;
+    expectTypeOf<IsContract>().toEqualTypeOf<true>();
   });
 });

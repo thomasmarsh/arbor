@@ -15,6 +15,7 @@ export {
 } from './core/define-routes.js';
 
 // HTTP
+export { type AnyCtxMap, type RouterContract } from './core/router-contract.js';
 export { createClient, type FetchLike, type TypedClient } from './client/fetch-client.js';
 export { createTestClient } from './client/test-client.js';
 export { type Guard, composeGuards, withGuard } from './server/guard.js';
