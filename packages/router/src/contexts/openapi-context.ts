@@ -3,8 +3,8 @@
 import type z from 'zod';
 import { type BuildableRouteNode, buildable } from '../core/define-routes.js';
 import type { RouteNode } from '../core/define-routes.js';
+import { parseSegments } from '../core/segments.js';
 import type { HttpContext, HttpContextData, HttpMethod, SafeBodyOption } from './http-context.js';
-import { httpRoute } from './http-context.js';
 
 export interface OpenApiMeta {
   summary?: string;
@@ -55,12 +55,18 @@ export function openApiRoute<
   never,
   OpenApiCtxData
 >> {
-  const { meta: _meta, ...httpOpts } = options;
-  // SafeBodyOption<Method> is already enforced at this function's call site; the cast avoids
-  // re-evaluating a distributive conditional type in a generic body.
-  const node = httpRoute(schema, method, path, httpOpts as unknown as { body?: z.ZodType<Body>; response: Res } & SafeBodyOption<Method>, children);
-  if (options.meta) {
-    (node._meta as OpenApiCtxData).meta = options.meta;
-  }
-  return buildable(node as unknown as RouteNode<z.infer<S>, [...C], OpenApiContext<Method, Body, InferResponseMap<Res>>, never, OpenApiCtxData>);
+  return buildable({
+    _type: undefined as never,
+    schema,
+    path,
+    segments: parseSegments(path),
+    children: (children ?? []) as [...C],
+    context: undefined as never,
+    _meta: {
+      method,
+      ...(options.body ? { bodySchema: options.body } : {}),
+      responseSchemas: options.response as Record<number, z.ZodType>,
+      ...(options.meta ? { meta: options.meta } : {}),
+    } satisfies OpenApiCtxData,
+  });
 }
