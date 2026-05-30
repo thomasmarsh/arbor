@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import type { Result } from '@arbor/common';
 import type { HttpContext, HttpMethod, HttpResponseUnion } from '../contexts/http-context.js';
+import { collectHttpMaps } from '../contexts/http-context.js';
+import type { RouteNode } from '../core/route-node.js';
+import type { WalkNode } from '../core/walk.js';
 import { createMemoryStore, type RateLimitStore } from './rate-limit.js';
 import { parseBody } from './parse-body.js';
-
-interface BodyValidator {
-  safeParse(data: unknown): { success: boolean; data?: unknown; error?: unknown };
-}
 
 export interface ErrorMapEntry {
   match: (e: unknown) => boolean;
@@ -45,11 +46,7 @@ export function createServer<
   router: {
     _type: Route;
     _ctxMap: Map;
-    methodMap: Record<string, string>;
-    bodySchemaMap: Record<string, BodyValidator>;
-    responseHeaderSchemaMap?: Record<string, Record<number, BodyValidator>>;
-    headerSchemaMap?: Record<string, BodyValidator>;
-    rateLimitMap?: Record<string, { windowMs: number; maxRequests: number }>;
+    children: RouteNode<unknown, any, any, any, any>[];
     parse(url: URL): Result<Route, string>;
   },
   handlers: HandlerMap<Map, Route>,
@@ -60,6 +57,9 @@ export function createServer<
     rateLimitKeyResolver?: RateLimitKeyResolver;
   },
 ) {
+  const { methodMap, bodySchemaMap, headerSchemaMap, responseHeaderSchemaMap, rateLimitMap } =
+    collectHttpMaps(router.children as WalkNode[]);
+
   // Typed alias to avoid repeating the cast at every call site.
   type UntypedHandler = (ctx: {
     params: unknown;
@@ -80,12 +80,12 @@ export function createServer<
   ): Promise<DispatchResult> {
     const tag = route.tag;
 
-    const expected = router.methodMap[tag];
+    const expected = methodMap[tag];
     if (expected && expected !== method) {
       return { status: 405, body: { error: 'method not allowed' }, tag };
     }
 
-    const rlPolicy = router.rateLimitMap?.[tag];
+    const rlPolicy = rateLimitMap[tag];
     if (rlPolicy) {
       const store = options?.rateLimitStore ?? (_defaultRateLimitStore ??= createMemoryStore());
       const key = (options?.rateLimitKeyResolver
@@ -106,7 +106,7 @@ export function createServer<
     if (!handler) return { status: 404, body: { error: `no handler for tag: ${tag}` }, tag };
 
     let validatedBody: unknown = body;
-    const bodySchema = router.bodySchemaMap[tag];
+    const bodySchema = bodySchemaMap[tag];
     if (bodySchema) {
       const result = bodySchema.safeParse(body);
       if (!result.success) return { status: 400, body: { error: 'invalid request body' }, tag };
@@ -114,7 +114,7 @@ export function createServer<
     }
 
     let validatedHeaders: unknown = undefined;
-    const headerSchema = router.headerSchemaMap?.[tag];
+    const headerSchema = headerSchemaMap[tag];
     if (headerSchema) {
       const result = headerSchema.safeParse(headers);
       if (!result.success) return { status: 400, body: { error: 'invalid request headers' }, tag };
@@ -128,7 +128,7 @@ export function createServer<
       );
       const handlerResult = await handler({ params, body: validatedBody, query: routeRecord['query'], headers: validatedHeaders });
 
-      const headerSchemas = router.responseHeaderSchemaMap?.[tag];
+      const headerSchemas = responseHeaderSchemaMap[tag];
       if (headerSchemas && handlerResult.headers) {
         const statusSchema = headerSchemas[handlerResult.status];
         if (statusSchema) {

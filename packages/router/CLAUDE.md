@@ -2,22 +2,28 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 39 complete
-- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54, 55, 38, 39 complete. Plan 28 superseded by 47. Plan 55: `_ctx`/`Ctx` renamed to `_meta`/`Meta` on `RouteNode`; `getHttpCtx`→`getHttpMeta`, `getOpenApiCtx`→`getOpenApiMeta`. See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Plan 56 complete
+- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54, 55, 38, 39, 56 complete. Plan 28 superseded by 47. Plan 55: `_ctx`/`Ctx` renamed to `_meta`/`Meta` on `RouteNode`; `getHttpCtx`→`getHttpMeta`, `getOpenApiCtx`→`getOpenApiMeta`. Plan 56: HTTP collectors moved out of `core/`; `walkCollect` added to `core/walk.ts`; `collectHttpMaps` in `contexts/http-context.ts`; `createServer` calls `collectHttpMaps` internally. See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 
-- **Format**: Output raw `SEARCH/REPLACE` blocks immediately. The first byte of your reply must be the markdown code fence. Zero conversational introductions, filler, or conclusions.
-- **Diff Structure**: Include 2-3 lines of matching context buffer code inside the `SEARCH` block. Never rewrite entire files.
+**Execution Mode**: Determine if the task is a Code Edit or an Architectural Plan.
+
+    - **Code Edits**: Output raw `SEARCH/REPLACE` blocks immediately. The first byte of your reply must be the markdown code fence. Zero conversational introductions, filler, or conclusions.
+    - **Architectural Plans**: When creating or modifying files in `plan/`, you are permitted a concise, step-by-step prose analysis before outputting the markdown blocks.
+
+- **Diff Structure**: Include 2-3 lines of matching context buffer code inside the `SEARCH` block. Never rewrite entire files. Keep search blocks focused tightly on the changing lines to maximize token efficiency.
 - **Example Style**:
 
-  ```diff
-  <<<<<<< SEARCH
-  export type Derive<N> = N extends RouteNode<unknown, any, any, any>
-  =======
-  export type Derive<N> = N extends RouteNode<unknown, any, any, any, infer Query>
-  >>>>>>> REPLACE
-  ```
+      ```diff
+      <<<<<<< SEARCH
+      export type Derive<N> = N extends RouteNode<unknown, any, any, any>
+      =======
+      export type Derive<N> = N extends RouteNode<unknown, any, any, any, infer Query>
+      >>>>>>> REPLACE
+      ```
+
+- **Minimize reads**: Do not read entire source files to discover structure except when required for whole file analysis. Prefer targeted rg (ripgrep) lookups first to locate exact line ranges, then read only those ranges.
 
 ## Working Commands
 
@@ -47,9 +53,11 @@ interface RouteNode<
   _meta?: Meta; // typed plugin-metadata bag; HttpContextData for httpRoute(), OpenApiCtxData for openApiRoute()
 }
 
-type ChildUnion<C extends RouteNode<unknown, any, any, any, any>[]> = FlattenChildrenImpl<C>[number];
+type ChildUnion<C extends RouteNode<unknown, any, any, any, any>[]> =
+  FlattenChildrenImpl<C>[number];
 
-type Derive<N> = N extends RouteNode<unknown, any, any, any, any> ? FlattenChildrenImpl<[N]>[0] : never;
+type Derive<N> =
+  N extends RouteNode<unknown, any, any, any, any> ? FlattenChildrenImpl<[N]>[0] : never;
 // FlattenChildrenImpl is a single self-recursive mapped type with a depth
 // counter (up to 15 levels). Eliminates the mutual recursion that blocked
 // removing _child.
@@ -59,7 +67,10 @@ type Derive<N> = N extends RouteNode<unknown, any, any, any, any> ? FlattenChild
 
 ## Non-Negotiable Working Style
 
-0. **Break down work per session:** No refactor binges or endless pontificating. If a change too large, requires extensive decision-making, raises serious concerns, or otherwise would burn tokens, take either or both of these actions: a) add/update `plan/questions.md` for user consideration, and/or b) add tech debt plans in the `plan/` directory in format `plan/
+0. **Break down work per session:** No refactor binges or endless pontificating. If a change is too large, requires extensive decision-making, raises serious type-complexity concerns (e.g., TS instantiation limits), or would otherwise burn excessive tokens, pause immediately and take either or both of these actions:
+   a) Add/update `plan/questions.md` for user consideration.
+   b) Document the technical debt in the `plan/` directory using the format `plan/<sequence>.<topic>.md`.
+   c) Before editing blind, use `rg` (ripgrep) via the terminal to find exact symbol definitions. Do not read entire files just to scan for code signatures.
 1. **Smallest possible change**: One localized thing at a time. Prefer a 1-line change with a test.
 2. **TDD Workflow**: Write failing tests/stubs first to verify ergonomics before updating runtime code.
 3. **Test alongside**: Changes require tests (`expectTypeOf` for type-level, `expect` for runtime). Base cases first.
@@ -76,16 +87,16 @@ Self-contained runnable demos in `examples/`. Run them as a smoke test with `pnp
 
 **Keep them current**: when a plan changes the public API, update any example that exercises it. The examples are the human-facing documentation — stale examples are worse than no examples.
 
-| File | What it shows |
-| --- | --- |
-| `basic-server.ts` | `createServer` + `handle()` dispatch |
-| `basic-client.ts` | `createClient.fetch()` with typed responses |
-| `query-params.ts` | `httpRoute` with a Zod query schema |
-| `nested-routes.ts` | Nested `route()` tree; `parse()` + `print()` roundtrip |
-| `openapi-output.ts` | `generateSpec()` → stdout JSON |
-| `enrichers.ts` | `withEnricher` + `composeEnrichers` — pre-handler auth/plan checks |
-| `typed-client.ts` | `createClient` options object API; typed request headers; `TypedClient` utility type |
-| `auth-protected.ts` | `withSession` enricher — JWT auth short-circuit, typed session in ctx |
+| File                | What it shows                                                                        |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `basic-server.ts`   | `createServer` + `handle()` dispatch                                                 |
+| `basic-client.ts`   | `createClient.fetch()` with typed responses                                          |
+| `query-params.ts`   | `httpRoute` with a Zod query schema                                                  |
+| `nested-routes.ts`  | Nested `route()` tree; `parse()` + `print()` roundtrip                               |
+| `openapi-output.ts` | `generateSpec()` → stdout JSON                                                       |
+| `enrichers.ts`      | `withEnricher` + `composeEnrichers` — pre-handler auth/plan checks                   |
+| `typed-client.ts`   | `createClient` options object API; typed request headers; `TypedClient` utility type |
+| `auth-protected.ts` | `withSession` enricher — JWT auth short-circuit, typed session in ctx                |
 
 **Rules for examples**:
 

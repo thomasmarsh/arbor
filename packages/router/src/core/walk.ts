@@ -166,6 +166,26 @@ export function walkPrint(
   return null;
 }
 
+export function walkCollect<T>(
+  nodes: WalkNode[],
+  extractor: (node: WalkNode, tag: string) => T | undefined,
+): Record<string, T> {
+  const map: Record<string, T> = {};
+  for (const node of nodes) {
+    if (node.schema !== null) {
+      const tag = getTag(node.schema);
+      if (tag) {
+        const value = extractor(node, tag);
+        if (value !== undefined) map[tag] = value;
+      }
+    }
+    if (node.children.length > 0) {
+      Object.assign(map, walkCollect(node.children as WalkNode[], extractor));
+    }
+  }
+  return map;
+}
+
 export function buildUrl(
   result: { segments: Segment[]; paramNames: Set<string> },
   route: Record<string, unknown>,

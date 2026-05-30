@@ -2,7 +2,6 @@
 
 import { Result } from '@arbor/common';
 import type z from 'zod';
-import { type CorsConfig, getHttpMeta } from '../contexts/http-context.js';
 import type { ChildUnion, CtxMap, ExtractPathParams, RouteNode } from './route-node.js';
 import { parseSegments } from './segments.js';
 import { type ParseDiag, type WalkNode, buildUrl, getTag, walkParse, walkPrint } from './walk.js';
@@ -78,100 +77,6 @@ function collectTags(nodes: WalkNode[]): string[] {
   return tags;
 }
 
-function collectMethods(nodes: WalkNode[]): Record<string, string> {
-  const map: Record<string, string> = {};
-  for (const node of nodes) {
-    const httpCtx = getHttpMeta(node);
-    if (node.schema !== null && httpCtx?.method) {
-      const tag = getTag(node.schema);
-      if (tag) map[tag] = httpCtx.method;
-    }
-    if (node.children.length > 0) {
-      Object.assign(map, collectMethods(node.children as WalkNode[]));
-    }
-  }
-  return map;
-}
-
-function collectBodySchemas(nodes: WalkNode[]): Record<string, z.ZodType> {
-  const map: Record<string, z.ZodType> = {};
-  for (const node of nodes) {
-    const httpCtx = getHttpMeta(node);
-    if (node.schema !== null && httpCtx?.bodySchema) {
-      const tag = getTag(node.schema);
-      if (tag) map[tag] = httpCtx.bodySchema;
-    }
-    if (node.children.length > 0) {
-      Object.assign(map, collectBodySchemas(node.children as WalkNode[]));
-    }
-  }
-  return map;
-}
-
-function collectRequestHeaderSchemas(nodes: WalkNode[]): Record<string, z.ZodObject<any, any>> {
-  const map: Record<string, z.ZodObject<any, any>> = {};
-  for (const node of nodes) {
-    const httpCtx = getHttpMeta(node);
-    if (node.schema !== null && httpCtx?.headerSchema) {
-      const tag = getTag(node.schema);
-      if (tag) map[tag] = httpCtx.headerSchema;
-    }
-    if (node.children.length > 0) {
-      Object.assign(map, collectRequestHeaderSchemas(node.children as WalkNode[]));
-    }
-  }
-  return map;
-}
-
-function collectResponseHeaderSchemas(
-  nodes: WalkNode[],
-): Record<string, Record<number, z.ZodObject<any, any>>> {
-  const map: Record<string, Record<number, z.ZodObject<any, any>>> = {};
-  for (const node of nodes) {
-    const httpCtx = getHttpMeta(node);
-    if (node.schema !== null && httpCtx?.responseHeaderSchemas) {
-      const tag = getTag(node.schema);
-      if (tag) map[tag] = httpCtx.responseHeaderSchemas;
-    }
-    if (node.children.length > 0) {
-      Object.assign(map, collectResponseHeaderSchemas(node.children as WalkNode[]));
-    }
-  }
-  return map;
-}
-
-function collectRateLimits(
-  nodes: WalkNode[],
-): Record<string, { windowMs: number; maxRequests: number }> {
-  const map: Record<string, { windowMs: number; maxRequests: number }> = {};
-  for (const node of nodes) {
-    const httpCtx = getHttpMeta(node);
-    if (node.schema !== null && httpCtx?.rateLimit) {
-      const tag = getTag(node.schema);
-      if (tag) map[tag] = httpCtx.rateLimit;
-    }
-    if (node.children.length > 0) {
-      Object.assign(map, collectRateLimits(node.children as WalkNode[]));
-    }
-  }
-  return map;
-}
-
-function collectCors(nodes: WalkNode[]): Record<string, CorsConfig> {
-  const map: Record<string, CorsConfig> = {};
-  for (const node of nodes) {
-    const httpCtx = getHttpMeta(node);
-    if (node.schema !== null && httpCtx?.cors) {
-      const tag = getTag(node.schema);
-      if (tag) map[tag] = httpCtx.cors;
-    }
-    if (node.children.length > 0) {
-      Object.assign(map, collectCors(node.children as WalkNode[]));
-    }
-  }
-  return map;
-}
-
 export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] = []>(
   children: [...C],
 ) {
@@ -187,23 +92,10 @@ export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] 
     seen.add(tag);
   }
 
-  const methodMap = collectMethods(nodes);
-  const bodySchemaMap = collectBodySchemas(nodes);
-  const responseHeaderSchemaMap = collectResponseHeaderSchemas(nodes);
-  const headerSchemaMap = collectRequestHeaderSchemas(nodes);
-  const rateLimitMap = collectRateLimits(nodes);
-  const corsMap = collectCors(nodes);
-
   return {
     _type: undefined as never as Route,
     _ctxMap: undefined as never as CtxMap<[...C]>,
     children,
-    methodMap,
-    bodySchemaMap,
-    responseHeaderSchemaMap,
-    headerSchemaMap,
-    rateLimitMap,
-    corsMap,
 
     parse(url: URL): Result<Route, string> {
       let segments: string[];

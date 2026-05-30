@@ -3,6 +3,7 @@
 import type z from 'zod';
 import type { RouteNode } from '../core/route-node.js';
 import { parseSegments } from '../core/segments.js';
+import { type WalkNode, walkCollect } from '../core/walk.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -28,6 +29,24 @@ export interface HttpContextData {
 
 export function getHttpMeta(node: { _meta?: Record<string, unknown> }): HttpContextData | undefined {
   return node._meta as HttpContextData | undefined;
+}
+
+export function collectHttpMaps(nodes: WalkNode[]): {
+  methodMap: Record<string, string>;
+  bodySchemaMap: Record<string, z.ZodType>;
+  headerSchemaMap: Record<string, z.ZodType>;
+  responseHeaderSchemaMap: Record<string, Record<number, z.ZodType>>;
+  rateLimitMap: Record<string, { windowMs: number; maxRequests: number }>;
+  corsMap: Record<string, CorsConfig>;
+} {
+  return {
+    methodMap:               walkCollect(nodes, (n) => getHttpMeta(n)?.method),
+    bodySchemaMap:           walkCollect(nodes, (n) => getHttpMeta(n)?.bodySchema),
+    headerSchemaMap:         walkCollect(nodes, (n) => getHttpMeta(n)?.headerSchema),
+    responseHeaderSchemaMap: walkCollect(nodes, (n) => getHttpMeta(n)?.responseHeaderSchemas) as Record<string, Record<number, z.ZodType>>,
+    rateLimitMap:            walkCollect(nodes, (n) => getHttpMeta(n)?.rateLimit),
+    corsMap:                 walkCollect(nodes, (n) => getHttpMeta(n)?.cors),
+  };
 }
 
 export interface HttpContext<
