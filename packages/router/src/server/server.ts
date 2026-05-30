@@ -84,8 +84,8 @@ export function resolveHandler(
   tag: string,
   method: string,
   expected: string | undefined,
-): { ok: true; handler: AnyHandler } | { ok: false; status: 405 | 404; body: { error: string } } {
-  if (expected && expected !== method) return { ok: false, status: 405, body: { error: 'method not allowed' } };
+): { ok: true; handler: AnyHandler } | { ok: false; status: 405 | 404; body: { error: string }; headers?: Record<string, string> } {
+  if (expected && expected !== method) return { ok: false, status: 405, body: { error: 'method not allowed' }, headers: { Allow: expected } };
   const handler = handlers[tag];
   if (!handler) return { ok: false, status: 404, body: { error: `no handler for tag: ${tag}` } };
   return { ok: true, handler };

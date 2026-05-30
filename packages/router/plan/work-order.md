@@ -5,7 +5,7 @@ Operational execution list. See `plan/workflow.md` for workflow rules and comple
 ## Current Queue
 
 ```text
-67 → 82 → 83 → 69 → 68 → 84 → 71 → 73 → 72 → 75 → 76 → 77 → 63 → 64 → 66 → 78 → 79 → 80 → 81
+67 → 82 → 83 → 69 → 68 → 84 → 71 → 73 → 72 → 85 → 75 → 76 → 77 → 63 → 64 → 66 → 78 → 79 → 80 → 81
 ```
 
 ---
@@ -83,7 +83,8 @@ See **plan 58** for the full prioritized smell inventory.
 
 - **71**: Type-level method/body safety — GET/HEAD/DELETE cannot carry a `body` option.
 - **73**: Include `Allow` header in 405 responses (RFC 7231 §6.5.5).
-- **72**: `createTestClient` — in-memory server + typed client bundled for test use.
+- **72** ✓ `createTestClient` — in-memory server + typed client bundled for test use.
+- **85**: Fix `HttpContext` arity inconsistency; extract shared `RouterContract` type; remove casts from `createTestClient`.
 
 ### Wave 9 — Client correctness
 
@@ -179,7 +180,7 @@ See **plan 58** for the full prioritized smell inventory.
 | 69   | Enforce optional segment ordering at definition time         | queued                |
 | 70   | Pattern/regex segment kind                                   | LOW                   |
 | 71   | Method/body type safety — GET/HEAD/DELETE cannot have body   | queued                |
-| 72   | `createTestClient` in-memory test utility                    | queued                |
+| 72   | `createTestClient` in-memory test utility                    | ✓                     |
 | 73   | Include `Allow` header in 405 responses                      | queued                |
 | 74   | Radix tree router spike                                      | LOW — benchmark-gated |
 | 75   | `matchResponse` exhaustive combinator                        | queued                |
@@ -192,3 +193,4 @@ See **plan 58** for the full prioritized smell inventory.
 | 82   | Test infrastructure: fixture builders + `it.each` refactor   | queued                |
 | 83   | Inline snapshot adoption + `ParseDiag` diagnostics layer     | queued                |
 | 84   | Framework-internal PBT — `fast-check` for core invariants    | queued                |
+| 85   | Fix `HttpContext` arity; extract `RouterContract`; no casts  | queued                |

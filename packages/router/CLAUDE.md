@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 84 complete; Plan 67 is next
-- **Current Status**: Waves 0–6 complete (plans 18–65). Wave 7 (segment correctness + test quality) in progress. Plans 82–84 complete. See `plan/work-order.md` for full queue.
+- **Current Task**: Plan 72 complete; Plan 75 is next
+- **Current Status**: Waves 0–6 complete (plans 18–65). Wave 7 complete (plans 82–84, 67–69). Wave 8 in progress: plans 71, 73, 72 complete. See `plan/work-order.md` for full queue.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -108,6 +108,7 @@ Self-contained runnable demos in `examples/`. Run them as a smoke test with `pnp
 | `typed-client.ts`   | `createClient` options object API; typed request headers; `TypedClient` utility type |
 | `auth-protected.ts` | `withSession` guard — JWT auth short-circuit, typed session in ctx                   |
 | `rbac.ts`           | `withRbac` guard — role-based 403 check composed on top of `withSession`             |
+| `test-client.ts`    | `createTestClient` — in-memory server + typed client in one call for test suites     |
 
 **Rules for examples**:
 

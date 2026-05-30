@@ -10,7 +10,8 @@
       "Bash(rg \"contexts/index|security/index\" /Users/tmarsh/git/arbor/packages/router/src --include=\"*.ts\" -l)",
       "Bash(xargs ls)",
       "Bash(rg -rn \"buildUrl\\\\|encodeURIComponent\" /Users/tmarsh/git/arbor/packages/router/src/)",
-      "Bash(rg -rn \"encodeURIComponent\\\\|buildUrl\\\\|print\\\\b\" /Users/tmarsh/git/arbor/packages/router/src/)"
+      "Bash(rg -rn \"encodeURIComponent\\\\|buildUrl\\\\|print\\\\b\" /Users/tmarsh/git/arbor/packages/router/src/)",
+      "Bash(tsx examples/test-client.ts)"
     ]
   }
 }

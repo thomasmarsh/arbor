@@ -16,6 +16,7 @@ export {
 
 // HTTP
 export { createClient, type FetchLike, type TypedClient } from './client/fetch-client.js';
+export { createTestClient } from './client/test-client.js';
 export { type Guard, composeGuards, withGuard } from './server/guard.js';
 export { withSession } from './server/with-session.js';
 export { withRbac } from './server/with-rbac.js';

@@ -42,6 +42,9 @@ describe('resolveHandler', () => {
         "body": {
           "error": "method not allowed",
         },
+        "headers": {
+          "Allow": "GET",
+        },
         "ok": false,
         "status": 405,
       }
@@ -386,12 +389,12 @@ describe('createServer', () => {
 
     it('returns 405 when method does not match', async () => {
       const result = await server.handle(new URL('https://example.com/users/123'), 'DELETE');
-      expect(result).toMatchObject({ status: 405, body: { error: 'method not allowed' } });
+      expect(result).toMatchObject({ status: 405, body: { error: 'method not allowed' }, headers: { Allow: 'GET' } });
     });
 
     it('returns 405 for POST to a GET-only route', async () => {
       const result = await server.handle(new URL('https://example.com/users/123'), 'POST');
-      expect(result).toMatchObject({ status: 405, body: { error: 'method not allowed' } });
+      expect(result).toMatchObject({ status: 405, body: { error: 'method not allowed' }, headers: { Allow: 'GET' } });
     });
 
     it('passes coerced query params to handler', async () => {
