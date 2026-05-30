@@ -21,7 +21,15 @@ describe('validateInput', () => {
   });
 
   it('returns ok:false with 400 and message for invalid input', () => {
-    expect(validateInput(schema, { name: 123 }, 'bad input')).toEqual({ ok: false, status: 400, body: { error: 'bad input' } });
+    expect(validateInput(schema, { name: 123 }, 'bad input')).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "error": "bad input",
+        },
+        "ok": false,
+        "status": 400,
+      }
+    `);
   });
 });
 
@@ -29,11 +37,27 @@ describe('resolveHandler', () => {
   const handler = () => Promise.resolve({ status: 200, body: {} });
 
   it('returns 405 when method does not match expected', () => {
-    expect(resolveHandler({ 'get-user': handler }, 'get-user', 'POST', 'GET')).toEqual({ ok: false, status: 405, body: { error: 'method not allowed' } });
+    expect(resolveHandler({ 'get-user': handler }, 'get-user', 'POST', 'GET')).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "error": "method not allowed",
+        },
+        "ok": false,
+        "status": 405,
+      }
+    `);
   });
 
   it('returns 404 when no handler registered for tag', () => {
-    expect(resolveHandler({}, 'missing', 'GET', 'GET')).toEqual({ ok: false, status: 404, body: { error: 'no handler for tag: missing' } });
+    expect(resolveHandler({}, 'missing', 'GET', 'GET')).toMatchInlineSnapshot(`
+      {
+        "body": {
+          "error": "no handler for tag: missing",
+        },
+        "ok": false,
+        "status": 404,
+      }
+    `);
   });
 
   it('returns handler when method matches', () => {

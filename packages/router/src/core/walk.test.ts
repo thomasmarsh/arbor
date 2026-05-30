@@ -525,3 +525,54 @@ describe('forEachTaggedNode', () => {
     expect(visited.every((n) => n.schema !== null)).toBe(true);
   });
 });
+
+describe('ParseDiag shapes', () => {
+  const nodes = routeFixtures.combinedTree().children as WalkNode[];
+  const q = (search = '') => new URLSearchParams(search);
+
+  it('segment-mismatch shape', () => {
+    const diag: ParseDiag[] = [];
+    walkParse(nodes, ['unknown'], q(), {}, diag);
+    const mismatch = diag.find((d) => d.kind === 'segment-mismatch' && d.path === 'users/');
+    expect(mismatch).toMatchInlineSnapshot(`
+      {
+        "kind": "segment-mismatch",
+        "path": "users/",
+        "urlSegments": [
+          "unknown",
+        ],
+      }
+    `);
+  });
+
+  it('schema-error shape', () => {
+    const diag: ParseDiag[] = [];
+    walkParse(nodes, ['orgs', 'acme', '42', '7'], q('status=invalid'), {}, diag);
+    const err = diag.find((d): d is Extract<ParseDiag, { kind: 'schema-error' }> => d.kind === 'schema-error');
+    expect(err).toMatchInlineSnapshot(`
+      {
+        "issues": [
+          {
+            "code": "invalid_value",
+            "message": "Invalid option: expected one of "open"|"closed"",
+            "path": [
+              "status",
+            ],
+            "values": [
+              "open",
+              "closed",
+            ],
+          },
+        ],
+        "kind": "schema-error",
+        "path": ":issueId/",
+      }
+    `);
+  });
+
+  it('empty diag on successful parse', () => {
+    const diag: ParseDiag[] = [];
+    walkParse(nodes, ['users'], q(), {}, diag);
+    expect(diag).toMatchInlineSnapshot(`[]`);
+  });
+});
