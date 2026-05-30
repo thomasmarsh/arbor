@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { describe, expect, it } from 'vitest';
 import z from 'zod';
-import type { RouteNode } from './route-node.js';
-import { parseSegments } from './segments.js';
+import { route, section } from './define-routes.js';
 import {
   type ParseDiag,
   type WalkNode,
@@ -15,72 +13,10 @@ import {
   walkParse,
   walkPrint,
 } from './walk.js';
+import { routeFixtures } from '../test-utils/fixtures.js';
 
 describe('walkParse', () => {
-  const Users = z.object({ tag: z.literal('users') });
-  const User = z.object({ tag: z.literal('user'), id: z.string() });
-  const Settings = z.object({ tag: z.literal('settings') });
-  const Org = z.object({ tag: z.literal('org'), orgId: z.string() });
-  const Project = z.object({ tag: z.literal('project'), projectId: z.number() });
-  const Issue = z.object({
-    tag: z.literal('issue'),
-    issueId: z.string(),
-    status: z.enum(['open', 'closed']).optional(),
-    page: z.coerce.number().default(1),
-  });
-
-  const nodes: RouteNode<unknown, RouteNode<unknown, any, any, any>[], any>[] = [
-    {
-      _type: undefined,
-      schema: Users,
-      path: 'users/',
-      segments: parseSegments('users/'),
-      children: [
-        {
-          _type: undefined,
-
-          schema: User,
-          path: ':id/',
-          segments: parseSegments(':id/'),
-          children: [
-            {
-              _type: undefined,
-
-              schema: Settings,
-              path: 'settings/',
-              segments: parseSegments('settings/'),
-              children: [],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      _type: undefined,
-      schema: Org,
-      path: 'orgs/:orgId/',
-      segments: parseSegments('orgs/:orgId/'),
-      children: [
-        {
-          _type: undefined,
-
-          schema: Project,
-          path: '#projectId/',
-          segments: parseSegments('#projectId/'),
-          children: [
-            {
-              _type: undefined,
-
-              schema: Issue,
-              path: ':issueId/',
-              segments: parseSegments(':issueId/'),
-              children: [],
-            },
-          ],
-        },
-      ],
-    },
-  ];
+  const nodes = routeFixtures.combinedTree().children as WalkNode[];
 
   const q = (search = '') => new URLSearchParams(search);
 
@@ -170,15 +106,8 @@ describe('walkParse', () => {
       limit: z.coerce.number().optional(),
     });
 
-    const searchNodes: RouteNode<unknown, RouteNode<unknown, any, any, any>[], any>[] = [
-      {
-        _type: undefined,
-        schema: SearchSchema,
-        path: 'search/',
-        segments: parseSegments('search/'),
-        children: [],
-        _meta: { querySchema: QuerySchema },
-      },
+    const searchNodes: WalkNode[] = [
+      { ...route(SearchSchema, 'search/'), _meta: { querySchema: QuerySchema } },
     ];
 
     it('returns query sub-object with coerced values', () => {
@@ -214,29 +143,8 @@ describe('walkParse', () => {
   });
 
   describe('section nodes', () => {
-    const sectionNodes: RouteNode<
-      unknown,
-      RouteNode<unknown, any, any, any>[],
-      any
-    >[] = [
-      {
-        _type: undefined,
-
-        schema: null,
-        path: 'orgs/:orgId/',
-        segments: parseSegments('orgs/:orgId/'),
-        children: [
-          {
-            _type: undefined,
-
-            schema: Project,
-            path: '#projectId/',
-            segments: parseSegments('#projectId/'),
-            children: [],
-          },
-        ],
-      },
-    ];
+    const Project = z.object({ tag: z.literal('project'), projectId: z.number() });
+    const sectionNodes = [section('orgs/:orgId/', [route(Project, '#projectId/')])] as WalkNode[];
 
     it('section is not a valid terminal route', () => {
       expect(walkParse(sectionNodes, ['orgs', 'acme'], q(), {})).toBeNull();
@@ -250,38 +158,13 @@ describe('walkParse', () => {
   });
 
   describe('nested sections (section > section > route)', () => {
-    const nestedSectionNodes: RouteNode<
-      unknown,
-      RouteNode<unknown, any, any, any>[],
-      any
-    >[] = [
-      {
-        _type: undefined,
-
-        schema: null,
-        path: 'orgs/:orgId/',
-        segments: parseSegments('orgs/:orgId/'),
-        children: [
-          {
-            _type: undefined,
-
-            schema: null,
-            path: 'projects/',
-            segments: parseSegments('projects/'),
-            children: [
-              {
-                _type: undefined,
-
-                schema: Issue,
-                path: ':issueId/',
-                segments: parseSegments(':issueId/'),
-                children: [],
-              },
-            ],
-          },
-        ],
-      },
-    ];
+    const nestedSectionNodes = [
+      section('orgs/:orgId/', [
+        section('projects/', [
+          route(z.object({ tag: z.literal('issue'), issueId: z.string() }), ':issueId/'),
+        ]),
+      ]),
+    ] as WalkNode[];
 
     it('parses through two nested sections', () => {
       expect(
@@ -351,15 +234,7 @@ describe('walkParse', () => {
     });
 
     it('does not push segment-mismatch for section nodes (schema === null)', () => {
-      const sectionOnlyNodes: RouteNode<unknown, RouteNode<unknown, any, any, any>[], any>[] = [
-        {
-          _type: undefined,
-          schema: null,
-          path: 'orgs/:orgId/',
-          segments: parseSegments('orgs/:orgId/'),
-          children: [],
-        },
-      ];
+      const sectionOnlyNodes = [section('orgs/:orgId/', [])] as WalkNode[];
       const diag: ParseDiag[] = [];
       walkParse(sectionOnlyNodes, ['users'], q(), {}, diag);
       expect(diag).toHaveLength(0);
@@ -368,70 +243,7 @@ describe('walkParse', () => {
 });
 
 describe('walkPrint', () => {
-  const Users = z.object({ tag: z.literal('users') });
-  const User = z.object({ tag: z.literal('user'), id: z.string() });
-  const Settings = z.object({ tag: z.literal('settings') });
-  const Org = z.object({ tag: z.literal('org'), orgId: z.string() });
-  const Project = z.object({ tag: z.literal('project'), projectId: z.number() });
-  const Issue = z.object({
-    tag: z.literal('issue'),
-    issueId: z.string(),
-    status: z.enum(['open', 'closed']).optional(),
-    page: z.coerce.number().default(1),
-  });
-
-  const nodes: RouteNode<unknown, RouteNode<unknown, any, any, any>[], any>[] = [
-    {
-      _type: undefined,
-      schema: Users,
-      path: 'users/',
-      segments: parseSegments('users/'),
-      children: [
-        {
-          _type: undefined,
-
-          schema: User,
-          path: ':id/',
-          segments: parseSegments(':id/'),
-          children: [
-            {
-              _type: undefined,
-
-              schema: Settings,
-              path: 'settings/',
-              segments: parseSegments('settings/'),
-              children: [],
-            },
-          ],
-        },
-      ],
-    },
-    {
-      _type: undefined,
-      schema: Org,
-      path: 'orgs/:orgId/',
-      segments: parseSegments('orgs/:orgId/'),
-      children: [
-        {
-          _type: undefined,
-
-          schema: Project,
-          path: '#projectId/',
-          segments: parseSegments('#projectId/'),
-          children: [
-            {
-              _type: undefined,
-
-              schema: Issue,
-              path: ':issueId/',
-              segments: parseSegments(':issueId/'),
-              children: [],
-            },
-          ],
-        },
-      ],
-    },
-  ];
+  const nodes = routeFixtures.combinedTree().children as WalkNode[];
 
   const empty = { segments: [], paramNames: new Set<string>() };
 
@@ -443,42 +255,42 @@ describe('walkPrint', () => {
     });
 
     it('prints /orgs/:orgId', () => {
-      const route = { tag: 'org', orgId: 'acme' };
-      const result = walkPrint(nodes, route, empty);
+      const r = { tag: 'org', orgId: 'acme' };
+      const result = walkPrint(nodes, r, empty);
       expect(result).not.toBeNull();
-      expect(buildUrl(result!, route)).toBe('/orgs/acme');
+      expect(buildUrl(result!, r)).toBe('/orgs/acme');
     });
   });
 
   describe('two levels', () => {
     it('prints /users/:id', () => {
-      const route = { tag: 'users', child: { tag: 'user', id: '123' } };
-      const result = walkPrint(nodes, route, empty);
+      const r = { tag: 'users', child: { tag: 'user', id: '123' } };
+      const result = walkPrint(nodes, r, empty);
       expect(result).not.toBeNull();
-      expect(buildUrl(result!, route)).toBe('/users/123');
+      expect(buildUrl(result!, r)).toBe('/users/123');
     });
 
     it('prints /orgs/:orgId/#projectId', () => {
-      const route = { tag: 'org', orgId: 'acme', child: { tag: 'project', projectId: 42 } };
-      const result = walkPrint(nodes, route, empty);
+      const r = { tag: 'org', orgId: 'acme', child: { tag: 'project', projectId: 42 } };
+      const result = walkPrint(nodes, r, empty);
       expect(result).not.toBeNull();
-      expect(buildUrl(result!, route)).toBe('/orgs/acme/42');
+      expect(buildUrl(result!, r)).toBe('/orgs/acme/42');
     });
   });
 
   describe('three levels', () => {
     it('prints /users/:id/settings', () => {
-      const route = {
+      const r = {
         tag: 'users',
         child: { tag: 'user', id: '123', child: { tag: 'settings' } },
       };
-      const result = walkPrint(nodes, route, empty);
+      const result = walkPrint(nodes, r, empty);
       expect(result).not.toBeNull();
-      expect(buildUrl(result!, route)).toBe('/users/123/settings');
+      expect(buildUrl(result!, r)).toBe('/users/123/settings');
     });
 
     it('prints /orgs/:orgId/#projectId/:issueId', () => {
-      const route = {
+      const r = {
         tag: 'org',
         orgId: 'acme',
         child: {
@@ -487,14 +299,15 @@ describe('walkPrint', () => {
           child: { tag: 'issue', issueId: '7' },
         },
       };
-      const result = walkPrint(nodes, route, empty);
+      const result = walkPrint(nodes, r, empty);
       expect(result).not.toBeNull();
-      expect(buildUrl(result!, route)).toBe('/orgs/acme/42/7');
+      expect(buildUrl(result!, r)).toBe('/orgs/acme/42/7');
     });
   });
+
   describe('query params', () => {
     it('appends status to url', () => {
-      const route = {
+      const r = {
         tag: 'org',
         orgId: 'acme',
         child: {
@@ -503,13 +316,13 @@ describe('walkPrint', () => {
           child: { tag: 'issue', issueId: '7', status: 'open' },
         },
       };
-      const result = walkPrint(nodes, route, empty);
+      const result = walkPrint(nodes, r, empty);
       expect(result).not.toBeNull();
-      expect(buildUrl(result!, route)).toBe('/orgs/acme/42/7?status=open');
+      expect(buildUrl(result!, r)).toBe('/orgs/acme/42/7?status=open');
     });
 
     it('appends page when not default', () => {
-      const route = {
+      const r = {
         tag: 'org',
         orgId: 'acme',
         child: {
@@ -518,13 +331,13 @@ describe('walkPrint', () => {
           child: { tag: 'issue', issueId: '7', page: 3 },
         },
       };
-      const result = walkPrint(nodes, route, empty);
+      const result = walkPrint(nodes, r, empty);
       expect(result).not.toBeNull();
-      expect(buildUrl(result!, route)).toBe('/orgs/acme/42/7?page=3');
+      expect(buildUrl(result!, r)).toBe('/orgs/acme/42/7?page=3');
     });
 
     it('appends multiple query params', () => {
-      const route = {
+      const r = {
         tag: 'org',
         orgId: 'acme',
         child: {
@@ -533,16 +346,16 @@ describe('walkPrint', () => {
           child: { tag: 'issue', issueId: '7', status: 'open', page: 3 },
         },
       };
-      const result = walkPrint(nodes, route, empty);
+      const result = walkPrint(nodes, r, empty);
       expect(result).not.toBeNull();
-      const url = buildUrl(result!, route);
+      const url = buildUrl(result!, r);
       expect(url).toContain('/orgs/acme/42/7');
       expect(url).toContain('status=open');
       expect(url).toContain('page=3');
     });
 
     it('omits undefined query params', () => {
-      const route = {
+      const r = {
         tag: 'org',
         orgId: 'acme',
         child: {
@@ -551,17 +364,17 @@ describe('walkPrint', () => {
           child: { tag: 'issue', issueId: '7', page: 1 },
         },
       };
-      const result = walkPrint(nodes, route, empty);
+      const result = walkPrint(nodes, r, empty);
       expect(result).not.toBeNull();
-      expect(buildUrl(result!, route)).not.toContain('status');
+      expect(buildUrl(result!, r)).not.toContain('status');
     });
   });
 
   describe('explicit query sub-object in buildUrl', () => {
     it('serializes query sub-object keys as URL query params', () => {
       const result = { segments: [{ kind: 'lit' as const, value: 'items' }], paramNames: new Set<string>() };
-      const route = { tag: 'search', query: { page: 3, limit: 20 } };
-      const url = buildUrl(result, route);
+      const r = { tag: 'search', query: { page: 3, limit: 20 } };
+      const url = buildUrl(result, r);
       expect(url).toContain('/items');
       expect(url).toContain('page=3');
       expect(url).toContain('limit=20');
@@ -569,99 +382,53 @@ describe('walkPrint', () => {
 
     it('omits undefined values from query sub-object', () => {
       const result = { segments: [{ kind: 'lit' as const, value: 'items' }], paramNames: new Set<string>() };
-      const route = { tag: 'search', query: { page: 1, limit: undefined } };
-      const url = buildUrl(result, route);
+      const r = { tag: 'search', query: { page: 1, limit: undefined } };
+      const url = buildUrl(result, r);
       expect(url).toContain('page=1');
       expect(url).not.toContain('limit');
     });
 
     it('does not serialize query key itself as a param', () => {
       const result = { segments: [{ kind: 'lit' as const, value: 'items' }], paramNames: new Set<string>() };
-      const route = { tag: 'search', query: { page: 3 } };
-      expect(buildUrl(result, route)).not.toContain('query=');
+      const r = { tag: 'search', query: { page: 3 } };
+      expect(buildUrl(result, r)).not.toContain('query=');
     });
 
     it('mixes top-level and query sub-object params', () => {
       const result = { segments: [{ kind: 'lit' as const, value: 'items' }], paramNames: new Set<string>() };
-      const route = { tag: 'search', sort: 'asc', query: { page: 2 } };
-      const url = buildUrl(result, route);
+      const r = { tag: 'search', sort: 'asc', query: { page: 2 } };
+      const url = buildUrl(result, r);
       expect(url).toContain('sort=asc');
       expect(url).toContain('page=2');
     });
   });
 
   describe('section nodes', () => {
-    const sectionNodes: RouteNode<
-      unknown,
-      RouteNode<unknown, any, any, any>[],
-      any
-    >[] = [
-      {
-        _type: undefined,
-
-        schema: null,
-        path: 'orgs/:orgId/',
-        segments: parseSegments('orgs/:orgId/'),
-        children: [
-          {
-            _type: undefined,
-
-            schema: Project,
-            path: '#projectId/',
-            segments: parseSegments('#projectId/'),
-            children: [],
-          },
-        ],
-      },
-    ];
+    const Project = z.object({ tag: z.literal('project'), projectId: z.number() });
+    const sectionNodes = [section('orgs/:orgId/', [route(Project, '#projectId/')])] as WalkNode[];
 
     it('prints through a single section', () => {
-      const route = { child: { tag: 'project', projectId: 42, orgId: 'acme' } };
-      const result = walkPrint(sectionNodes, route, empty);
+      const r = { child: { tag: 'project', projectId: 42, orgId: 'acme' } };
+      const result = walkPrint(sectionNodes, r, empty);
       expect(result).not.toBeNull();
-      expect(buildUrl(result!, route)).toBe('/orgs/acme/42');
+      expect(buildUrl(result!, r)).toBe('/orgs/acme/42');
     });
   });
 
   describe('nested sections (section > section > route)', () => {
-    const nestedSectionNodes: RouteNode<
-      unknown,
-      RouteNode<unknown, any, any, any>[],
-      any
-    >[] = [
-      {
-        _type: undefined,
-
-        schema: null,
-        path: 'orgs/:orgId/',
-        segments: parseSegments('orgs/:orgId/'),
-        children: [
-          {
-            _type: undefined,
-
-            schema: null,
-            path: 'projects/',
-            segments: parseSegments('projects/'),
-            children: [
-              {
-                _type: undefined,
-
-                schema: Issue,
-                path: ':issueId/',
-                segments: parseSegments(':issueId/'),
-                children: [],
-              },
-            ],
-          },
-        ],
-      },
-    ];
+    const nestedSectionNodes = [
+      section('orgs/:orgId/', [
+        section('projects/', [
+          route(z.object({ tag: z.literal('issue'), issueId: z.string() }), ':issueId/'),
+        ]),
+      ]),
+    ] as WalkNode[];
 
     it('prints through two nested sections', () => {
-      const route = { child: { child: { tag: 'issue', issueId: '7', orgId: 'acme' } } };
-      const result = walkPrint(nestedSectionNodes, route, empty);
+      const r = { child: { child: { tag: 'issue', issueId: '7', orgId: 'acme' } } };
+      const result = walkPrint(nestedSectionNodes, r, empty);
       expect(result).not.toBeNull();
-      expect(buildUrl(result!, route)).toBe('/orgs/acme/projects/7');
+      expect(buildUrl(result!, r)).toBe('/orgs/acme/projects/7');
     });
   });
 
@@ -725,24 +492,14 @@ describe('resolveQuerySchema', () => {
 
   it('returns querySchema from _meta when present', () => {
     const node: WalkNode = {
-      _type: undefined,
-      schema: z.object({ tag: z.literal('search') }),
-      path: 'search/',
-      segments: [],
-      children: [],
+      ...route(z.object({ tag: z.literal('search') }), 'search/'),
       _meta: { querySchema: QuerySchema },
     };
     expect(resolveQuerySchema(node)).toBe(QuerySchema);
   });
 
   it('returns undefined when _meta has no querySchema', () => {
-    const node: WalkNode = {
-      _type: undefined,
-      schema: z.object({ tag: z.literal('users') }),
-      path: 'users/',
-      segments: [],
-      children: [],
-    };
+    const node: WalkNode = route(z.object({ tag: z.literal('users') }), 'users/');
     expect(resolveQuerySchema(node)).toBeUndefined();
   });
 });
@@ -751,30 +508,10 @@ describe('forEachTaggedNode', () => {
   const Users = z.object({ tag: z.literal('users') });
   const User = z.object({ tag: z.literal('user'), id: z.string() });
 
-  const nodes: WalkNode[] = [
-    {
-      _type: undefined,
-      schema: Users,
-      path: 'users/',
-      segments: [],
-      children: [
-        {
-          _type: undefined,
-          schema: User,
-          path: ':id/',
-          segments: [],
-          children: [],
-        },
-      ],
-    },
-    {
-      _type: undefined,
-      schema: null,
-      path: 'section/',
-      segments: [],
-      children: [],
-    },
-  ];
+  const nodes = [
+    route(Users, 'users/', [route(User, ':id/')]),
+    section('section/', []),
+  ] as WalkNode[];
 
   it('visits all nodes with a schema and tag, including nested', () => {
     const tags: string[] = [];
