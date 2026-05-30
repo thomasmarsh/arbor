@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 38 complete
-- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54, 55, 38 complete. Plan 28 superseded by 47. Plan 55: `_ctx`/`Ctx` renamed to `_meta`/`Meta` on `RouteNode`; `getHttpCtx`→`getHttpMeta`, `getOpenApiCtx`→`getOpenApiMeta`. See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Plan 39 complete
+- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54, 55, 38, 39 complete. Plan 28 superseded by 47. Plan 55: `_ctx`/`Ctx` renamed to `_meta`/`Meta` on `RouteNode`; `getHttpCtx`→`getHttpMeta`, `getOpenApiCtx`→`getOpenApiMeta`. See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -85,7 +85,7 @@ Self-contained runnable demos in `examples/`. Run them as a smoke test with `pnp
 | `openapi-output.ts` | `generateSpec()` → stdout JSON |
 | `enrichers.ts` | `withEnricher` + `composeEnrichers` — pre-handler auth/plan checks |
 | `typed-client.ts` | `createClient` options object API; typed request headers; `TypedClient` utility type |
-| `auth-protected.ts` | _Pending plan 39_ |
+| `auth-protected.ts` | `withSession` enricher — JWT auth short-circuit, typed session in ctx |
 
 **Rules for examples**:
 
