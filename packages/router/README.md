@@ -1,121 +1,281 @@
-# Nexus
+# @arbor/router
 
-> **A Pluggable Type-Topology & Unified Data Contract for Modern Applications.**
+A TypeScript URL router with full type inference and no codegen. Route schemas are Zod objects; the router derives a discriminated union of all routes at compile time and validates at runtime. One definition drives URL parsing, URL construction, HTTP servers, typed HTTP clients, and OpenAPI spec generation.
 
-Nexus is more than a router. It is a single source of truth that maps nested application structures, data validation barriers, runtime schemas, and pluggable network protocols into a single, cohesive type tree.
+## Install
 
-With Nexus, you declare your application's domain topology once. The type engine then automatically drives your front-end user interface layouts, backend RPC/REST servers, event-driven message queues, microservices, and end-to-end testing rigs with total compile-time safety.
+```sh
+pnpm add @arbor/router zod
+```
 
-## Core Concepts
+## Define routes
 
-- **Single Source of Truth:** One definition file generates types for front-end clients, backend services, and multi-protocol gateways.
-
-- **Nested State Topology:** Routes are modeled as highly expressive, nested state objects (`{ tag: 'parent', child: { tag: 'child' } }`), cleanly mapping directly to recursive view hierarchies and composable global stores (TCA / Redux).
-
-- **Pluggable Context Engine:** Parametric type parameters let you reuse the same structure for HTTP APIs (`httpRoute`), Event Brokers (`eventRoute`), WebSockets (`socketRoute`), or Client View Layouts (`viewRoute`).
-
-## Quick Start
-
-### 1. Define Your Contracts & Topology
-
-Declare your system primitives using Zod schemas and compile your domain topology. Notice how children routes nest recursively right inside the parent nodes:
+Every route has a Zod schema with a `tag: z.literal(...)` field. The tag is the runtime discriminant; path parameters are additional fields.
 
 ```typescript
-import { z } from 'zod';
-import { defineTopology, httpRoute } from '@app/nexus';
+import z from 'zod';
+import { defineRoutes, route, httpRoute, respond } from '@arbor/router';
 
-// Define Data Primitives
-const UserSchema = z.object({ tag: z.literal('user'), id: z.string() });
-const SettingsSchema = z.object({ tag: z.literal('settings') });
-const UserResp = z.object({ id: z.string(), email: z.string() });
+const Users    = z.object({ tag: z.literal('users') });
+const User     = z.object({ tag: z.literal('user'), id: z.string() });
+const Settings = z.object({ tag: z.literal('settings') });
 
-// Compose the Topology Contract
-export const appTopology = defineTopology([
-  httpRoute(UserSchema, 'GET', 'users/:id/', {
-    response: { 200: UserResp },
-    children: [httpRoute(SettingsSchema, 'GET', 'settings/')],
+const router = defineRoutes([
+  route(Users, 'users', [
+    route(User, ':id', [
+      route(Settings, 'settings'),
+    ]),
+  ]),
+]);
+```
+
+### Parse and print
+
+`parse(url)` returns a `Result<Route, string>`. Matched routes are **nested discriminated union objects** — each parent includes its matched child at the `child` key.
+
+`print(route)` reconstructs the URL from a route object. Parse and print round-trip exactly.
+
+```typescript
+router.parse(new URL('http://localhost/users/42/settings')).getOrThrow();
+// { tag: 'users', child: { tag: 'user', id: '42', child: { tag: 'settings' } } }
+
+router.print({ tag: 'users', child: { tag: 'user', id: '42' } });
+// '/users/42'
+```
+
+TypeScript narrows each `tag` branch fully — `route.child.id` is `string` when `route.child.tag === 'user'`.
+
+## HTTP routes
+
+`httpRoute()` attaches an HTTP method and request/response contracts to a route node. It feeds `createServer()` and `createClient()`.
+
+```typescript
+const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
+const UserResp = z.object({ id: z.string(), name: z.string() });
+
+const router = defineRoutes([
+  httpRoute(GetUser, 'GET', 'users/:id', {
+    response: {
+      200: UserResp,
+      404: z.object({ error: z.string() }),
+    },
   }),
 ]);
 ```
 
-### 2. Frontend Layout & State Synchronization
+## HTTP server
 
-Because Nexus outputs raw, deeply-nested discriminated object unions instead of flat string tokens, you can drive component layout selection natively.
+`createServer()` takes the router and a handler map keyed by tag. Handlers receive validated `params`, `body`, `query`, `headers`, and `cookies`; they return a value via `respond()`.
 
-If you use a composable global store (like TCA), simply pipe the parsed route payload straight into your application state:
+```typescript
+import { createServer, respond } from '@arbor/router';
 
-```tsx
-import { type Derive } from '@app/nexus';
-import { appTopology } from './topology';
+const server = createServer(router, {
+  'get-user': async (ctx) => {
+    return ctx.params.id === '42'
+      ? respond(200, { id: '42', name: 'Alice' })
+      : respond(404, { error: 'user not found' });
+  },
+});
 
-// Extracted absolute layout type union
-type AppRouteState = Derive<typeof appTopology>;
+// Low-level dispatch (returns a plain object):
+await server.handle(new URL('http://localhost/users/42'), 'GET');
+// { status: 200, body: { id: '42', name: 'Alice' }, tag: 'get-user' }
 
-function AppRouterView({ route }: { route: AppRouteState | undefined }) {
-  if (!route) return <NotFoundScreen />;
+// Web-standard Request/Response dispatch:
+await server.handleRequest(new Request('http://localhost/users/99'));
+// { status: 404, body: { error: 'user not found' }, tag: 'get-user' }
+```
 
-  // TypeScript flawlessly narrows down properties inside each branch!
-  switch (route.tag) {
-    case 'user':
-      return (
-        <UserLayoutProfile userId={route.id}>
-          {/* Recursively pass down the nested layout child */}
-          <AppRouterView route={route.child} />
-        </UserLayoutProfile>
-      );
+The handler map is **fully typed** — each tag's `ctx` shape is inferred from the route schema, and the return type is the union of all declared response shapes.
 
-    case 'settings':
-      return <UserSettingsForm />;
+## Type-safe client
 
-    default:
-      return <DashboardHome />;
-  }
+`createClient()` mirrors the server API. It derives method and response types from the same router definition.
+
+```typescript
+import { createClient } from '@arbor/router';
+
+const client = createClient('https://api.example.com', router);
+
+const route = router.parse(new URL('http://localhost/users/7')).getOrThrow();
+const response = await client.fetch(route);
+// type: { status: 200; body: { id: string; name: string } }
+//      | { status: 404; body: { error: string } }
+
+if (response.status === 200) {
+  console.log(response.body.name); // string — fully narrowed
 }
 ```
 
-### 3. Consume via Type-Safe Clients
-
-Nexus maps the backend handler requirements back into your frontend fetch signatures, providing native IDE autocomplete for payload shapes and HTTP status responses:
+Pass a custom `fetch` implementation to use the client without real HTTP (useful for testing):
 
 ```typescript
-import { createClient } from '@app/nexus';
-import { appTopology } from './topology';
-
-const client = createClient('https://example.com', appTopology);
-
-async function run() {
-  // Safe payload passing verified at compile time
-  const result = await client.fetch({ tag: 'user', id: '123' });
-
-  // The type of `result` is explicitly locked to:
-  // { status: 200; body: { id: string; email: string } }
-  if (result.status === 200) {
-    console.log(result.body.email);
-  }
-}
+const client = createClient('http://localhost', router, { fetch: mockFetch });
 ```
 
-## Under the Hood: Deep Type Mechanics
+## Query parameters
 
-Traditional TypeScript conditional evaluations distribute naked generics when they encounter an empty type set (`never`). Nexus implements strict type isolation using wrapped tuple matching constraints:
+Declare a `query` Zod schema on the route; it is parsed and coerced separately from path params. The validated result arrives at `ctx.query` in handlers and at `route.query` after `parse()`.
 
 ```typescript
-export type Derive<N> =
-  N extends RouteNode<infer R, infer Child, any, any>
-    ? [R] extends [never]
-      ? Flatten<{ child: Child }>
-      : [Child] extends [never]
-        ? Flatten<R>
-        : Flatten<R & { child?: Child }>
-    : never;
+const SearchItems = z.object({ tag: z.literal('search-items') });
+const SearchQuery = z.object({
+  q: z.string(),
+  page: z.coerce.number().default(1),
+});
+
+const router = defineRoutes([
+  httpRoute(SearchItems, 'GET', 'items', {
+    query: SearchQuery,
+    response: { 200: z.object({ results: z.array(z.string()) }) },
+  }),
+]);
+
+const route = router.parse(new URL('http://localhost/items?q=hello&page=3')).getOrThrow();
+console.log(route.query.page); // 3  (number, coerced from string)
 ```
 
-By constraining target assertions using `[R] extends [never]`, Nexus short-circuits distribution bugs, guaranteeing that cleanly flattened, accurate interfaces are returned regardless of path hierarchy completeness.
+## Request validation
 
-## Future Roadmap
+Declare `headers`, `cookies`, and `body` schemas on the route. The server validates them before calling the handler; invalid inputs return a 400 response automatically.
 
-- **Query Parameter Parsing:** Seamless structural parsing and runtime type coercion for complex URL query configurations.
+```typescript
+httpRoute(PostOrder, 'POST', 'orders', {
+  body: z.object({ itemId: z.string(), qty: z.number() }),
+  headers: z.object({ 'x-api-key': z.string() }),
+  response: { 201: z.object({ orderId: z.string() }) },
+})
+```
 
-- **Event Broker Protocols:** Pluggable topology support for event topologies over Kafka, RabbitMQ (`amqp://`), and WebSockets (`ws://`).
+## Response validation
 
-- **OpenAPI Generator Hook:** Automatic one-click generation of fully verified `openapi.json` contract compliance sheets.
+Use `desc()` when a response includes typed headers or cookies alongside the body.
+
+```typescript
+import { desc } from '@arbor/router';
+
+httpRoute(Login, 'POST', 'login', {
+  response: {
+    200: desc(
+      z.object({ userId: z.string() }),
+      { cookies: z.object({ 'session-id': z.string() }) },
+    ),
+    401: z.object({ error: z.string() }),
+  },
+})
+```
+
+## Guards
+
+Guards are pre-handler steps that can short-circuit with an early response or extend the handler context with new typed fields.
+
+```typescript
+import { type Guard, withGuard, composeGuards } from '@arbor/router';
+
+interface BaseCtx { req: Request }
+
+const authGuard: Guard<BaseCtx, { userId: string }> = (ctx) => {
+  const auth = ctx.req.headers.get('authorization') ?? '';
+  if (!auth.startsWith('Bearer '))
+    return Promise.resolve({ ok: false, response: new Response('Unauthorized', { status: 401 }) });
+  return Promise.resolve({ ok: true, ctx: { ...ctx, userId: auth.slice(7) } });
+};
+
+// Single guard:
+const handler = withGuard(authGuard, (ctx) =>
+  Promise.resolve(new Response(`Hello ${ctx.userId}`)),
+);
+
+// Chained guards — both must pass; types accumulate:
+const planGuard: Guard<BaseCtx & { userId: string }, { plan: string }> = ...;
+const composed = composeGuards(authGuard, planGuard);
+```
+
+Built-in guards: `withSession` (JWT), `withRbac` (role check), `withApiKey`, `withRateLimit`, `withMetrics`, `withCors`.
+
+## Rate limiting
+
+Per-route via `httpRoute()` options:
+
+```typescript
+httpRoute(SearchItems, 'GET', 'items', {
+  response: { 200: ResultSchema },
+  rateLimit: { windowMs: 60_000, maxRequests: 100 },
+})
+```
+
+Custom store and key resolver via `createServer()` options:
+
+```typescript
+createServer(router, handlers, {
+  rateLimitStore: redisStore,
+  rateLimitKeyResolver: ({ headers }) => headers['x-user-id'] ?? 'anon',
+})
+```
+
+## CORS
+
+Per-route via `httpRoute()` options or applied globally via `withCors()`:
+
+```typescript
+import { withCors } from '@arbor/router';
+
+const corsMiddleware = withCors({
+  origins: ['https://app.example.com'],
+  methods: ['GET', 'POST'],
+  credentials: true,
+  csrf: true,
+});
+```
+
+## OpenAPI
+
+`openApiRoute()` extends `httpRoute()` with OpenAPI metadata. `generateSpec()` walks the router and produces an OpenAPI 3.1 document.
+
+```typescript
+import { openApiRoute, generateSpec } from '@arbor/router';
+
+const router = defineRoutes([
+  openApiRoute(GetUser, 'GET', 'users/:id', {
+    response: { 200: UserResp, 404: z.object({ error: z.string() }) },
+    meta: { summary: 'Get a user by ID', tags: ['users'] },
+  }),
+]);
+
+const spec = generateSpec(router, { title: 'My API', version: '1.0.0' });
+// spec is a plain object — serialize with JSON.stringify
+```
+
+## Sections
+
+`section()` groups routes under a shared path prefix and accumulates typed section parameters (useful for multi-tenant or versioned APIs where the prefix itself carries semantic data).
+
+```typescript
+import { section, defineRoutes } from '@arbor/router';
+
+const TenantSection = z.object({ tenantId: z.string() });
+
+const router = defineRoutes([
+  section(TenantSection, 'tenants/:tenantId', [
+    route(Dashboard, 'dashboard'),
+  ]),
+]);
+
+router.print({ tag: 'dashboard' }, { tenantId: 'acme' });
+// '/tenants/acme/dashboard'
+```
+
+## Type utilities
+
+| Type | Purpose |
+| ---- | ------- |
+| `Derive<Router>` | Discriminated union of all routes in a router |
+| `InferRoute<Router, Tag>` | Single route type for a given tag |
+| `InferContext<Router, Tag>` | Handler context shape (params, body, query, …) |
+| `CtxMap<Router>` | Map from tag → full `HttpContext` |
+| `HandlerCtx<CtxMap, Routes, Tag>` | Explicit handler context type |
+| `HandlerMap<CtxMap, Routes>` | Full handler map type |
+| `HttpResponse<Status, Body>` | Generic response shape |
+| `Guard<Ctx, Extra>` | Guard function type |
+| `TypedClient<Route, Map>` | Client type for a given router |

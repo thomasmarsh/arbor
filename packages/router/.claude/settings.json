@@ -4,7 +4,9 @@
       "Bash(rg \"WalkNode|getHttpMeta|getOpenApiMeta|HttpContextData|OpenApiCtxData\" --with-filename -n)",
       "Bash(rg \"resolveQuerySchema\" --with-filename -n)",
       "Bash(rg -n \"parseCookies|UntypedHandler|HttpWalkNode|collectHttpMaps|WalkNode\" /Users/tmarsh/git/arbor/packages/router/src --include=\"*.ts\")",
-      "Bash(perl -i -0pe ' *)"
+      "Bash(perl -i -0pe ' *)",
+      "Bash(rg -n \"from.*openapi-context\" /Users/tmarsh/git/arbor/packages/router/src/ -r --type ts)",
+      "Bash(sort -t. -k1 -n)"
     ]
   }
 }
