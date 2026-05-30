@@ -19,8 +19,8 @@ const router = defineRoutes([
 
 // One call wires up the in-memory server and returns a typed client.
 const client = createTestClient(router, {
-  'get-user': async (ctx) => respond(200, { id: ctx.params.id, name: 'Alice' }),
-  'create-user': async (ctx) => respond(201, { id: 'new', name: ctx.body.name }),
+  'get-user': (ctx) => Promise.resolve(respond(200, { id: ctx.params.id, name: 'Alice' })),
+  'create-user': (ctx) => Promise.resolve(respond(201, { id: 'new', name: ctx.body.name })),
 });
 
 const route = router.parse(new URL('http://localhost/users/7')).getOrThrow();

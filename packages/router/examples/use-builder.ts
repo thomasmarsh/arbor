@@ -1,4 +1,5 @@
 // .use() fluent builder + pipeline(): left-to-right route-node composition.
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/no-unsafe-member-access */
 import z from 'zod';
 import { type RouteNode, httpRoute, pipeline } from '../src/index.js';
 

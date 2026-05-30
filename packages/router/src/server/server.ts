@@ -1,5 +1,5 @@
 import type z from 'zod';
-import type { HttpContext, HttpMethod, HttpResponse, HttpResponseUnion } from '../contexts/http-context.js';
+import type { HttpContext, HttpMethod, HttpResponse, HttpResponseUnion, SessionCtx } from '../contexts/http-context.js';
 import { collectHttpMaps } from '../contexts/http-context.js';
 import type { HttpWalkNode } from '../contexts/http-context.js';
 import type { AnyCtxMap, RouterContract } from '../core/router-contract.js';
@@ -11,20 +11,20 @@ export interface ErrorMapEntry {
   response: (e: unknown) => { status: number; body: unknown };
 }
 
-export interface HandlerCtx<
-  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown, unknown>>,
+export type HandlerCtx<
+  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown, unknown, unknown>>,
   Routes,
   Tag extends keyof CtxMap & string,
-> {
+> = {
   params: Omit<Extract<Routes, { tag: Tag }>, 'tag' | 'child' | 'query'>;
   body: CtxMap[Tag]['body'];
   query: CtxMap[Tag]['query'];
   headers: CtxMap[Tag]['headers'];
   cookies: CtxMap[Tag]['cookies'];
-}
+} & (CtxMap[Tag]['session'] extends never ? Record<never, never> : { session: CtxMap[Tag]['session'] });
 
 export type HandlerMap<
-  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown, unknown>>,
+  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown, unknown, unknown>>,
   Routes,
 > = {
   [Tag in keyof CtxMap & string]: (
@@ -42,6 +42,7 @@ type AnyHandler = (ctx: {
   query: unknown;
   headers: unknown;
   cookies: unknown;
+  session?: unknown;
 }) => Promise<{ status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string> }>;
 
 type DispatchResult = HttpResponse & { tag: string };
@@ -115,9 +116,10 @@ export function createServer<
     maxBodySize?: number;
     rateLimitStore?: RateLimitStore;
     rateLimitKeyResolver?: RateLimitKeyResolver;
+    resolveSession?: (headers: Record<string, string>) => Promise<SessionCtx | null>;
   },
 ) {
-  const { methodMap, bodySchemaMap, headerSchemaMap, cookieSchemaMap, responseHeaderSchemaMap, responseCookieSchemaMap, rateLimitMap } =
+  const { methodMap, bodySchemaMap, headerSchemaMap, cookieSchemaMap, responseHeaderSchemaMap, responseCookieSchemaMap, rateLimitMap, requiresMap } =
     collectHttpMaps(router.children as HttpWalkNode[]);
 
   const maxBodySize = options?.maxBodySize ?? DEFAULT_MAX_BODY_SIZE;
@@ -138,6 +140,16 @@ export function createServer<
       const count = await store.increment(key, rlPolicy.windowMs);
       if (count > rlPolicy.maxRequests) return { status: 429, body: { error: 'too many requests' }, headers: { 'retry-after': String(Math.ceil(rlPolicy.windowMs / 1000)) }, tag };
     }
+    const requiredRoles = requiresMap[tag];
+    let session: SessionCtx | undefined;
+    if (requiredRoles) {
+      if (!options?.resolveSession) return { status: 500, body: { error: 'resolveSession not configured' }, tag };
+      const resolved = await options.resolveSession(headers);
+      if (!resolved) return { status: 401, body: { error: 'unauthorized' }, tag };
+      const hasRole = requiredRoles.some((r) => resolved.roles.includes(r));
+      if (!hasRole) return { status: 403, body: { error: 'forbidden' }, tag };
+      session = resolved;
+    }
     const resolved = resolveHandler(handlers as Record<string, AnyHandler>, tag, method, methodMap[tag]);
     if (!resolved.ok) return { ...resolved, tag };
     const bodyResult = validateInput(bodySchemaMap[tag], body, 'invalid request body', body);
@@ -149,7 +161,7 @@ export function createServer<
     try {
       const params = extractParams(route);
       const query = (route as { query?: unknown }).query;
-      const handlerResult = await resolved.handler({ params, body: bodyResult.data, query, headers: headerResult.data, cookies: cookieResult.data });
+      const handlerResult = await resolved.handler({ params, body: bodyResult.data, query, headers: headerResult.data, cookies: cookieResult.data, ...(session ? { session } : {}) });
       const respResult = validateResponse(handlerResult, responseHeaderSchemaMap[tag], responseCookieSchemaMap[tag]);
       if (!respResult.ok) return { ...respResult, tag };
       const response: DispatchResult = { status: handlerResult.status, body: handlerResult.body, tag };

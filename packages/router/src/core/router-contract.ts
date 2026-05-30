@@ -4,7 +4,7 @@ import type { Result } from '@arbor/common';
 import type { HttpContext } from '../contexts/http-context.js';
 import type { RouteNode } from './route-node.js';
 
-export type AnyCtxMap = Record<string, HttpContext<any, any, any, any, any, any>>;
+export type AnyCtxMap = Record<string, HttpContext<any, any, any, any, any, any, any>>;
 
 export interface RouterContract<
   Route extends { tag: string },

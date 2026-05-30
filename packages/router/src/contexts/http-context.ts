@@ -29,6 +29,7 @@ export interface HttpResponse<
 
 export interface HttpContextData {
   method: HttpMethod;
+  requires?: readonly string[];
   bodySchema?: z.ZodType;
   responseSchemas?: Record<number, z.ZodType>;
   responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
@@ -55,6 +56,7 @@ export function collectHttpMaps(nodes: HttpWalkNode[]): {
   responseCookieSchemaMap: Record<string, Record<number, z.ZodType>>;
   rateLimitMap: Record<string, { windowMs: number; maxRequests: number }>;
   corsMap: Record<string, CorsConfig>;
+  requiresMap: Record<string, readonly string[]>;
 } {
   return {
     methodMap:                walkCollect(nodes, (n) => getHttpMeta(n)?.method),
@@ -65,6 +67,7 @@ export function collectHttpMaps(nodes: HttpWalkNode[]): {
     responseCookieSchemaMap:  walkCollect(nodes, (n) => getHttpMeta(n)?.responseCookieSchemas) as Record<string, Record<number, z.ZodType>>,
     rateLimitMap:             walkCollect(nodes, (n) => getHttpMeta(n)?.rateLimit),
     corsMap:                  walkCollect(nodes, (n) => getHttpMeta(n)?.cors),
+  requiresMap:              walkCollect(nodes, (n) => getHttpMeta(n)?.requires),
   };
 }
 
@@ -75,6 +78,7 @@ export interface HttpContext<
   Query = never,
   Headers = never,
   Cookies = never,
+  Session = never,
 > {
   method: Method;
   body: Body;
@@ -82,6 +86,7 @@ export interface HttpContext<
   query: Query;
   headers: Headers;
   cookies: Cookies;
+  session: Session;
 }
 
 // A response descriptor object with an explicit _desc discriminant.
@@ -139,6 +144,8 @@ export function desc(body: z.ZodType, opts?: Record<string, unknown>) {
 export type SafeBodyOption<M extends HttpMethod> =
   M extends 'GET' | 'HEAD' | 'DELETE' ? { body?: never } : { body?: z.ZodType };
 
+export interface SessionCtx { userId: string; roles: string[] }
+
 export function httpRoute<
   S extends z.ZodObject<any, any>,
   Method extends HttpMethod,
@@ -148,16 +155,17 @@ export function httpRoute<
   Q extends z.ZodObject<any, any> | undefined = undefined,
   H extends z.ZodObject<any, any> | undefined = undefined,
   CK extends z.ZodObject<any, any> | undefined = undefined,
+  Req extends readonly string[] | undefined = undefined,
 >(
   schema: S,
   method: Method,
   path: string,
-  options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H; cookies?: CK; rateLimit?: { windowMs: number; maxRequests: number }; cors?: CorsConfig } & SafeBodyOption<Method>,
+  options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H; cookies?: CK; requires?: Req; rateLimit?: { windowMs: number; maxRequests: number }; cors?: CorsConfig } & SafeBodyOption<Method>,
   children?: [...C],
 ): BuildableRouteNode<RouteNode<
   z.infer<S> & (Q extends z.ZodObject<any, any> ? { query: z.infer<Q> } : unknown),
   [...C],
-  HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never, H extends z.ZodObject<any, any> ? z.infer<H> : never, CK extends z.ZodObject<any, any> ? z.infer<CK> : never>,
+  HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never, H extends z.ZodObject<any, any> ? z.infer<H> : never, CK extends z.ZodObject<any, any> ? z.infer<CK> : never, Req extends readonly string[] ? SessionCtx : never>,
   never,
   HttpContextData
 >> {
@@ -190,6 +198,7 @@ export function httpRoute<
     context: undefined as never,
     _meta: {
       method,
+      ...(options.requires ? { requires: options.requires } : {}),
       ...(options.body ? { bodySchema: options.body } : {}),
       ...(options.query ? { querySchema: options.query } : {}),
       ...(options.headers ? { headerSchema: options.headers } : {}),

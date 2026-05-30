@@ -672,4 +672,81 @@ describe('createServer', () => {
       expect((result.body as Record<string, unknown>)['error']).toBe('first');
     });
   });
+
+  describe('requires annotation', () => {
+    const AdminSchema = z.object({ tag: z.literal('get-admin') });
+    const AdminResp = z.object({ ok: z.boolean() });
+
+    const adminRouter = defineRoutes([
+      httpRoute(AdminSchema, 'GET', 'admin/', {
+        requires: ['admin'] as const,
+        response: { 200: AdminResp },
+      }),
+    ]);
+
+    const resolveSession = (headers: Record<string, string>) => {
+      const token = headers['authorization']?.slice(7);
+      if (token === 'admin-token') return Promise.resolve({ userId: 'u1', roles: ['admin'] });
+      if (token === 'user-token') return Promise.resolve({ userId: 'u2', roles: ['user'] });
+      return Promise.resolve(null);
+    };
+
+    it('returns 401 when no session is present', async () => {
+      const s = createServer(adminRouter, {
+        'get-admin': () => Promise.resolve(respond(200, { ok: true })),
+      }, { resolveSession });
+      const result = await s.handle(new URL('http://localhost/admin/'), 'GET', undefined, {});
+      expect(result.status).toBe(401);
+      expect((result.body as Record<string, unknown>)['error']).toBe('unauthorized');
+    });
+
+    it('returns 403 when session lacks required role', async () => {
+      const s = createServer(adminRouter, {
+        'get-admin': () => Promise.resolve(respond(200, { ok: true })),
+      }, { resolveSession });
+      const result = await s.handle(new URL('http://localhost/admin/'), 'GET', undefined, { authorization: 'Bearer user-token' });
+      expect(result.status).toBe(403);
+      expect((result.body as Record<string, unknown>)['error']).toBe('forbidden');
+    });
+
+    it('calls handler when session has required role', async () => {
+      const s = createServer(adminRouter, {
+        'get-admin': () => Promise.resolve(respond(200, { ok: true })),
+      }, { resolveSession });
+      const result = await s.handle(new URL('http://localhost/admin/'), 'GET', undefined, { authorization: 'Bearer admin-token' });
+      expect(result.status).toBe(200);
+      expect(result.body).toEqual({ ok: true });
+    });
+
+    it('passes session to handler ctx', async () => {
+      const s = createServer(adminRouter, {
+        'get-admin': (ctx) => Promise.resolve(respond(200, { ok: ctx.session.userId === 'u1' })),
+      }, { resolveSession });
+      const result = await s.handle(new URL('http://localhost/admin/'), 'GET', undefined, { authorization: 'Bearer admin-token' });
+      expect(result.status).toBe(200);
+      expect((result.body as Record<string, unknown>)['ok']).toBe(true);
+    });
+
+    it('returns 500 when requires is set but resolveSession not configured', async () => {
+      const s = createServer(adminRouter, {
+        'get-admin': () => Promise.resolve(respond(200, { ok: true })),
+      });
+      const result = await s.handle(new URL('http://localhost/admin/'), 'GET', undefined, { authorization: 'Bearer admin-token' });
+      expect(result.status).toBe(500);
+    });
+
+    it('routes without requires are unaffected', async () => {
+      const PublicSchema = z.object({ tag: z.literal('public') });
+      const mixedRouter = defineRoutes([
+        httpRoute(PublicSchema, 'GET', 'public/', { response: { 200: AdminResp } }),
+        httpRoute(AdminSchema, 'GET', 'admin/', { requires: ['admin'] as const, response: { 200: AdminResp } }),
+      ]);
+      const s = createServer(mixedRouter, {
+        public: () => Promise.resolve(respond(200, { ok: true })),
+        'get-admin': () => Promise.resolve(respond(200, { ok: true })),
+      }, { resolveSession });
+      const result = await s.handle(new URL('http://localhost/public/'), 'GET');
+      expect(result.status).toBe(200);
+    });
+  });
 });

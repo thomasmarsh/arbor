@@ -11,21 +11,21 @@ interface Ctx {
 }
 
 // resolveSession is user-supplied — callers own the JWT verification logic.
-const myWithSession = withSession<Ctx, UserSession>(async (ctx) => {
+const myWithSession = withSession<Ctx, UserSession>((ctx) => {
   const auth = ctx.req.headers.get('authorization') ?? '';
-  if (!auth.startsWith('Bearer ')) return null;
+  if (!auth.startsWith('Bearer ')) return Promise.resolve(null);
   const token = auth.slice(7);
   // Real app: verify the JWT signature and decode claims here.
-  if (token === 'valid-token') return { userId: 'user-123', role: 'admin' };
-  return null;
+  if (token === 'valid-token') return Promise.resolve({ userId: 'user-123', role: 'admin' as const });
+  return Promise.resolve(null);
 });
 
 // Handlers wrapped with withGuard(myWithSession, ...) get `session` in ctx.
 // Without the guard, `session` does not exist — enforced at compile time.
-const meHandler = withGuard(myWithSession, async ({ session }) =>
-  new Response(JSON.stringify({ id: session.userId, role: session.role }), {
+const meHandler = withGuard(myWithSession, ({ session }) =>
+  Promise.resolve(new Response(JSON.stringify({ id: session.userId, role: session.role }), {
     headers: { 'content-type': 'application/json' },
-  }),
+  })),
 );
 
 const authed = await meHandler({

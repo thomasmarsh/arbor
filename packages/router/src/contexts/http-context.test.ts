@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import type { InferContext } from '../core/define-routes.js';
-import { httpRoute, desc, type HttpContext, type HttpMethod } from './http-context.js';
+import { httpRoute, desc, type HttpContext, type HttpMethod, type SessionCtx } from './http-context.js';
 
 describe('HttpMethod', () => {
   it('is a union of HTTP verbs', () => {
@@ -231,6 +231,36 @@ describe('httpRoute', () => {
       expect(r._meta?.responseSchemas?.[404]).toBe(ErrorResponse);
       expect(r._meta?.responseHeaderSchemas?.[200]).toBe(HeaderSchema);
       expect(r._meta?.responseHeaderSchemas?.[404]).toBeUndefined();
+    });
+  });
+
+  describe('requires annotation', () => {
+    it('ctx session is never when requires is absent', () => {
+      const _r = httpRoute(GetUser, 'GET', ':id/', { response: { 200: UserResponse } });
+      type T = InferContext<typeof _r>;
+      expectTypeOf<T['session']>().toEqualTypeOf<never>();
+    });
+
+    it('ctx session is SessionCtx when requires is present', () => {
+      const _r = httpRoute(GetUser, 'GET', ':id/', {
+        requires: ['admin'] as const,
+        response: { 200: UserResponse },
+      });
+      type T = InferContext<typeof _r>;
+      expectTypeOf<T['session']>().toEqualTypeOf<SessionCtx>();
+    });
+
+    it('stores requires in _meta at runtime', () => {
+      const r = httpRoute(GetUser, 'GET', ':id/', {
+        requires: ['admin', 'super-user'] as const,
+        response: { 200: UserResponse },
+      });
+      expect(r._meta?.requires).toEqual(['admin', 'super-user']);
+    });
+
+    it('_meta.requires is absent when requires is not passed', () => {
+      const r = httpRoute(GetUser, 'GET', ':id/', { response: { 200: UserResponse } });
+      expect(r._meta?.requires).toBeUndefined();
     });
   });
 });

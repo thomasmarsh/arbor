@@ -28,7 +28,7 @@ type Router = typeof router;
 
 const server = createServer(router, {
   'get-me': async (ctx) => {
-    const auth = ctx.headers?.authorization ?? '';
+    const auth = ctx.headers.authorization;
     return Promise.resolve(
       auth.startsWith('Bearer ')
         ? respond(200, { id: '1', name: auth.slice(7) })

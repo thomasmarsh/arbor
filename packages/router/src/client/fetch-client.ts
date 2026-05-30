@@ -12,7 +12,7 @@ interface NoOpts {
   headers?: never;
 }
 
-type RequestOpts<Ctx extends HttpContext<any, any, any, any, any, any>> = [Ctx['body']] extends [never]
+type RequestOpts<Ctx extends HttpContext<any, any, any, any, any, any, any>> = [Ctx['body']] extends [never]
   ? [Ctx['headers']] extends [never]
     ? NoOpts
     : { headers: Ctx['headers'] }
