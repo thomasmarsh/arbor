@@ -17,6 +17,7 @@ export {
 export { createClient, type FetchLike, type TypedClient } from './client/fetch-client.js';
 export { type Enricher, composeEnrichers, withEnricher } from './server/enrichers.js';
 export { withSession } from './server/with-session.js';
+export { withApiKey, type ApiKeyOptions } from './server/with-api-key.js';
 export { httpRoute, type HttpContext, type HttpMethod } from './contexts/http-context.js';
 export { createMemoryStore, type RateLimitPolicy, type RateLimitStore, withRateLimit } from './server/rate-limit.js';
 export { createServer, type ErrorMapEntry, type HandlerMap, type RateLimitKeyResolver } from './server/server.js';
