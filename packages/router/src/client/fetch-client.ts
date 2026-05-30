@@ -5,7 +5,7 @@ import type z from 'zod';
 import type { HttpContext, HttpResponseUnion } from '../contexts/http-context.js';
 import { getHttpMeta } from '../contexts/http-context.js';
 import type { RouteNode } from '../core/route-node.js';
-import { getTag, type WalkNode } from '../core/walk.js';
+import { walkCollect, type WalkNode } from '../core/walk.js';
 
 interface NoOpts {
   body?: never;
@@ -50,36 +50,6 @@ export interface TypedClient<
   >;
 }
 
-function buildMethodMap(nodes: WalkNode[]): Record<string, string> {
-  const map: Record<string, string> = {};
-  for (const node of nodes) {
-    const httpCtx = getHttpMeta(node);
-    if (node.schema !== null && httpCtx?.method) {
-      const tag = getTag(node.schema);
-      if (tag) map[tag] = httpCtx.method;
-    }
-    if (node.children.length > 0) {
-      Object.assign(map, buildMethodMap(node.children as WalkNode[]));
-    }
-  }
-  return map;
-}
-
-function buildResponseSchemaMap(nodes: WalkNode[]): Record<string, Record<number, z.ZodType>> {
-  const map: Record<string, Record<number, z.ZodType>> = {};
-  for (const node of nodes) {
-    const httpCtx = getHttpMeta(node);
-    if (node.schema !== null && httpCtx?.responseSchemas) {
-      const tag = getTag(node.schema);
-      if (tag) map[tag] = httpCtx.responseSchemas;
-    }
-    if (node.children.length > 0) {
-      Object.assign(map, buildResponseSchemaMap(node.children as WalkNode[]));
-    }
-  }
-  return map;
-}
-
 export function createClient<
   Route extends { tag: string },
   Map extends Record<string, HttpContext<any, any, any, any, any>>,
@@ -89,8 +59,8 @@ export function createClient<
   router: RouterArg<Route> & { _ctxMap: Map },
   options?: { fetch?: FetchLike; validate?: Validate },
 ): TypedClient<Route, Map, Validate> {
-  const methodMap = buildMethodMap(router.children as WalkNode[]);
-  const responseSchemaMap = buildResponseSchemaMap(router.children as WalkNode[]);
+  const methodMap = walkCollect(router.children as WalkNode[], (n) => getHttpMeta(n)?.method);
+  const responseSchemaMap = walkCollect(router.children as WalkNode[], (n) => getHttpMeta(n)?.responseSchemas);
   const fetchFn: FetchLike = options?.fetch ?? globalThis.fetch;
   const validate = options?.validate ?? false;
 

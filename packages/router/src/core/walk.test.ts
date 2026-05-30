@@ -5,7 +5,16 @@ import { describe, expect, it } from 'vitest';
 import z from 'zod';
 import type { RouteNode } from './route-node.js';
 import { parseSegments } from './segments.js';
-import { type ParseDiag, buildUrl, walkParse, walkPrint } from './walk.js';
+import {
+  type ParseDiag,
+  type WalkNode,
+  buildUrl,
+  forEachTaggedNode,
+  resolveQuerySchema,
+  validateSchema,
+  walkParse,
+  walkPrint,
+} from './walk.js';
 
 describe('walkParse', () => {
   const Users = z.object({ tag: z.literal('users') });
@@ -683,5 +692,99 @@ describe('walkPrint', () => {
       expect(result).not.toBeNull();
       expect(buildUrl(result!, r)).toBe('/users/%E6%97%A5%E6%9C%AC%E8%AA%9E');
     });
+  });
+});
+
+describe('validateSchema', () => {
+  const Schema = z.object({ tag: z.literal('users'), id: z.string() });
+
+  it('returns parsed data on success', () => {
+    expect(validateSchema(Schema, { tag: 'users', id: '1' }, 'users/')).toEqual({ tag: 'users', id: '1' });
+  });
+
+  it('returns undefined on failure', () => {
+    expect(validateSchema(Schema, { tag: 'wrong' }, 'users/')).toBeUndefined();
+  });
+
+  it('pushes schema-error diagnostic on failure', () => {
+    const diag: ParseDiag[] = [];
+    validateSchema(Schema, { tag: 'wrong' }, 'users/', diag);
+    expect(diag).toHaveLength(1);
+    expect(diag[0]).toMatchObject({ kind: 'schema-error', path: 'users/' });
+  });
+
+  it('does not push to diag on success', () => {
+    const diag: ParseDiag[] = [];
+    validateSchema(Schema, { tag: 'users', id: '1' }, 'users/', diag);
+    expect(diag).toHaveLength(0);
+  });
+});
+
+describe('resolveQuerySchema', () => {
+  const QuerySchema = z.object({ page: z.coerce.number().default(1) });
+
+  it('returns querySchema from _meta when present', () => {
+    const node: WalkNode = {
+      _type: undefined,
+      schema: z.object({ tag: z.literal('search') }),
+      path: 'search/',
+      segments: [],
+      children: [],
+      _meta: { querySchema: QuerySchema },
+    };
+    expect(resolveQuerySchema(node)).toBe(QuerySchema);
+  });
+
+  it('returns undefined when _meta has no querySchema', () => {
+    const node: WalkNode = {
+      _type: undefined,
+      schema: z.object({ tag: z.literal('users') }),
+      path: 'users/',
+      segments: [],
+      children: [],
+    };
+    expect(resolveQuerySchema(node)).toBeUndefined();
+  });
+});
+
+describe('forEachTaggedNode', () => {
+  const Users = z.object({ tag: z.literal('users') });
+  const User = z.object({ tag: z.literal('user'), id: z.string() });
+
+  const nodes: WalkNode[] = [
+    {
+      _type: undefined,
+      schema: Users,
+      path: 'users/',
+      segments: [],
+      children: [
+        {
+          _type: undefined,
+          schema: User,
+          path: ':id/',
+          segments: [],
+          children: [],
+        },
+      ],
+    },
+    {
+      _type: undefined,
+      schema: null,
+      path: 'section/',
+      segments: [],
+      children: [],
+    },
+  ];
+
+  it('visits all nodes with a schema and tag, including nested', () => {
+    const tags: string[] = [];
+    forEachTaggedNode(nodes, (_, tag) => tags.push(tag));
+    expect(tags).toEqual(['users', 'user']);
+  });
+
+  it('skips schema-null nodes', () => {
+    const visited: WalkNode[] = [];
+    forEachTaggedNode(nodes, (node) => visited.push(node));
+    expect(visited.every((n) => n.schema !== null)).toBe(true);
   });
 });

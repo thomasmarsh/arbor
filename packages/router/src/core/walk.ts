@@ -26,6 +26,64 @@ export function getTag(schema: z.ZodObject<any, any>): string | undefined {
   return tag instanceof z.ZodLiteral ? (tag.value as string) : undefined;
 }
 
+export function resolveQuerySchema(node: WalkNode): z.ZodObject<any, any> | undefined {
+  return (node._meta as { querySchema?: z.ZodObject<any, any> } | undefined)?.querySchema;
+}
+
+export function validateSchema(
+  schema: z.ZodObject<any, any>,
+  value: unknown,
+  path: string,
+  diag?: ParseDiag[],
+): Record<string, unknown> | undefined {
+  const result = schema.safeParse(value);
+  if (!result.success) {
+    diag?.push({ kind: 'schema-error', path, issues: result.error.issues });
+    return undefined;
+  }
+  return result.data;
+}
+
+function filterDefined(data: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
+}
+
+function extractQueryParams(schema: z.ZodObject<any, any>, query: URLSearchParams): Record<string, unknown> {
+  const raw: Record<string, unknown> = {};
+  for (const key of Object.keys(getShape(schema))) {
+    const vals = query.getAll(key);
+    if (vals.length > 1) raw[key] = vals;
+    else if (vals.length === 1) raw[key] = vals[0];
+  }
+  return raw;
+}
+
+function handleLeafNode(
+  node: WalkNode,
+  params: Record<string, unknown>,
+  query: URLSearchParams,
+  diag?: ParseDiag[],
+): Record<string, unknown> | null {
+  if (node.schema === null) return null;
+  const raw: Record<string, unknown> = { ...params, tag: getTag(node.schema) };
+  const querySchema = resolveQuerySchema(node);
+  if (querySchema) {
+    const rawQuery = extractQueryParams(querySchema, query);
+    const queryData = validateSchema(querySchema, rawQuery, node.path, diag);
+    if (!queryData) return null;
+    const data = validateSchema(node.schema, raw, node.path, diag);
+    return data ? { ...filterDefined(data), query: queryData } : null;
+  }
+  for (const key of Object.keys(getShape(node.schema))) {
+    if (key === 'tag' || key in raw) continue;
+    const vals = query.getAll(key);
+    if (vals.length > 1) raw[key] = vals;
+    else if (vals.length === 1) raw[key] = vals[0];
+  }
+  const data = validateSchema(node.schema, raw, node.path, diag);
+  return data ? filterDefined(data) : null;
+}
+
 export function walkParse(
   nodes: WalkNode[],
   urlSegments: string[],
@@ -36,87 +94,23 @@ export function walkParse(
   for (const node of nodes) {
     const match = matchSegments(node.segments, urlSegments, params);
     if (!match) {
-      if (diag && node.schema !== null) {
-        diag.push({ kind: 'segment-mismatch', path: node.path, urlSegments });
-      }
+      if (diag && node.schema !== null) diag.push({ kind: 'segment-mismatch', path: node.path, urlSegments });
       continue;
     }
-
     const { params: nextParams, rest } = match;
-
-    if (rest.length > 0) {
-      if (node.children.length === 0) continue;
-
-      const child = walkParse(node.children as WalkNode[], rest, query, nextParams, diag);
-      if (!child) continue;
-
-      if (node.schema === null) return { child };
-
-      const raw = { ...nextParams, tag: getTag(node.schema) };
-      const result = node.schema.safeParse(raw);
-      if (!result.success) {
-        diag?.push({ kind: 'schema-error', path: node.path, issues: result.error.issues });
-        continue;
-      }
-
-      return {
-        ...Object.fromEntries(Object.entries(result.data).filter(([, v]) => v !== undefined)),
-        child,
-      };
-    }
-
-    if (node.schema === null) continue;
-
-    const shape = getShape(node.schema);
-    const raw: Record<string, unknown> = {
-      ...nextParams,
-      tag: getTag(node.schema),
-    };
-
-    const contextQuerySchema = (node._meta as { querySchema?: z.ZodObject<any, any> } | undefined)?.querySchema;
-
-    if (contextQuerySchema) {
-      const rawQuery: Record<string, unknown> = {};
-      for (const key of Object.keys(getShape(contextQuerySchema))) {
-        const vals = query.getAll(key);
-        if (vals.length > 1) rawQuery[key] = vals;
-        else if (vals.length === 1) rawQuery[key] = vals[0];
-      }
-
-      const queryResult = contextQuerySchema.safeParse(rawQuery);
-      if (!queryResult.success) {
-        diag?.push({ kind: 'schema-error', path: node.path, issues: queryResult.error.issues });
-        continue;
-      }
-
-      const result = node.schema.safeParse(raw);
-      if (!result.success) {
-        diag?.push({ kind: 'schema-error', path: node.path, issues: result.error.issues });
-        continue;
-      }
-
-      return {
-        ...Object.fromEntries(Object.entries(result.data).filter(([, v]) => v !== undefined)),
-        query: queryResult.data,
-      };
-    }
-
-    for (const key of Object.keys(shape)) {
-      if (key === 'tag' || key in raw) continue;
-      const vals = query.getAll(key);
-      if (vals.length > 1) raw[key] = vals;
-      else if (vals.length === 1) raw[key] = vals[0];
-    }
-
-    const result = node.schema.safeParse(raw);
-    if (!result.success) {
-      diag?.push({ kind: 'schema-error', path: node.path, issues: result.error.issues });
+    if (rest.length === 0) {
+      const result = handleLeafNode(node, nextParams, query, diag);
+      if (result) return result;
       continue;
     }
-
-    return Object.fromEntries(Object.entries(result.data).filter(([, v]) => v !== undefined));
+    if (node.children.length === 0) continue;
+    const child = walkParse(node.children as WalkNode[], rest, query, nextParams, diag);
+    if (!child) continue;
+    if (node.schema === null) return { child };
+    const data = validateSchema(node.schema, { ...nextParams, tag: getTag(node.schema) }, node.path, diag);
+    if (!data) continue;
+    return { ...filterDefined(data), child };
   }
-
   return null;
 }
 
@@ -134,27 +128,17 @@ export function walkPrint(
   accumulated: { segments: Segment[]; paramNames: Set<string> },
 ): { segments: Segment[]; paramNames: Set<string> } | null {
   for (const node of nodes) {
-    const paramNames = new Set([
-      ...accumulated.paramNames,
-      ...collectPathParamNames(node.segments),
-    ]);
+    const paramNames = new Set([...accumulated.paramNames, ...collectPathParamNames(node.segments)]);
     const path = { segments: [...accumulated.segments, ...node.segments], paramNames };
-
     const tagMatches = node.schema !== null && getTag(node.schema) === route['tag'];
-
     if (tagMatches) {
       if (route['child']) {
-        const found = walkPrint(
-          node.children as WalkNode[],
-          route['child'] as Record<string, unknown>,
-          path,
-        );
+        const found = walkPrint(node.children as WalkNode[], route['child'] as Record<string, unknown>, path);
         if (found) return found;
       } else {
         return path;
       }
     } else if (node.schema === null && node.children.length > 0) {
-      // Section node: consume one level of child wrapping before recursing
       const child = route['child'] as Record<string, unknown> | undefined;
       if (child) {
         const found = walkPrint(node.children as WalkNode[], child, path);
@@ -162,8 +146,17 @@ export function walkPrint(
       }
     }
   }
-
   return null;
+}
+
+export function forEachTaggedNode(nodes: WalkNode[], cb: (node: WalkNode, tag: string) => void): void {
+  for (const node of nodes) {
+    if (node.schema !== null) {
+      const tag = getTag(node.schema);
+      if (tag) cb(node, tag);
+    }
+    if (node.children.length > 0) forEachTaggedNode(node.children as WalkNode[], cb);
+  }
 }
 
 export function walkCollect<T>(
@@ -171,18 +164,10 @@ export function walkCollect<T>(
   extractor: (node: WalkNode, tag: string) => T | undefined,
 ): Record<string, T> {
   const map: Record<string, T> = {};
-  for (const node of nodes) {
-    if (node.schema !== null) {
-      const tag = getTag(node.schema);
-      if (tag) {
-        const value = extractor(node, tag);
-        if (value !== undefined) map[tag] = value;
-      }
-    }
-    if (node.children.length > 0) {
-      Object.assign(map, walkCollect(node.children as WalkNode[], extractor));
-    }
-  }
+  forEachTaggedNode(nodes, (node, tag) => {
+    const v = extractor(node, tag);
+    if (v !== undefined) map[tag] = v;
+  });
   return map;
 }
 
