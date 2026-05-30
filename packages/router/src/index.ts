@@ -3,6 +3,7 @@ export {
   defineRoutes,
   route,
   section,
+  type BuildableRouteNode,
   type ChildUnion,
   type CtxMap,
   type Derive,
@@ -19,7 +20,7 @@ export { type AnyCtxMap, type RouterContract } from './core/router-contract.js';
 export { createClient, type FetchLike, type TypedClient } from './client/fetch-client.js';
 export { matchResponse, type MatchHandlers } from './client/match-response.js';
 export { createTestClient } from './client/test-client.js';
-export { type Guard, composeGuards, withGuard } from './server/guard.js';
+export { type Guard, composeGuards, pipeline, withGuard } from './server/guard.js';
 export { withSession } from './server/with-session.js';
 export { withRbac } from './server/with-rbac.js';
 export { withApiKey, type ApiKeyOptions } from './server/with-api-key.js';

@@ -13,6 +13,14 @@ export function withGuard<BaseCtx, Extra>(
   };
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return */
+export function pipeline<N>(
+  ...transforms: ((node: any) => N)[]
+): (node: N) => N {
+  return (node) => transforms.reduce((acc: any, t) => t(acc), node);
+}
+/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return */
+
 // 2-arity compose only — variadic accumulation fights the compiler the same way _child did.
 // For >2, nest: composeGuards(a, composeGuards(b, c))
 export function composeGuards<BaseCtx, A, B>(

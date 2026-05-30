@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type z from 'zod';
+import { type BuildableRouteNode, buildable } from '../core/define-routes.js';
 import type { RouteNode } from '../core/route-node.js';
 import { parseSegments } from '../core/segments.js';
 import { walkCollect } from '../core/walk.js';
@@ -153,13 +154,13 @@ export function httpRoute<
   path: string,
   options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H; cookies?: CK; rateLimit?: { windowMs: number; maxRequests: number }; cors?: CorsConfig } & SafeBodyOption<Method>,
   children?: [...C],
-): RouteNode<
+): BuildableRouteNode<RouteNode<
   z.infer<S> & (Q extends z.ZodObject<any, any> ? { query: z.infer<Q> } : unknown),
   [...C],
   HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never, H extends z.ZodObject<any, any> ? z.infer<H> : never, CK extends z.ZodObject<any, any> ? z.infer<CK> : never>,
   never,
   HttpContextData
-> {
+>> {
   const responseSchemas: Record<number, z.ZodType> = {};
   const responseHeaderSchemas: Record<number, z.ZodObject<any, any>> = {};
   const responseCookieSchemas: Record<number, z.ZodObject<any, any>> = {};
@@ -180,7 +181,7 @@ export function httpRoute<
     }
   }
 
-  return {
+  return buildable({
     _type: undefined as never,
     schema,
     path,
@@ -199,5 +200,5 @@ export function httpRoute<
       ...(hasHeaderSchemas ? { responseHeaderSchemas } : {}),
       ...(hasCookieSchemas ? { responseCookieSchemas } : {}),
     },
-  };
+  });
 }

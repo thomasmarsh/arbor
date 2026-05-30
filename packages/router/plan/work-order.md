@@ -184,7 +184,7 @@ See **plan 58** for the full prioritized smell inventory.
 | 73   | Include `Allow` header in 405 responses                      | queued                |
 | 74   | Radix tree router spike                                      | LOW — benchmark-gated |
 | 75   | `matchResponse` exhaustive combinator                        | queued                |
-| 76   | `.use()` fluent builder + `pipeline()` combinator            | queued                |
+| 76   | `.use()` fluent builder + `pipeline()` combinator            | ✓                     |
 | 77   | Declarative `requires` annotation on `httpRoute`             | queued                |
 | 78   | `IntoResponse` — direct domain object return from handlers   | queued                |
 | 79   | Property-based / fuzz testing from Zod schemas               | queued                |

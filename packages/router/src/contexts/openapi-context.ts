@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type z from 'zod';
+import { type BuildableRouteNode, buildable } from '../core/define-routes.js';
 import type { RouteNode } from '../core/define-routes.js';
 import type { HttpContext, HttpContextData, HttpMethod, SafeBodyOption } from './http-context.js';
 import { httpRoute } from './http-context.js';
@@ -47,13 +48,13 @@ export function openApiRoute<
   path: string,
   options: { body?: z.ZodType<Body>; response: Res; meta?: OpenApiMeta } & SafeBodyOption<Method>,
   children?: [...C],
-): RouteNode<
+): BuildableRouteNode<RouteNode<
   z.infer<S>,
   [...C],
   OpenApiContext<Method, Body, InferResponseMap<Res>>,
   never,
   OpenApiCtxData
-> {
+>> {
   const { meta: _meta, ...httpOpts } = options;
   // SafeBodyOption<Method> is already enforced at this function's call site; the cast avoids
   // re-evaluating a distributive conditional type in a generic body.
@@ -61,5 +62,5 @@ export function openApiRoute<
   if (options.meta) {
     (node._meta as OpenApiCtxData).meta = options.meta;
   }
-  return node as RouteNode<z.infer<S>, [...C], OpenApiContext<Method, Body, InferResponseMap<Res>>, never, OpenApiCtxData>;
+  return buildable(node as unknown as RouteNode<z.infer<S>, [...C], OpenApiContext<Method, Body, InferResponseMap<Res>>, never, OpenApiCtxData>);
 }

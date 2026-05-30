@@ -14,6 +14,13 @@ Novel features with large dependencies or non-obvious ergonomics must be **opt-i
 
 ## TDD Workflow Per Plan
 
+0. **Pre-flight** (do this before writing a single line of code):
+   - If the plan touches `any`, type utilities, or generics: read `/arbor/eslint.config.js`
+     (workspace root) to know which strict rules apply. The package root has no local
+     eslint config — the workspace config is the one that fires.
+   - If the plan involves a novel type design (see §TypeScript Type-Level Design Spikes):
+     create a scratch file now, not after writing the implementation.
+
 1. Read the plan. Understand the problem and the proposed change.
 2. Write the failing test first (`expectTypeOf` for type-level, `expect` for runtime).
 3. Run `pnpm test` — confirm it fails for the right reason.
@@ -21,6 +28,10 @@ Novel features with large dependencies or non-obvious ergonomics must be **opt-i
 5. Run `pnpm test && pnpm typecheck && pnpm lint`.
 6. Run `pnpm run examples`.
 7. Fix any failures before moving to the next plan.
+8. **Post-mortem (conditional):** If the verification chain ran ≥ 2 times before
+   passing, append a `## Post-mortem` section to the current plan file: state the root
+   cause of each failure and what pre-flight step would have caught it. Keep it to
+   ≤ 10 lines. This is the signal to consider a process improvement.
 
 ---
 

@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import { composeGuards, type Guard, withGuard } from './guard.js';
+import { composeGuards, type Guard, pipeline, withGuard } from './guard.js';
 
 interface Base {
   params: { id: string };
@@ -127,5 +127,30 @@ describe('composeGuards', () => {
       expect(handlerCalled).toBe(false);
       expect(resp.status).toBe(429);
     });
+  });
+});
+
+describe('pipeline', () => {
+  interface N { x: number }
+
+  it('applies transforms left-to-right', () => {
+    const order: number[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+    const t1 = (n: any): N => { order.push(1); return { ...n, a: 1 }; };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-return
+    const t2 = (n: any): N => { order.push(2); return { ...n, b: 2 }; };
+    const result = pipeline(t1, t2)({ x: 0 });
+    expect(result).toEqual({ x: 0, a: 1, b: 2 });
+    expect(order).toEqual([1, 2]);
+  });
+
+  it('with zero transforms returns the node unchanged', () => {
+    const node: N = { x: 42 };
+    const result = pipeline<N>()(node);
+    expect(result).toEqual({ x: 42 });
+  });
+
+  it('is a function', () => {
+    expectTypeOf(pipeline).toBeFunction();
   });
 });

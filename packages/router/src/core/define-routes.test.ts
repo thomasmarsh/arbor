@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import { defineRoutes, route, section } from './define-routes.js';
+import { type BuildableRouteNode, type RouteNode, defineRoutes, route, section } from './define-routes.js';
 
 describe('defineRoutes', () => {
   const Users = z.object({ tag: z.literal('users') });
@@ -329,6 +329,66 @@ describe('defineRoutes', () => {
 
       expect(a.tag).toBe('org');
       expect(b.tag).toBe('users');
+    });
+  });
+});
+
+describe('buildable (.use / .pipe)', () => {
+  const Tag = z.object({ tag: z.literal('root') });
+
+  type WithExtra<N extends RouteNode<any, any, any, any, any>> = N & { _extra: true };
+  function addExtra<N extends RouteNode<any, any, any, any, any>>(node: N): WithExtra<N> {
+    return Object.assign(node, { _extra: true as const });
+  }
+
+  type WithExtra2<N extends RouteNode<any, any, any, any, any>> = N & { _extra2: true };
+  function addExtra2<N extends RouteNode<any, any, any, any, any>>(node: N): WithExtra2<N> {
+    return Object.assign(node, { _extra2: true as const });
+  }
+
+  describe('route()', () => {
+    it('returns a BuildableRouteNode', () => {
+      const node = route(Tag, 'root/');
+      expectTypeOf(node).toExtend<BuildableRouteNode<RouteNode<{ tag: 'root' }>>>();
+      expect(typeof node.use).toBe('function');
+      expect(typeof node.pipe).toBe('function');
+    });
+  });
+
+  describe('section()', () => {
+    it('returns a BuildableRouteNode', () => {
+      const node = section('prefix/', []);
+      expect(typeof node.use).toBe('function');
+      expect(typeof node.pipe).toBe('function');
+    });
+  });
+
+  describe('.use()', () => {
+    it('applies the transform and returns a BuildableRouteNode with enriched type', () => {
+      const node = route(Tag, 'root/').use(addExtra);
+      expectTypeOf(node._extra).toEqualTypeOf<true>();
+      expect(node._extra).toBe(true);
+    });
+
+    it('chains multiple .use() calls left-to-right', () => {
+      const node = route(Tag, 'root/').use(addExtra).use(addExtra2);
+      expect(node._extra).toBe(true);
+      expect(node._extra2).toBe(true);
+    });
+
+    it('the result is still a BuildableRouteNode (can continue chaining)', () => {
+      const node = route(Tag, 'root/').use(addExtra);
+      expect(typeof node.use).toBe('function');
+      expect(typeof node.pipe).toBe('function');
+    });
+  });
+
+  describe('.pipe()', () => {
+    it('applies a combinator and returns a BuildableRouteNode', () => {
+      const combinator = (node: RouteNode<{ tag: 'root' }>) => addExtra(addExtra2(node));
+      const node = route(Tag, 'root/').pipe(combinator);
+      expect(node._extra).toBe(true);
+      expect(node._extra2).toBe(true);
     });
   });
 });

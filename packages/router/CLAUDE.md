@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 75 complete; check `plan/work-order.md` for next
-- **Current Status**: Waves 0–6 complete (plans 18–65). Wave 7 complete (plans 82–84, 67–69). Wave 8 in progress: plans 71, 73, 72, 85, 75 complete. See `plan/work-order.md` for full queue.
+- **Current Task**: Plan 76 complete; check `plan/work-order.md` for next
+- **Current Status**: Waves 0–6 complete (plans 18–65). Wave 7 complete (plans 82–84, 67–69). Wave 8 in progress: plans 71, 73, 72, 85, 75 complete. Wave 10: plan 76 complete. See `plan/work-order.md` for full queue.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -29,7 +29,8 @@
 
 - Test suite: `pnpm test`
 - Type checking: `pnpm typecheck`
-- Verification chain: `pnpm test && pnpm typecheck && pnpm lint`
+- Verification chain: `pnpm test && pnpm typecheck && pnpm lint && pnpm run examples`
+- Lint config: `/Users/tmarsh/git/arbor/eslint.config.js` (workspace root — no local config)
 
 NOTE: Path structure described in `plan/topology.md`. Execution order in `plan/work-order.md`.
 
@@ -79,21 +80,22 @@ type Derive<N> =
 
 0. **Session mode — choose before touching code:**
 
-   | Mode       | When to use                                                      | Output                             |
-   |------------|------------------------------------------------------------------|------------------------------------|
-   | **Deliver**| Bounded to 1–2 files, risk clear, no novel type design           | Code + tests, done                 |
-   | **Spike**  | Unknown territory, novel type constraint, or unclear feasibility | Scratch file or isolated prototype |
-   | **Plan**   | Cross-layer, cross-file (3+), or the plan doesn't exist yet      | `plan/<n>.md` + TODO stubs, stop   |
+   | Mode        | When to use                                                      | Output                             |
+   | ----------- | ---------------------------------------------------------------- | ---------------------------------- |
+   | **Deliver** | Bounded to 1–2 files, risk clear, no novel type design           | Code + tests, done                 |
+   | **Spike**   | Unknown territory, novel type constraint, or unclear feasibility | Scratch file or isolated prototype |
+   | **Plan**    | Cross-layer, cross-file (3+), or the plan doesn't exist yet      | `plan/<n>.md` + TODO stubs, stop   |
 
    Pick the mode first. Do not drift from Deliver into Plan-scope mid-session; if scope expands, stop, write the plan, add `// TODO(plan/<n>): ...` stubs, and end the session cleanly.
 
    Big changes are allowed only when: a plan exists, it explicitly says "deliver in one session," and the scope is fully bounded in that plan. Otherwise, write the plan now.
 
    Before editing blind, use `rg` (ripgrep) to find exact symbol definitions. Do not read entire files just to scan for code signatures.
+
 1. **Smallest possible change**: One localized thing at a time. Prefer a 1-line change with a test.
 2. **TDD Workflow**: Write failing tests/stubs first to verify ergonomics before updating runtime code. **Exception — novel type designs**: if the plan introduces a type design involving union constraints + contextual typing, generic overloads, or index signatures intersected with mapped types, validate the type-level invariant in a minimal scratch file _before_ writing tests. See `plan/workflow.md` §TypeScript Type-Level Design Spikes for the scratch-file workflow and a table of quick-hypothesis checks. Do not iterate on the full implementation more than once without empirical confirmation of the root cause.
 3. **Test alongside**: Changes require tests (`expectTypeOf` for type-level, `expect` for runtime). Base cases first.
-4. **Always verify**: Run verification chain after every single change. Fix failures before moving forward.
+4. **Always verify**: Run verification chain after every single change. Fix failures before moving forward. If the chain runs ≥ 2 times before passing, append a `## Post-mortem` to the plan file (≤ 10 lines: root cause + what pre-flight step would have caught it) — see `plan/workflow.md` §TDD Workflow Per Plan step 8.
 5. **Correct by construction**: Parse, don't validate. Use types over runtime checks to make illegal states unrepresentable.
 6. **No Debt**: Fix bad type casts immediately. Do not use `as any` without a documented comment reason.
 7. **Phantom types**: `_type` is strictly `undefined as never` at runtime. Used for inference only. (`_child` was removed in plan 47; child union is now derived via `FlattenChildrenImpl`.)
@@ -118,11 +120,13 @@ Self-contained runnable demos in `examples/`. Run them as a smoke test with `pnp
 | `auth-protected.ts` | `withSession` guard — JWT auth short-circuit, typed session in ctx                   |
 | `rbac.ts`           | `withRbac` guard — role-based 403 check composed on top of `withSession`             |
 | `test-client.ts`    | `createTestClient` — in-memory server + typed client in one call for test suites     |
+| `use-builder.ts`    | `.use()` + `.pipe(pipeline())` — left-to-right route-node transformer composition    |
 
 **Rules for examples**:
 
 - Import only from `../src/index.js` (no publish step needed).
 - No `expect`/`describe` — real code only.
+- No casting or `any`/`unknown` (with rare exceptions) - examples should showcase type safety.
 - Every example must produce visible output when run with `tsx`.
 - Add the new entry to the table above when you add a file.
 

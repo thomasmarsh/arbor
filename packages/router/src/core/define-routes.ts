@@ -6,6 +6,26 @@ import type { ChildUnion, CtxMap, ExtractPathParams, RouteNode } from './route-n
 import { parseSegments } from './segments.js';
 import { type ParseDiag, type WalkNode, buildUrl, getTag, walkParse, walkPrint } from './walk.js';
 
+export type BuildableRouteNode<N extends RouteNode<any, any, any, any, any>> = N & {
+  use<R extends RouteNode<any, any, any, any, any>>(
+    guard: (node: N) => R,
+  ): BuildableRouteNode<R>;
+  pipe<R extends RouteNode<any, any, any, any, any>>(
+    combinator: (node: N) => R,
+  ): BuildableRouteNode<R>;
+};
+
+export function buildable<N extends RouteNode<any, any, any, any, any>>(
+  node: N,
+): BuildableRouteNode<N> {
+  return Object.assign(node, {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    use: (guard: (n: N) => any) => buildable(guard(node)),
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    pipe: (fn: (n: N) => any) => buildable(fn(node)),
+  });
+}
+
 type CollectChildSectionParams<C extends RouteNode<unknown, any, any, any, any>[]> = {
   [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP, any> ? SP : never;
 }[number];
@@ -31,29 +51,29 @@ export type { ParseDiag } from './walk.js';
 export function route<
   S extends z.ZodObject<any, any>,
   C extends RouteNode<unknown, any, any, any, any>[] = [],
->(schema: S, path: string, children?: [...C]): RouteNode<z.infer<S>, [...C]> {
-  return {
+>(schema: S, path: string, children?: [...C]): BuildableRouteNode<RouteNode<z.infer<S>, [...C]>> {
+  return buildable({
     _type: undefined as never,
 
     schema,
     path,
     segments: parseSegments(path),
     children: (children ?? []) as [...C],
-  };
+  });
 }
 
 export function section<Path extends string, C extends RouteNode<unknown, any, any, any, any>[]>(
   path: Path,
   children: [...C],
-): RouteNode<never, [...C], never, ExtractPathParams<Path> | CollectChildSectionParams<C>> {
-  return {
+): BuildableRouteNode<RouteNode<never, [...C], never, ExtractPathParams<Path> | CollectChildSectionParams<C>>> {
+  return buildable({
     _type: undefined as never,
 
     schema: null,
     path,
     segments: parseSegments(path),
     children,
-  };
+  });
 }
 
 function collectTags(nodes: WalkNode[]): string[] {
