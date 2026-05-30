@@ -3,8 +3,8 @@
 import z from 'zod';
 import type { RouteNode } from '../core/define-routes.js';
 import type { Segment } from '../core/segments.js';
-import { getShape, getTag, type WalkNode } from '../core/walk.js';
-import { getOpenApiMeta } from '../contexts/openapi-context.js';
+import { getShape, getTag } from '../core/walk.js';
+import { getOpenApiMeta, type OpenApiWalkNode } from '../contexts/openapi-context.js';
 
 function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
   const { $schema: _, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
@@ -33,7 +33,7 @@ function segmentToParam(seg: Segment): Record<string, unknown> | null {
 }
 
 function walkSpec(
-  nodes: WalkNode[],
+  nodes: OpenApiWalkNode[],
   parentSegments: Segment[],
   paths: Record<string, Record<string, unknown>>,
 ): void {
@@ -138,8 +138,9 @@ function walkSpec(
       paths[path][method] = operation;
     }
 
-    if (node.children.length > 0) {
-      walkSpec(node.children as WalkNode[], segments, paths);
+    const children = node.children as OpenApiWalkNode[];
+    if (children.length > 0) {
+      walkSpec(children, segments, paths);
     }
   }
 }
@@ -149,7 +150,7 @@ export function generateSpec(
   info: { title: string; version: string },
 ): Record<string, unknown> {
   const paths: Record<string, Record<string, unknown>> = {};
-  walkSpec(router.children as WalkNode[], [], paths);
+  walkSpec(router.children as OpenApiWalkNode[], [], paths);
 
   return {
     openapi: '3.1.0',

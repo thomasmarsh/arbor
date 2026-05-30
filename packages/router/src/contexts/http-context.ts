@@ -3,7 +3,7 @@
 import type z from 'zod';
 import type { RouteNode } from '../core/route-node.js';
 import { parseSegments } from '../core/segments.js';
-import { type WalkNode, walkCollect } from '../core/walk.js';
+import { walkCollect } from '../core/walk.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -29,11 +29,13 @@ export interface HttpContextData {
   cors?: CorsConfig;
 }
 
-export function getHttpMeta(node: { _meta?: Record<string, unknown> }): HttpContextData | undefined {
-  return node._meta as HttpContextData | undefined;
+export type HttpWalkNode = RouteNode<unknown, any, any, any, HttpContextData>;
+
+export function getHttpMeta(node: HttpWalkNode): HttpContextData | undefined {
+  return node._meta;
 }
 
-export function collectHttpMaps(nodes: WalkNode[]): {
+export function collectHttpMaps(nodes: HttpWalkNode[]): {
   methodMap: Record<string, string>;
   bodySchemaMap: Record<string, z.ZodType>;
   headerSchemaMap: Record<string, z.ZodType>;

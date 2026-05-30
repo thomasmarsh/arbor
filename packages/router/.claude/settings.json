@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rg \"WalkNode|getHttpMeta|getOpenApiMeta|HttpContextData|OpenApiCtxData\" --with-filename -n)",
+      "Bash(rg \"resolveQuerySchema\" --with-filename -n)"
+    ]
+  }
+}

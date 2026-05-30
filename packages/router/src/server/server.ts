@@ -3,8 +3,8 @@
 import type { Result } from '@arbor/common';
 import type { HttpContext, HttpMethod, HttpResponseUnion } from '../contexts/http-context.js';
 import { collectHttpMaps } from '../contexts/http-context.js';
+import type { HttpWalkNode } from '../contexts/http-context.js';
 import type { RouteNode } from '../core/route-node.js';
-import type { WalkNode } from '../core/walk.js';
 import { createMemoryStore, type RateLimitStore } from './rate-limit.js';
 import { parseBody } from './parse-body.js';
 
@@ -71,7 +71,7 @@ export function createServer<
   },
 ) {
   const { methodMap, bodySchemaMap, headerSchemaMap, cookieSchemaMap, responseHeaderSchemaMap, responseCookieSchemaMap, rateLimitMap } =
-    collectHttpMaps(router.children as WalkNode[]);
+    collectHttpMaps(router.children as HttpWalkNode[]);
 
   // Typed alias to avoid repeating the cast at every call site.
   type UntypedHandler = (ctx: {

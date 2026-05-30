@@ -27,7 +27,8 @@ export function getTag(schema: z.ZodObject<any, any>): string | undefined {
 }
 
 export function resolveQuerySchema(node: WalkNode): z.ZodObject<any, any> | undefined {
-  return (node._meta as { querySchema?: z.ZodObject<any, any> } | undefined)?.querySchema;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
+  return node._meta?.querySchema;
 }
 
 export function validateSchema(
@@ -159,13 +160,13 @@ export function forEachTaggedNode(nodes: WalkNode[], cb: (node: WalkNode, tag: s
   }
 }
 
-export function walkCollect<T>(
-  nodes: WalkNode[],
-  extractor: (node: WalkNode, tag: string) => T | undefined,
+export function walkCollect<N extends WalkNode, T>(
+  nodes: N[],
+  extractor: (node: N, tag: string) => T | undefined,
 ): Record<string, T> {
   const map: Record<string, T> = {};
   forEachTaggedNode(nodes, (node, tag) => {
-    const v = extractor(node, tag);
+    const v = extractor(node as N, tag);
     if (v !== undefined) map[tag] = v;
   });
   return map;

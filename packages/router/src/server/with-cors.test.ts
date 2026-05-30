@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import z from 'zod';
 import { collectHttpMaps, httpRoute } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
-import type { WalkNode } from '../core/walk.js';
+import type { HttpWalkNode } from '../contexts/http-context.js';
 import { createServer } from './server.js';
 import { withCors } from './with-cors.js';
 
@@ -146,7 +146,7 @@ describe('withCors — per-route override', () => {
   });
 
   it('route-level cors overrides server-level: wildcard route allows any origin', async () => {
-    const s = withCors(perRouteServer, { origins: ['https://strict.example.com'] }, { corsMap: collectHttpMaps(routerWithCorsRoutes.children as WalkNode[]).corsMap });
+    const s = withCors(perRouteServer, { origins: ['https://strict.example.com'] }, { corsMap: collectHttpMaps(routerWithCorsRoutes.children as HttpWalkNode[]).corsMap });
     const result = await s.handle(new URL('http://localhost/posts/hello/'), 'GET', undefined, {
       origin: 'https://random.example.com',
     });
@@ -154,7 +154,7 @@ describe('withCors — per-route override', () => {
   });
 
   it('route-level cors overrides server-level: restricted origin route', async () => {
-    const s = withCors(perRouteServer, { origins: '*' }, { corsMap: collectHttpMaps(routerWithCorsRoutes.children as WalkNode[]).corsMap });
+    const s = withCors(perRouteServer, { origins: '*' }, { corsMap: collectHttpMaps(routerWithCorsRoutes.children as HttpWalkNode[]).corsMap });
     const result = await s.handle(new URL('http://localhost/admin/posts/42/'), 'DELETE', undefined, {
       origin: 'https://internal.app',
     });
@@ -163,7 +163,7 @@ describe('withCors — per-route override', () => {
   });
 
   it('route-level cors blocks origin not in route allowlist even if server allows *', async () => {
-    const s = withCors(perRouteServer, { origins: '*' }, { corsMap: collectHttpMaps(routerWithCorsRoutes.children as WalkNode[]).corsMap });
+    const s = withCors(perRouteServer, { origins: '*' }, { corsMap: collectHttpMaps(routerWithCorsRoutes.children as HttpWalkNode[]).corsMap });
     const result = await s.handle(new URL('http://localhost/admin/posts/42/'), 'DELETE', undefined, {
       origin: 'https://evil.com',
     });
@@ -177,7 +177,7 @@ describe('withCors — per-route override', () => {
     const s = withCors(
       createServer(routerNoRouteCors, { 'get-user': handler }),
       { origins: ['https://app.example.com'] },
-      { corsMap: collectHttpMaps(routerNoRouteCors.children as WalkNode[]).corsMap },
+      { corsMap: collectHttpMaps(routerNoRouteCors.children as HttpWalkNode[]).corsMap },
     );
     const result = await s.handle(new URL('http://localhost/users/1/'), 'GET', undefined, {
       origin: 'https://app.example.com',

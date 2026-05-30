@@ -3,9 +3,9 @@
 import { Result } from '@arbor/common';
 import type z from 'zod';
 import type { HttpContext, HttpResponseUnion } from '../contexts/http-context.js';
-import { getHttpMeta } from '../contexts/http-context.js';
+import { getHttpMeta, type HttpWalkNode } from '../contexts/http-context.js';
 import type { RouteNode } from '../core/route-node.js';
-import { walkCollect, type WalkNode } from '../core/walk.js';
+import { walkCollect } from '../core/walk.js';
 
 interface NoOpts {
   body?: never;
@@ -59,8 +59,8 @@ export function createClient<
   router: RouterArg<Route> & { _ctxMap: Map },
   options?: { fetch?: FetchLike; validate?: Validate },
 ): TypedClient<Route, Map, Validate> {
-  const methodMap = walkCollect(router.children as WalkNode[], (n) => getHttpMeta(n)?.method);
-  const responseSchemaMap = walkCollect(router.children as WalkNode[], (n) => getHttpMeta(n)?.responseSchemas);
+  const methodMap = walkCollect(router.children as HttpWalkNode[], (n) => getHttpMeta(n)?.method);
+  const responseSchemaMap = walkCollect(router.children as HttpWalkNode[], (n) => getHttpMeta(n)?.responseSchemas);
   const fetchFn: FetchLike = options?.fetch ?? globalThis.fetch;
   const validate = options?.validate ?? false;
 

@@ -3,7 +3,7 @@
 import type z from 'zod';
 import type { RouteNode } from '../core/define-routes.js';
 import type { HttpContext, HttpContextData, HttpMethod } from './http-context.js';
-import { getHttpMeta, httpRoute } from './http-context.js';
+import { httpRoute } from './http-context.js';
 
 export interface OpenApiMeta {
   summary?: string;
@@ -17,8 +17,10 @@ export interface OpenApiCtxData extends HttpContextData {
   meta?: OpenApiMeta;
 }
 
-export function getOpenApiMeta(node: { _meta?: Record<string, unknown> }): OpenApiCtxData | undefined {
-  return getHttpMeta(node);
+export type OpenApiWalkNode = RouteNode<unknown, any, any, any, OpenApiCtxData>;
+
+export function getOpenApiMeta(node: OpenApiWalkNode): OpenApiCtxData | undefined {
+  return node._meta;
 }
 
 export interface OpenApiContext<
