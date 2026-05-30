@@ -2,7 +2,7 @@
 
 import type z from 'zod';
 import type { RouteNode } from '../core/define-routes.js';
-import type { HttpContext, HttpContextData, HttpMethod } from './http-context.js';
+import type { HttpContext, HttpContextData, HttpMethod, SafeBodyOption } from './http-context.js';
 import { httpRoute } from './http-context.js';
 
 export interface OpenApiMeta {
@@ -45,7 +45,7 @@ export function openApiRoute<
   schema: S,
   method: Method,
   path: string,
-  options: { body?: z.ZodType<Body>; response: Res; meta?: OpenApiMeta },
+  options: { body?: z.ZodType<Body>; response: Res; meta?: OpenApiMeta } & SafeBodyOption<Method>,
   children?: [...C],
 ): RouteNode<
   z.infer<S>,
@@ -54,7 +54,10 @@ export function openApiRoute<
   never,
   OpenApiCtxData
 > {
-  const node = httpRoute(schema, method, path, { ...(options.body ? { body: options.body } : {}), response: options.response }, children);
+  const { meta: _meta, ...httpOpts } = options;
+  // SafeBodyOption<Method> is already enforced at this function's call site; the cast avoids
+  // re-evaluating a distributive conditional type in a generic body.
+  const node = httpRoute(schema, method, path, httpOpts as unknown as { body?: z.ZodType<Body>; response: Res } & SafeBodyOption<Method>, children);
   if (options.meta) {
     (node._meta as OpenApiCtxData).meta = options.meta;
   }

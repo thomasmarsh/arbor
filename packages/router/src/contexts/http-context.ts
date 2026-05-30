@@ -135,6 +135,9 @@ export function desc(body: z.ZodType, opts?: Record<string, unknown>) {
   return opts ? { _desc: true as const, body, ...opts } : { _desc: true as const, body };
 }
 
+export type SafeBodyOption<M extends HttpMethod> =
+  M extends 'GET' | 'HEAD' | 'DELETE' ? { body?: never } : { body?: z.ZodType };
+
 export function httpRoute<
   S extends z.ZodObject<any, any>,
   Method extends HttpMethod,
@@ -148,7 +151,7 @@ export function httpRoute<
   schema: S,
   method: Method,
   path: string,
-  options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H; cookies?: CK; rateLimit?: { windowMs: number; maxRequests: number }; cors?: CorsConfig },
+  options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H; cookies?: CK; rateLimit?: { windowMs: number; maxRequests: number }; cors?: CorsConfig } & SafeBodyOption<Method>,
   children?: [...C],
 ): RouteNode<
   z.infer<S> & (Q extends z.ZodObject<any, any> ? { query: z.infer<Q> } : unknown),

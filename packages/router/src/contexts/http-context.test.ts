@@ -130,6 +130,33 @@ describe('httpRoute', () => {
     expect(r._meta).toBeDefined();
   });
 
+  describe('body/method type safety', () => {
+    const Schema = z.object({ tag: z.literal('x') });
+    const BodySchema = z.object({ name: z.string() });
+
+    it('GET + body is a type error', () => {
+      // @ts-expect-error body is forbidden on GET
+      httpRoute(Schema, 'GET', 'x/', { body: BodySchema, response: {} });
+      expect(true).toBe(true);
+    });
+
+    it('DELETE + body is a type error', () => {
+      // @ts-expect-error body is forbidden on DELETE
+      httpRoute(Schema, 'DELETE', 'x/', { body: BodySchema, response: {} });
+      expect(true).toBe(true);
+    });
+
+    it('POST + body compiles cleanly', () => {
+      const r = httpRoute(Schema, 'POST', 'x/', { body: BodySchema, response: {} });
+      expect(r._meta).toBeDefined();
+    });
+
+    it('POST without body compiles cleanly', () => {
+      const r = httpRoute(Schema, 'POST', 'x/', { response: {} });
+      expect(r._meta).toBeDefined();
+    });
+  });
+
   it('infers query type from Zod schema', () => {
     const ListUsers = z.object({ tag: z.literal('list-users') });
     const QuerySchema = z.object({ page: z.number(), search: z.string().optional() });
