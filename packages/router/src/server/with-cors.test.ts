@@ -124,6 +124,67 @@ describe('withCors — CSRF', () => {
   });
 });
 
+describe('withCors — per-route override', () => {
+  const PublicPost = z.object({ tag: z.literal('list-posts'), slug: z.string() });
+  const AdminDelete = z.object({ tag: z.literal('delete-post'), id: z.string() });
+  const routerWithCorsRoutes = defineRoutes([
+    httpRoute(PublicPost, 'GET', 'posts/:slug/', {
+      response: { 200: z.object({ slug: z.string() }) },
+      cors: { origins: '*' },
+    }),
+    httpRoute(AdminDelete, 'DELETE', 'admin/posts/:id/', {
+      response: { 200: z.object({ ok: z.boolean() }) },
+      cors: { origins: ['https://internal.app'], credentials: true },
+    }),
+  ]);
+  const perRouteServer = createServer(routerWithCorsRoutes, {
+    'list-posts': vi.fn((_ctx: { params: { slug: string }; body: unknown; query: unknown; headers: unknown }) =>
+      Promise.resolve({ status: 200 as const, body: { slug: 'hello' } })),
+    'delete-post': vi.fn((_ctx: { params: { id: string }; body: unknown; query: unknown; headers: unknown }) =>
+      Promise.resolve({ status: 200 as const, body: { ok: true } })),
+  });
+
+  it('route-level cors overrides server-level: wildcard route allows any origin', async () => {
+    const s = withCors(perRouteServer, { origins: ['https://strict.example.com'] }, { corsMap: routerWithCorsRoutes.corsMap });
+    const result = await s.handle(new URL('http://localhost/posts/hello/'), 'GET', undefined, {
+      origin: 'https://random.example.com',
+    });
+    expect(result.headers?.['access-control-allow-origin']).toBe('*');
+  });
+
+  it('route-level cors overrides server-level: restricted origin route', async () => {
+    const s = withCors(perRouteServer, { origins: '*' }, { corsMap: routerWithCorsRoutes.corsMap });
+    const result = await s.handle(new URL('http://localhost/admin/posts/42/'), 'DELETE', undefined, {
+      origin: 'https://internal.app',
+    });
+    expect(result.headers?.['access-control-allow-origin']).toBe('https://internal.app');
+    expect(result.headers?.['access-control-allow-credentials']).toBe('true');
+  });
+
+  it('route-level cors blocks origin not in route allowlist even if server allows *', async () => {
+    const s = withCors(perRouteServer, { origins: '*' }, { corsMap: routerWithCorsRoutes.corsMap });
+    const result = await s.handle(new URL('http://localhost/admin/posts/42/'), 'DELETE', undefined, {
+      origin: 'https://evil.com',
+    });
+    expect(result.headers?.['access-control-allow-origin']).toBeUndefined();
+  });
+
+  it('route without cors field falls back to server-level config', async () => {
+    const routerNoRouteCors = defineRoutes([
+      httpRoute(GetUser, 'GET', 'users/:id/', { response: { 200: z.object({ id: z.string() }) } }),
+    ]);
+    const s = withCors(
+      createServer(routerNoRouteCors, { 'get-user': handler }),
+      { origins: ['https://app.example.com'] },
+      { corsMap: routerNoRouteCors.corsMap },
+    );
+    const result = await s.handle(new URL('http://localhost/users/1/'), 'GET', undefined, {
+      origin: 'https://app.example.com',
+    });
+    expect(result.headers?.['access-control-allow-origin']).toBe('https://app.example.com');
+  });
+});
+
 describe('withCors — handleRequest', () => {
   it('OPTIONS preflight via handleRequest returns 204', async () => {
     const s = withCors(server, { origins: ['https://app.example.com'] });

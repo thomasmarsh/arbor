@@ -6,6 +6,15 @@ import { parseSegments } from '../core/segments.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+export interface CorsConfig {
+  origins: string[] | '*';
+  methods?: string[];
+  allowedHeaders?: string[];
+  credentials?: boolean;
+  maxAge?: number;
+  csrf?: boolean;
+}
+
 export interface HttpContextData {
   method: HttpMethod;
   bodySchema?: z.ZodType;
@@ -14,6 +23,7 @@ export interface HttpContextData {
   querySchema?: z.ZodObject<any, any>;
   headerSchema?: z.ZodObject<any, any>;
   rateLimit?: { windowMs: number; maxRequests: number };
+  cors?: CorsConfig;
 }
 
 export function getHttpMeta(node: { _meta?: Record<string, unknown> }): HttpContextData | undefined {
@@ -72,7 +82,7 @@ export function httpRoute<
   schema: S,
   method: Method,
   path: string,
-  options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H; rateLimit?: { windowMs: number; maxRequests: number } },
+  options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H; rateLimit?: { windowMs: number; maxRequests: number }; cors?: CorsConfig },
   children?: [...C],
 ): RouteNode<
   z.infer<S> & (Q extends z.ZodObject<any, any> ? { query: z.infer<Q> } : unknown),
@@ -115,6 +125,7 @@ export function httpRoute<
       ...(options.query ? { querySchema: options.query } : {}),
       ...(options.headers ? { headerSchema: options.headers } : {}),
       ...(options.rateLimit ? { rateLimit: options.rateLimit } : {}),
+      ...(options.cors ? { cors: options.cors } : {}),
       responseSchemas,
       ...(hasHeaderSchemas ? { responseHeaderSchemas } : {}),
     },

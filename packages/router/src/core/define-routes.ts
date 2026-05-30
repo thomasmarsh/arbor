@@ -2,7 +2,7 @@
 
 import { Result } from '@arbor/common';
 import type z from 'zod';
-import { getHttpMeta } from '../contexts/http-context.js';
+import { type CorsConfig, getHttpMeta } from '../contexts/http-context.js';
 import type { ChildUnion, CtxMap, ExtractPathParams, RouteNode } from './route-node.js';
 import { parseSegments } from './segments.js';
 import { type ParseDiag, type WalkNode, buildUrl, getTag, walkParse, walkPrint } from './walk.js';
@@ -157,6 +157,21 @@ function collectRateLimits(
   return map;
 }
 
+function collectCors(nodes: WalkNode[]): Record<string, CorsConfig> {
+  const map: Record<string, CorsConfig> = {};
+  for (const node of nodes) {
+    const httpCtx = getHttpMeta(node);
+    if (node.schema !== null && httpCtx?.cors) {
+      const tag = getTag(node.schema);
+      if (tag) map[tag] = httpCtx.cors;
+    }
+    if (node.children.length > 0) {
+      Object.assign(map, collectCors(node.children as WalkNode[]));
+    }
+  }
+  return map;
+}
+
 export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] = []>(
   children: [...C],
 ) {
@@ -177,6 +192,7 @@ export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] 
   const responseHeaderSchemaMap = collectResponseHeaderSchemas(nodes);
   const headerSchemaMap = collectRequestHeaderSchemas(nodes);
   const rateLimitMap = collectRateLimits(nodes);
+  const corsMap = collectCors(nodes);
 
   return {
     _type: undefined as never as Route,
@@ -187,6 +203,7 @@ export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] 
     responseHeaderSchemaMap,
     headerSchemaMap,
     rateLimitMap,
+    corsMap,
 
     parse(url: URL): Result<Route, string> {
       let segments: string[];

@@ -1,11 +1,6 @@
-export interface CorsConfig {
-  origins: string[] | '*';
-  methods?: string[];
-  allowedHeaders?: string[];
-  credentials?: boolean;
-  maxAge?: number;
-  csrf?: boolean;
-}
+import type { CorsConfig } from '../contexts/http-context.js';
+
+export type { CorsConfig };
 
 interface ServerLike {
   handle(
@@ -59,7 +54,15 @@ function csrfValid(method: string, headers: Record<string, string>, config: Cors
   return !!fromHeader && fromHeader === fromCookie;
 }
 
-export function withCors<S extends ServerLike>(server: S, config: CorsConfig): S {
+interface WithCorsOptions {
+  corsMap?: Record<string, CorsConfig>;
+}
+
+function resolveConfig(tag: string, serverConfig: CorsConfig, options?: WithCorsOptions): CorsConfig {
+  return options?.corsMap?.[tag] ?? serverConfig;
+}
+
+export function withCors<S extends ServerLike>(server: S, config: CorsConfig, options?: WithCorsOptions): S {
   return {
     ...server,
     async handle(url: URL, method: string, body?: unknown, headers?: Record<string, string>) {
@@ -75,7 +78,8 @@ export function withCors<S extends ServerLike>(server: S, config: CorsConfig): S
       }
 
       const result = await server.handle(url, method, body, headers);
-      return { ...result, headers: { ...result.headers, ...corsHeaders(origin, config) } };
+      const effective = resolveConfig(result.tag, config, options);
+      return { ...result, headers: { ...result.headers, ...corsHeaders(origin, effective) } };
     },
     async handleRequest(request: Request) {
       const origin = request.headers.get('origin') ?? undefined;
@@ -92,7 +96,8 @@ export function withCors<S extends ServerLike>(server: S, config: CorsConfig): S
       }
 
       const result = await server.handleRequest(request);
-      return { ...result, headers: { ...result.headers, ...corsHeaders(origin, config) } };
+      const effective = resolveConfig(result.tag, config, options);
+      return { ...result, headers: { ...result.headers, ...corsHeaders(origin, effective) } };
     },
   };
 }

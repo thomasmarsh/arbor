@@ -161,6 +161,7 @@ Rationale for ordering:
 | 48   | Typed HTTP client: options API + headers + subpath exports |
 | 49   | Spike: handler enrichers as middleware alt. — ✓ done       |
 | 50   | Publish enrichers API; redirect plans 36–40                |
+| 56   | Tech debt: core/ must not import from contexts/            |
 
 ---
 
