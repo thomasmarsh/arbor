@@ -4,7 +4,7 @@ import z from 'zod';
 import type { RouteNode } from '../core/define-routes.js';
 import type { Segment } from '../core/segments.js';
 import { getShape, getTag } from '../core/walk.js';
-import { getOpenApiMeta, type OpenApiWalkNode } from '../contexts/openapi-context.js';
+import { getOpenApiMeta, type OpenApiCtxData, type OpenApiWalkNode } from '../contexts/openapi-context.js';
 
 function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
   const { $schema: _, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
@@ -32,6 +32,83 @@ function segmentToParam(seg: Segment): Record<string, unknown> | null {
   }
 }
 
+function isRequired(s: z.ZodType): boolean {
+  return !(s instanceof z.ZodOptional) && !(s instanceof z.ZodDefault);
+}
+
+function buildPathParams(segments: Segment[]): [Record<string, unknown>[], Set<string>] {
+  const params = segments.map(segmentToParam).filter(Boolean) as Record<string, unknown>[];
+  const names = new Set(
+    segments
+      .filter((s): s is Exclude<Segment, { kind: 'lit' }> => s.kind !== 'lit')
+      .map((s) => s.name),
+  );
+  return [params, names];
+}
+
+function buildQueryParams(
+  shape: Record<string, z.ZodType>,
+  pathParamNames: Set<string>,
+): Record<string, unknown>[] {
+  const params: Record<string, unknown>[] = [];
+  for (const [key, val] of Object.entries(shape)) {
+    if (key === 'tag' || pathParamNames.has(key)) continue;
+    params.push({ name: key, in: 'query', required: isRequired(val), schema: zodToJsonSchema(val) });
+  }
+  return params;
+}
+
+function buildHeaderParams(headerSchema: z.ZodObject<any, any>): Record<string, unknown>[] {
+  const shape = headerSchema.shape as Record<string, z.ZodType>;
+  return Object.entries(shape).map(([name, fieldSchema]) => ({
+    name,
+    in: 'header',
+    required: isRequired(fieldSchema),
+    schema: zodToJsonSchema(fieldSchema),
+  }));
+}
+
+function buildOperationMeta(
+  ctx: OpenApiCtxData,
+  tag: string | undefined,
+  parameters: Record<string, unknown>[],
+): Record<string, unknown> {
+  const op: Record<string, unknown> = {};
+  if (ctx.meta?.operationId) op['operationId'] = ctx.meta.operationId;
+  else if (tag) op['operationId'] = tag;
+  if (ctx.meta?.summary) op['summary'] = ctx.meta.summary;
+  if (ctx.meta?.description) op['description'] = ctx.meta.description;
+  if (ctx.meta?.tags) op['tags'] = ctx.meta.tags;
+  if (parameters.length > 0) op['parameters'] = parameters;
+  return op;
+}
+
+function buildRequestBody(bodySchema: z.ZodType): Record<string, unknown> {
+  return {
+    required: true,
+    content: { 'application/json': { schema: zodToJsonSchema(bodySchema) } },
+  };
+}
+
+function buildResponses(ctx: OpenApiCtxData): Record<string, unknown> {
+  const responses: Record<string, unknown> = {};
+  for (const [status, respSchema] of Object.entries(ctx.responseSchemas ?? {})) {
+    const headerSchema = ctx.responseHeaderSchemas?.[Number(status)];
+    const entry: Record<string, unknown> = {
+      description: 'Response',
+      content: { 'application/json': { schema: zodToJsonSchema(respSchema) } },
+    };
+    if (headerSchema) {
+      const shape = headerSchema.shape as Record<string, z.ZodType>;
+      entry['headers'] = Object.fromEntries(
+        Object.entries(shape).map(([name, fs]) => [name, { schema: zodToJsonSchema(fs) }]),
+      );
+    }
+    responses[status] = entry;
+  }
+  return responses;
+}
+
 function walkSpec(
   nodes: OpenApiWalkNode[],
   parentSegments: Segment[],
@@ -39,11 +116,10 @@ function walkSpec(
 ): void {
   for (const node of nodes) {
     const segments = [...parentSegments, ...node.segments];
-
     const ctx = getOpenApiMeta(node);
+
     if (node.schema !== null && ctx?.method) {
-      const hasWildcard = segments.some((s) => s.kind === 'wildcard');
-      if (hasWildcard) {
+      if (segments.some((s) => s.kind === 'wildcard')) {
         const rawPath = segments.map((s) => (s.kind === 'lit' ? s.value : s.name)).join('/');
         console.warn(`[openapi] skipping route with wildcard segment: ${rawPath}`);
         continue;
@@ -53,95 +129,21 @@ function walkSpec(
       const method = ctx.method.toLowerCase();
       const path = '/' + segments.map(segmentToOpenApi).join('/');
 
-      const pathParams = segments.map(segmentToParam).filter(Boolean);
-      const pathParamNames = new Set(
-        segments
-          .filter((s): s is Exclude<Segment, { kind: 'lit' }> => s.kind !== 'lit')
-          .map((s) => s.name),
-      );
-
-      const shape = getShape(node.schema);
-      const queryParams: Record<string, unknown>[] = [];
-      for (const [key, val] of Object.entries(shape)) {
-        if (key === 'tag' || pathParamNames.has(key)) continue;
-        queryParams.push({
-          name: key,
-          in: 'query',
-          required: !(val instanceof z.ZodOptional) && !(val instanceof z.ZodDefault),
-          schema: zodToJsonSchema(val),
-        });
-      }
-
-      const headerParams: Record<string, unknown>[] = [];
-      if (ctx.headerSchema) {
-        const shape = ctx.headerSchema.shape as Record<string, z.ZodType>;
-        for (const [name, fieldSchema] of Object.entries(shape)) {
-          headerParams.push({
-            name,
-            in: 'header',
-            required: !(fieldSchema instanceof z.ZodOptional) && !(fieldSchema instanceof z.ZodDefault),
-            schema: zodToJsonSchema(fieldSchema),
-          });
-        }
-      }
-
+      const [pathParams, pathParamNames] = buildPathParams(segments);
+      const queryParams = buildQueryParams(getShape(node.schema), pathParamNames);
+      const headerParams = ctx.headerSchema ? buildHeaderParams(ctx.headerSchema) : [];
       const parameters = [...pathParams, ...queryParams, ...headerParams];
 
-      const operation: Record<string, unknown> = {};
-      if (ctx.meta?.operationId) {
-        operation['operationId'] = ctx.meta.operationId;
-      } else if (tag) {
-        operation['operationId'] = tag;
-      }
-      if (ctx.meta?.summary) operation['summary'] = ctx.meta.summary;
-      if (ctx.meta?.description) operation['description'] = ctx.meta.description;
-      if (ctx.meta?.tags) operation['tags'] = ctx.meta.tags;
-      if (parameters.length > 0) operation['parameters'] = parameters;
-
-      if (ctx.bodySchema) {
-        operation['requestBody'] = {
-          required: true,
-          content: {
-            'application/json': {
-              schema: zodToJsonSchema(ctx.bodySchema),
-            },
-          },
-        };
-      }
-
-      const responses: Record<string, unknown> = {};
-      for (const [status, respSchema] of Object.entries(ctx.responseSchemas ?? {})) {
-        const statusNum = Number(status);
-        const headerSchema = ctx.responseHeaderSchemas?.[statusNum];
-        const entry: Record<string, unknown> = {
-          description: 'Response',
-          content: {
-            'application/json': {
-              schema: zodToJsonSchema(respSchema),
-            },
-          },
-        };
-        if (headerSchema) {
-          const shape = headerSchema.shape as Record<string, z.ZodType>;
-          entry['headers'] = Object.fromEntries(
-            Object.entries(shape).map(([name, fieldSchema]) => [
-              name,
-              { schema: zodToJsonSchema(fieldSchema) },
-            ]),
-          );
-        }
-        responses[status] = entry;
-      }
-      operation['responses'] = responses;
+      const operation = buildOperationMeta(ctx, tag, parameters);
+      if (ctx.bodySchema) operation['requestBody'] = buildRequestBody(ctx.bodySchema);
+      operation['responses'] = buildResponses(ctx);
 
       paths[path] ??= {};
       paths[path][method] = operation;
     }
 
     const children = node.children as OpenApiWalkNode[];
-    if (children.length > 0) {
-      walkSpec(children, segments, paths);
-    }
+    if (children.length > 0) walkSpec(children, segments, paths);
   }
 }
 
