@@ -97,36 +97,25 @@ describe('matchSegments', () => {
     },
   );
 
-  describe('adjacent optional params', () => {
-    const segs = parseSegments(':name?/#id?/');
-
-    it('captures both when both present', () => {
-      expect(matchSegments(segs, ['alice', '42'], {})).toEqual({
-        params: { name: 'alice', id: 42 },
-        rest: [],
-      });
+  describe('optional segment ordering validation', () => {
+    it.each([
+      [':lang?/users', 'optional before required literal'],
+      [':lang?/:page', 'optional before required param'],
+      [':a?/:b?', 'optional before optional'],
+      ['prefix/:opt?/suffix', 'optional in middle before literal'],
+    ])('throws for illegal ordering: %s (%s)', (path) => {
+      expect(() => parseSegments(path)).toThrow(
+        /optional segment must be last.*Use nested routes/,
+      );
     });
 
-    it('captures first when only first value present', () => {
-      expect(matchSegments(segs, ['alice'], {})).toEqual({
-        params: { name: 'alice' },
-        rest: [],
-      });
-    });
-
-    it('first optional greedily consumes the lone value', () => {
-      // opt-str captures any non-null value, so '42' becomes name, not id
-      expect(matchSegments(segs, ['42'], {})).toEqual({
-        params: { name: '42' },
-        rest: [],
-      });
-    });
-
-    it('captures nothing when neither present', () => {
-      expect(matchSegments(segs, [], {})).toEqual({
-        params: {},
-        rest: [],
-      });
+    it.each([
+      ['users/:id?', 'optional is last'],
+      [':id?/*rest', 'optional before wildcard only'],
+      ['a/b/:id?', 'optional at end after literals'],
+      [':id?', 'single optional'],
+    ])('allows valid ordering: %s (%s)', (path) => {
+      expect(() => parseSegments(path)).not.toThrow();
     });
   });
 });

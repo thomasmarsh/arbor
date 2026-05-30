@@ -16,7 +16,7 @@ export type Segment =
   | { kind: 'wildcard'; name: string };
 
 export function parseSegments(path: string): Segment[] {
-  return path
+  const segments = path
     .split('/')
     .filter(Boolean)
     .map((s): Segment => {
@@ -27,6 +27,23 @@ export function parseSegments(path: string): Segment[] {
       if (s.startsWith(':')) return { kind: 'str', name: s.slice(1) };
       return { kind: 'lit', value: s };
     });
+  validateOptionalOrdering(segments, path);
+  return segments;
+}
+
+function validateOptionalOrdering(segments: Segment[], path: string): void {
+  let sawOptional = false;
+  for (const seg of segments) {
+    const isOptional = seg.kind === 'opt-str' || seg.kind === 'opt-num';
+    const isWildcard = seg.kind === 'wildcard';
+    if (sawOptional && !isWildcard) {
+      throw new Error(
+        `Invalid path "${path}": optional segment must be last (only a wildcard may follow). ` +
+        `Use nested routes to model optional prefixes.`,
+      );
+    }
+    if (isOptional) sawOptional = true;
+  }
 }
 
 export function matchSegments(
