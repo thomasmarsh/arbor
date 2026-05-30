@@ -27,7 +27,7 @@
     "build": "tsc -b",
     "dev": "tsc -b --watch",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src examples",
+    "lint": "eslint src examples scripts",
     "test": "vitest run",
     "test:watch": "vitest",
     "clean": "rm -rf dist *.tsbuildinfo",

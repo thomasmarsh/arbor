@@ -48,19 +48,18 @@ let nodeCounter = 0;
 function makeNode(depth: number, breadth: number, indent: number): string {
   const id = nodeCounter++;
   const pad = ' '.repeat(indent);
-  const schema = `z.object({ tag: z.literal('r${id}') })`;
+  const schema = `z.object({ tag: z.literal('r${String(id)}') })`;
 
   if (depth <= 1) {
-    return `${pad}route(${schema}, '/s${id}')`;
+    return `${pad}route(${schema}, '/s${String(id)}')`;
   }
 
-  const childPad = ' '.repeat(indent + 2);
   const children = Array.from({ length: breadth }, () =>
     makeNode(depth - 1, breadth, indent + 2),
   );
 
   return [
-    `${pad}route(${schema}, '/s${id}', [`,
+    `${pad}route(${schema}, '/s${String(id)}', [`,
     children.join(',\n'),
     `${pad}])`,
   ].join('\n');
@@ -71,7 +70,7 @@ function generateCode(depth: number, breadth: number): string {
   const topLevel = Array.from({ length: breadth }, () => makeNode(depth, breadth, 2));
 
   return [
-    `// auto-generated: depth=${depth}, breadth=${breadth}`,
+    `// auto-generated: depth=${String(depth)}, breadth=${String(breadth)}`,
     `import { defineRoutes, route } from '../src/core/define-routes.js';`,
     `import z from 'zod';`,
     ``,
@@ -106,9 +105,10 @@ function runTsc(): TscOutcome {
   }
 
   if (r.status !== 0) {
-    const output = (r.stdout ?? '') + (r.stderr ?? '');
-    const match = output.match(/error TS(\d+)/);
-    const label = match ? `TS${match[1]} error` : 'error';
+    const output = r.stdout + r.stderr;
+    const match = /error TS(\d+)/.exec(output);
+    const tsCode = match?.[1];
+    const label = tsCode !== undefined ? `TS${tsCode} error` : 'error';
     return { ms, ok: false, label };
   }
 
@@ -131,7 +131,7 @@ mkdirSync(BENCH_DIR, { recursive: true });
 // Baseline: typecheck src only (no bench file present).
 process.stdout.write('Measuring baseline (src only)… ');
 const baseline = runTsc();
-process.stdout.write(`${baseline.ms}ms\n\n`);
+process.stdout.write(`${String(baseline.ms)}ms\n\n`);
 
 const rows: Row[] = [];
 
@@ -141,13 +141,13 @@ for (const depth of DEPTHS) {
 
     if (nodes > MAX_NODES) {
       rows.push({ depth, breadth, nodes, totalMs: null, netMs: null, status: 'skipped' });
-      process.stdout.write(`  depth=${depth} breadth=${breadth}: skipped (${nodes} nodes > ${MAX_NODES})\n`);
+      process.stdout.write(`  depth=${String(depth)} breadth=${String(breadth)}: skipped (${String(nodes)} nodes > ${String(MAX_NODES)})\n`);
       continue;
     }
 
-    process.stdout.write(`  depth=${depth} breadth=${breadth} (${nodes} nodes)… `);
+    process.stdout.write(`  depth=${String(depth)} breadth=${String(breadth)} (${String(nodes)} nodes)… `);
 
-    const benchFile = join(BENCH_DIR, `bench_d${depth}_b${breadth}.ts`);
+    const benchFile = join(BENCH_DIR, `bench_d${String(depth)}_b${String(breadth)}.ts`);
     writeFileSync(benchFile, generateCode(depth, breadth));
 
     let outcome: TscOutcome;
@@ -159,7 +159,7 @@ for (const depth of DEPTHS) {
 
     const netMs = outcome.ms - baseline.ms;
     rows.push({ depth, breadth, nodes, totalMs: outcome.ms, netMs, status: outcome.label });
-    process.stdout.write(`total=${outcome.ms}ms  net=${netMs}ms  ${outcome.label}\n`);
+    process.stdout.write(`total=${String(outcome.ms)}ms  net=${String(netMs)}ms  ${outcome.label}\n`);
   }
 }
 
@@ -169,32 +169,33 @@ try { rmSync(BENCH_DIR, { recursive: true, force: true }); } catch { /* ignore *
 // ─── Table ───────────────────────────────────────────────────────────────────
 
 console.log('\n## Inference Benchmark Results\n');
-console.log(`Baseline (src typecheck without bench file): **${baseline.ms}ms**\n`);
+console.log(`Baseline (src typecheck without bench file): **${String(baseline.ms)}ms**\n`);
 console.log('| Depth | Breadth | Nodes  | tsc time | Net time | Status  |');
 console.log('|-------|---------|--------|----------|----------|---------|');
 
 for (const r of rows) {
-  const total = r.totalMs !== null ? `${r.totalMs}ms` : '—';
-  const net = r.netMs !== null ? `${r.netMs}ms` : '—';
+  const total = r.totalMs !== null ? `${String(r.totalMs)}ms` : '—';
+  const net = r.netMs !== null ? `${String(r.netMs)}ms` : '—';
   const n = r.nodes.toLocaleString();
   console.log(`| ${String(r.depth).padEnd(5)} | ${String(r.breadth).padEnd(7)} | ${n.padEnd(6)} | ${total.padEnd(8)} | ${net.padEnd(8)} | ${r.status} |`);
 }
 
 // ─── Memo ────────────────────────────────────────────────────────────────────
 
-const okRows = rows.filter(r => r.status === 'OK' && r.totalMs !== null);
+type OkRow = Row & { totalMs: number; netMs: number };
+const okRows = rows.filter((r): r is OkRow => r.status === 'OK' && r.totalMs !== null);
 const failRows = rows.filter(r => r.status !== 'OK' && r.status !== 'skipped');
 const maxOkNodes = okRows.length ? Math.max(...okRows.map(r => r.nodes)) : 0;
 
 // Use total/baseline ratio to classify rows, making analysis robust to
 // a noisy baseline.  ratio > 2 means the bench file doubled tsc time.
 const SLOW_RATIO = 2.0;
-const slowRows = okRows.filter(r => (r.totalMs! / baseline.ms) > SLOW_RATIO);
-const fastRows = okRows.filter(r => (r.totalMs! / baseline.ms) <= SLOW_RATIO);
+const slowRows = okRows.filter(r => (r.totalMs / baseline.ms) > SLOW_RATIO);
+const fastRows = okRows.filter(r => (r.totalMs / baseline.ms) <= SLOW_RATIO);
 
 // Worst-case: row with highest total tsc time.
-const worstOk = okRows.reduce<Row | null>(
-  (best, r) => (r.totalMs! > (best?.totalMs ?? 0) ? r : best), null);
+const worstOk = okRows.reduce<OkRow | null>(
+  (best, r) => (r.totalMs > (best?.totalMs ?? 0) ? r : best), null);
 
 // Practical "free" ceiling: largest node count in a fast row.
 const maxFastNodes = fastRows.length ? Math.max(...fastRows.map(r => r.nodes)) : 0;
@@ -211,11 +212,11 @@ const minSlowDepthNarrow = slowRows.filter(r => r.breadth === 2).length
 
 const bottleneck = (() => {
   if (minSlowBreadth < Infinity && minSlowDepthNarrow === Infinity)
-    return `breadth (node count grows as breadth^depth) — depth=2 trees stay fast at all tested depths; the first slow case requires breadth≥${minSlowBreadth}`;
+    return `breadth (node count grows as breadth^depth) — depth=2 trees stay fast at all tested depths; the first slow case requires breadth≥${String(minSlowBreadth)}`;
   if (minSlowDepthNarrow < Infinity && minSlowBreadth === Infinity)
-    return `depth — slow at depth≥${minSlowDepthNarrow} even with narrow trees`;
+    return `depth — slow at depth≥${String(minSlowDepthNarrow)} even with narrow trees`;
   if (minSlowBreadth < Infinity && minSlowDepthNarrow < Infinity)
-    return `both — slow at breadth≥${minSlowBreadth} or depth≥${minSlowDepthNarrow} (narrowest)`;
+    return `both — slow at breadth≥${String(minSlowBreadth)} or depth≥${String(minSlowDepthNarrow)} (narrowest)`;
   return 'indeterminate — no rows exceeded the 2× baseline threshold in this run';
 })();
 
@@ -226,17 +227,17 @@ const breadthScaleExample = (() => {
   const hi = okRows.find(r => r.depth === 3 && r.breadth === 20);
   if (!lo?.totalMs || !hi?.totalMs || lo.totalMs === 0) return '';
   const ratio = (hi.totalMs / lo.totalMs).toFixed(1);
-  return `At depth=3, going from breadth=10 (${lo.nodes.toLocaleString()} nodes, ${lo.totalMs}ms total) to breadth=20 (${hi.nodes.toLocaleString()} nodes, ${hi.totalMs}ms total) is a 2× breadth increase that drives a ${ratio}× tsc time increase.`;
+  return `At depth=3, going from breadth=10 (${lo.nodes.toLocaleString()} nodes, ${String(lo.totalMs)}ms total) to breadth=20 (${hi.nodes.toLocaleString()} nodes, ${String(hi.totalMs)}ms total) is a 2× breadth increase that drives a ${ratio}× tsc time increase.`;
 })();
 
 const noErrors = failRows.length === 0;
 const worstCaseStr = worstOk
-  ? `depth=${worstOk.depth}, breadth=${worstOk.breadth} (${worstOk.nodes.toLocaleString()} nodes, ${worstOk.totalMs}ms total / ${worstOk.netMs}ms net)`
+  ? `depth=${String(worstOk.depth)}, breadth=${String(worstOk.breadth)} (${worstOk.nodes.toLocaleString()} nodes, ${String(worstOk.totalMs)}ms total / ${String(worstOk.netMs)}ms net)`
   : 'none measured';
 
 const noErrors_str = noErrors
   ? 'No TS2589 errors were observed across the tested matrix.'
-  : `TS2589 or timeout at: ${failRows.map(r => `depth=${r.depth}, breadth=${r.breadth}`).join('; ')}.`;
+  : `TS2589 or timeout at: ${failRows.map(r => `depth=${String(r.depth)}, breadth=${String(r.breadth)}`).join('; ')}.`;
 
 console.log(`
 ## Memo
