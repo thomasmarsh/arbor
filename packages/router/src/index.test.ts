@@ -6,6 +6,7 @@ import type {
   Derive,
   FetchLike,
   Flatten,
+  HandlerCtx,
   HandlerMap,
   HttpContext,
   HttpMethod,
@@ -13,6 +14,7 @@ import type {
   InferRoute,
   OpenApiContext,
   OpenApiMeta,
+  ParseDiag,
   ResponseUnion,
   RouteNode,
 } from './index.js';
@@ -53,4 +55,6 @@ it('type exports resolve', () => {
   expectTypeOf<FetchLike>().not.toBeNever();
   expectTypeOf<OpenApiContext<'GET', unknown, Record<number, unknown>>>().not.toBeNever();
   expectTypeOf<OpenApiMeta>().not.toBeNever();
+  expectTypeOf<ParseDiag>().not.toBeNever();
+  expectTypeOf<HandlerCtx<Record<string, HttpContext<any, any, any>>, never, never>>().not.toBeNever();
 });

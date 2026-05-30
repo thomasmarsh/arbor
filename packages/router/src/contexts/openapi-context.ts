@@ -60,5 +60,3 @@ export function openApiRoute<
   }
   return node as RouteNode<z.infer<S>, [...C], OpenApiContext<Method, Body, InferResponseMap<Res>>, never, OpenApiCtxData>;
 }
-
-export { generateSpec } from '../openapi/generate-spec.js';

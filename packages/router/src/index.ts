@@ -9,6 +9,7 @@ export {
   type Flatten,
   type InferContext,
   type InferRoute,
+  type ParseDiag,
   type ResponseUnion,
   type RouteNode,
 } from './core/define-routes.js';
@@ -21,7 +22,7 @@ export { withRbac } from './server/with-rbac.js';
 export { withApiKey, type ApiKeyOptions } from './server/with-api-key.js';
 export { httpRoute, respond, desc, type HttpContext, type HttpMethod, type HttpResponse } from './contexts/http-context.js';
 export { createMemoryStore, type RateLimitPolicy, type RateLimitStore, withRateLimit } from './server/rate-limit.js';
-export { createServer, type ErrorMapEntry, type HandlerMap, type RateLimitKeyResolver } from './server/server.js';
+export { createServer, type ErrorMapEntry, type HandlerCtx, type HandlerMap, type RateLimitKeyResolver } from './server/server.js';
 export { withMetrics, type MetricsEmitter, type RequestMetric } from './server/with-metrics.js';
 export { withCors, type CorsConfig } from './server/with-cors.js';
 

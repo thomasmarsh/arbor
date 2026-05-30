@@ -4,12 +4,8 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { defineRoutes, section, type InferContext } from '../core/define-routes.js';
 import { createServer } from '../server/server.js';
-import {
-  generateSpec,
-  openApiRoute,
-  type OpenApiContext,
-  type OpenApiMeta,
-} from './openapi-context.js';
+import { openApiRoute, type OpenApiContext, type OpenApiMeta } from './openapi-context.js';
+import { generateSpec } from '../openapi/generate-spec.js';
 import { respond } from './http-context.js';
 
 describe('OpenApiContext', () => {
