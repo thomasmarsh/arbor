@@ -68,9 +68,9 @@ describe('matchSegments', () => {
     ['captures optional number when present', '#id?/', ['42'], {}, { params: { id: 42 }, rest: [] }],
     ['skips optional number when not a number', '#id?/', ['abc'], {}, { params: {}, rest: ['abc'] }],
     ['negative integer for opt-num', '#id?/', ['-5'], {}, { params: { id: -5 }, rest: [] }],
-    ['wildcard captures all remaining', '*rest/', ['a', 'b', 'c'], {}, { params: { rest: ['a', 'b', 'c'] }, rest: [] }],
-    ['wildcard captures zero remaining', '*rest/', [], {}, { params: { rest: [] }, rest: [] }],
-    ['wildcard after literal', 'files/*rest/', ['files', 'a', 'b'], {}, { params: { rest: ['a', 'b'] }, rest: [] }],
+    ['wildcard captures all remaining', '*rest/', ['a', 'b', 'c'], {}, { params: { rest: 'a/b/c' }, rest: [] }],
+    ['wildcard captures zero remaining', '*rest/', [], {}, { params: { rest: '' }, rest: [] }],
+    ['wildcard after literal', 'files/*rest/', ['files', 'a', 'b'], {}, { params: { rest: 'a/b' }, rest: [] }],
     ['literal then required param', 'users/:id/', ['users', '123', 'settings'], {}, { params: { id: '123' }, rest: ['settings'] }],
     ['accumulates inherited params', '#projectId/', ['42'], { orgId: 'acme' }, { params: { orgId: 'acme', projectId: 42 }, rest: [] }],
   ] satisfies [string, string, string[], Record<string, unknown>, MatchResult][])(

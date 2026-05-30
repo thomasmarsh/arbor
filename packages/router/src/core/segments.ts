@@ -97,7 +97,7 @@ export function matchSegments(
       }
 
       case 'wildcard':
-        next[seg.name] = urlSegments.slice(urlIndex);
+        next[seg.name] = urlSegments.slice(urlIndex).join('/');
         urlIndex = urlSegments.length;
         break;
     }

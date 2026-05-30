@@ -114,7 +114,7 @@ describe('Path segment edge cases in server', () => {
   });
 
   it('wildcard route: server matches any URL pattern', async () => {
-    const CatchAll = z.object({ tag: z.literal('catch-all'), rest: z.array(z.string()) });
+    const CatchAll = z.object({ tag: z.literal('catch-all'), rest: z.string() });
     const CatchResp = z.object({ matched: z.boolean() });
     const wildcardRouter = defineRoutes([
       httpRoute(CatchAll, 'GET', '*rest/', { response: { 200: CatchResp } }),

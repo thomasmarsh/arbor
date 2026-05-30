@@ -82,26 +82,26 @@ describe('Path segment edge cases', () => {
     expect(router.print({ tag: 'pair', x: 'foo', y: 'bar' })).toBe('/foo/bar');
   });
 
-  it('wildcard at root captures all URL segments as an array', () => {
-    const Wild = z.object({ tag: z.literal('wildcard'), rest: z.array(z.string()) });
+  it('wildcard at root captures all URL segments as a string', () => {
+    const Wild = z.object({ tag: z.literal('wildcard'), rest: z.string() });
     const router = defineRoutes([route(Wild, '*rest/')]);
     const result = router.parse(new URL('https://example.com/a/b/c')).getOrThrow();
-    expect(result).toMatchObject({ tag: 'wildcard', rest: ['a', 'b', 'c'] });
+    expect(result).toMatchObject({ tag: 'wildcard', rest: 'a/b/c' });
   });
 
-  it('wildcard at root captures empty array for root URL', () => {
-    const Wild = z.object({ tag: z.literal('wildcard'), rest: z.array(z.string()) });
+  it('wildcard at root captures empty string for root URL', () => {
+    const Wild = z.object({ tag: z.literal('wildcard'), rest: z.string() });
     const router = defineRoutes([route(Wild, '*rest/')]);
     const result = router.parse(new URL('https://example.com/')).getOrThrow();
-    expect(result).toMatchObject({ tag: 'wildcard', rest: [] });
+    expect(result).toMatchObject({ tag: 'wildcard', rest: '' });
   });
 
-  it('wildcard in nested position captures remaining segments', () => {
+  it('wildcard in nested position captures remaining segments as a string', () => {
     const Files = z.object({ tag: z.literal('files') });
-    const File = z.object({ tag: z.literal('file'), path: z.array(z.string()) });
+    const File = z.object({ tag: z.literal('file'), path: z.string() });
     const router = defineRoutes([route(Files, 'files/', [route(File, '*path/')])]);
     const result = router.parse(new URL('https://example.com/files/a/b/c')).getOrThrow();
-    expect(result).toMatchObject({ tag: 'files', child: { tag: 'file', path: ['a', 'b', 'c'] } });
+    expect(result).toMatchObject({ tag: 'files', child: { tag: 'file', path: 'a/b/c' } });
   });
 
   it('param name collision: child segment overwrites parent segment value', () => {

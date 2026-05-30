@@ -8,7 +8,9 @@
       "Bash(rg -n \"from.*openapi-context\" /Users/tmarsh/git/arbor/packages/router/src/ -r --type ts)",
       "Bash(sort -t. -k1 -n)",
       "Bash(rg \"contexts/index|security/index\" /Users/tmarsh/git/arbor/packages/router/src --include=\"*.ts\" -l)",
-      "Bash(xargs ls)"
+      "Bash(xargs ls)",
+      "Bash(rg -rn \"buildUrl\\\\|encodeURIComponent\" /Users/tmarsh/git/arbor/packages/router/src/)",
+      "Bash(rg -rn \"encodeURIComponent\\\\|buildUrl\\\\|print\\\\b\" /Users/tmarsh/git/arbor/packages/router/src/)"
     ]
   }
 }

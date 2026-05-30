@@ -187,9 +187,11 @@ export function buildUrl(
   const path =
     '/' +
     result.segments
-      .map((seg) =>
-        seg.kind === 'lit' ? seg.value : encodeURIComponent(String(allParams[seg.name])),
-      )
+      .map((seg) => {
+        if (seg.kind === 'lit') return seg.value;
+        if (seg.kind === 'wildcard') return String(allParams[seg.name]);
+        return encodeURIComponent(String(allParams[seg.name]));
+      })
       .join('/');
 
   const toParam = ([k, v]: [string, unknown]) =>
