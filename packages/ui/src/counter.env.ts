@@ -9,7 +9,7 @@ export interface CounterEnv {
 
 export const liveCounterEnv: CounterEnv = {
   fetchHello: fetchHello(
-    (hello) => Result.success(hello),
+    (hello) => Result.ok(hello),
     (err) =>
       Result.failure<HelloResponse, string>(
         err instanceof NetworkError ? err.message : String(err),

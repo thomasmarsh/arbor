@@ -122,8 +122,8 @@ export class Effect<A> {
         try: promise,
         catch: (e) => onError(e),
       }).pipe(
-        Eff.map((x) => Result.success<T>(x)),
-        Eff.catchAll((e) => Eff.succeed(Result.failure<T, E>(e))),
+        Eff.map((x) => Result.ok<T>(x)),
+        Eff.catchAll((e) => Eff.succeed(Result.err<T, E>(e))),
       ),
     );
   }

@@ -12,12 +12,12 @@ export const userRepositorySpec = (getRepo: () => UserRepository) => {
 
     it('findById returns failure for unknown id', async () => {
       const result = await repo.findById('00000000-0000-0000-0000-000000000000');
-      expect(result.isFailure()).toBe(true);
+      expect(result.isErr()).toBe(true);
     });
 
     it('create persists and returns user', async () => {
       const result = await repo.create('test@example.com');
-      expect(result.isSuccess()).toBe(true);
+      expect(result.isOk()).toBe(true);
       result.fold(
         (user) => {
           expect(user.email).toBe('test@example.com');
@@ -32,7 +32,7 @@ export const userRepositorySpec = (getRepo: () => UserRepository) => {
       const created = await repo.create('findme@example.com');
       const id = created.getOrElse(null as never).id;
       const found = await repo.findById(id);
-      expect(found.isSuccess()).toBe(true);
+      expect(found.isOk()).toBe(true);
     });
 
     it('findAll returns created users', async () => {
