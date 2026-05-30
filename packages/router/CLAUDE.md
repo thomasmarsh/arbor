@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 62 complete
-- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54, 55, 38, 39, 56, 32, 60, 62 complete. Plan 28 superseded by 47. Plan 62: `HttpResponse<S, B>` interface defined and exported; `respond(status, body[, opts])` helper eliminates `status: N as const` (zero occurrences remain); `desc(body[, opts])` replaces duck-typed descriptor objects with `_desc: true` discriminant; `DispatchResult` aliased to `HttpResponse & { tag: string }`; `httpRoute()` uses `'_desc' in Object(descriptor)` check; `respond`, `desc`, `HttpResponse` exported from `src/index.ts`; stale `enrichers.ts` reference in examples script fixed. See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Plan 62 complete; Plan 65 is next
+- **Current Status**: Waves 0–5 complete (plans 18–62). Wave 6 (structural cleanup) in progress. See `plan/work-order.md` for full queue.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -31,7 +31,7 @@
 - Type checking: `pnpm typecheck`
 - Verification chain: `pnpm test && pnpm typecheck && pnpm lint`
 
-NOTE: Path structure described in `plan/spec.topology.md`
+NOTE: Path structure described in `plan/topology.md`. Execution order in `plan/work-order.md`.
 
 ## Architecture & Core Shapes
 
@@ -68,8 +68,8 @@ type Derive<N> =
 ## Non-Negotiable Working Style
 
 0. **Break down work per session:** No refactor binges or endless pontificating. If a change is too large, requires extensive decision-making, raises serious type-complexity concerns (e.g., TS instantiation limits), or would otherwise burn excessive tokens, pause immediately and take either or both of these actions:
-   a) Add/update `plan/questions.md` for user consideration.
-   b) Document the technical debt in the `plan/` directory using the format `plan/<sequence>.<topic>.md`.
+   a) Document open questions in a new plan file (spike if theory needs validating).
+   b) Document technical debt in `plan/` using format `plan/<sequence>.<topic>.md`.
    c) Before editing blind, use `rg` (ripgrep) via the terminal to find exact symbol definitions. Do not read entire files just to scan for code signatures.
 1. **Smallest possible change**: One localized thing at a time. Prefer a 1-line change with a test.
 2. **TDD Workflow**: Write failing tests/stubs first to verify ergonomics before updating runtime code.
@@ -111,8 +111,9 @@ Self-contained runnable demos in `examples/`. Run them as a smoke test with `pnp
 When planning, use the following rules:
 
 - Place a plan document in plan/ (using the next available number). Format: `plan/<sequence>.<topic>.md`
-- Update `plan/questions.md` if there are open questions for me to resolve
-- Update `plan/spec.workflow.md` if you need to change order or give other meta work direction
+- Open questions for user resolution → new plan file (spike if unvalidated theory)
+- Update `plan/work-order.md` to add the plan to the queue and update the plan index
+- Update `plan/roadmap.md` if the plan changes scope, deferred items, or long-horizon directions
 - Every plan document must include the sections:
   - Context
   - Goal

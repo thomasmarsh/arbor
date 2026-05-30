@@ -6,7 +6,8 @@
       "Bash(rg -n \"parseCookies|UntypedHandler|HttpWalkNode|collectHttpMaps|WalkNode\" /Users/tmarsh/git/arbor/packages/router/src --include=\"*.ts\")",
       "Bash(perl -i -0pe ' *)",
       "Bash(rg -n \"from.*openapi-context\" /Users/tmarsh/git/arbor/packages/router/src/ -r --type ts)",
-      "Bash(sort -t. -k1 -n)"
+      "Bash(sort -t. -k1 -n)",
+      "Bash(rg \"contexts/index|security/index\" /Users/tmarsh/git/arbor/packages/router/src --include=\"*.ts\" -l)"
     ]
   }
 }
