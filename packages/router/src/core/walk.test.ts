@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import z from 'zod';
 import { route, section } from './define-routes.js';
@@ -574,5 +575,68 @@ describe('ParseDiag shapes', () => {
     const diag: ParseDiag[] = [];
     walkParse(nodes, ['users'], q(), {}, diag);
     expect(diag).toMatchInlineSnapshot(`[]`);
+  });
+});
+
+describe('PBT — print/parse round-trip', () => {
+  const strArb = fc.string({ unit: fc.constantFrom('0','1','2','3','4','5','6','7','8','9','a','b','c','d','e','f'), minLength: 1, maxLength: 12 });
+  const intArb = fc.integer({ min: 0, max: 99999 });
+  const pageArb = fc.integer({ min: 1, max: 1000 });
+
+  const userRouteArb = fc.oneof(
+    fc.constant({ tag: 'users' as const }),
+    strArb.map(id => ({ tag: 'users' as const, child: { tag: 'user' as const, id } })),
+    strArb.map(id => ({
+      tag: 'users' as const,
+      child: { tag: 'user' as const, id, child: { tag: 'settings' as const } },
+    })),
+  );
+
+  const orgRouteArb = fc.oneof(
+    strArb.map(orgId => ({ tag: 'org' as const, orgId })),
+    fc.tuple(strArb, intArb).map(([orgId, projectId]) => ({
+      tag: 'org' as const, orgId,
+      child: { tag: 'project' as const, projectId },
+    })),
+    fc.tuple(strArb, intArb, strArb, pageArb, fc.constantFrom('open' as const, 'closed' as const))
+      .map(([orgId, projectId, issueId, page, status]) => ({
+        tag: 'org' as const, orgId,
+        child: { tag: 'project' as const, projectId, child: { tag: 'issue' as const, issueId, page, status } },
+      })),
+    fc.tuple(strArb, intArb, strArb, pageArb)
+      .map(([orgId, projectId, issueId, page]) => ({
+        tag: 'org' as const, orgId,
+        child: { tag: 'project' as const, projectId, child: { tag: 'issue' as const, issueId, page } },
+      })),
+  );
+
+  it('userTree: print → parse is the identity for all valid routes', () => {
+    const router = routeFixtures.userTree();
+    fc.assert(fc.property(userRouteArb, (r) => {
+      const url = router.print(r);
+      const parsed = router.parse(new URL(url, 'https://example.com'));
+      expect(parsed.isOk()).toBe(true);
+      expect(parsed.getOrThrow()).toEqual(r);
+    }), { numRuns: 200 });
+  });
+
+  it('orgTree: print → parse is the identity for all valid routes', () => {
+    const router = routeFixtures.orgTree();
+    fc.assert(fc.property(orgRouteArb, (r) => {
+      const url = router.print(r);
+      const parsed = router.parse(new URL(url, 'https://example.com'));
+      expect(parsed.isOk()).toBe(true);
+      expect(parsed.getOrThrow()).toEqual(r);
+    }), { numRuns: 200 });
+  });
+});
+
+describe('PBT — walkParse never-throw', () => {
+  it('walkParse returns null without throwing for any web path', () => {
+    const nodes = routeFixtures.combinedTree().children as WalkNode[];
+    fc.assert(fc.property(fc.webPath(), (path) => {
+      const segments = path.split('/').filter(Boolean);
+      expect(() => walkParse(nodes, segments, new URLSearchParams(), {})).not.toThrow();
+    }), { numRuns: 500 });
   });
 });

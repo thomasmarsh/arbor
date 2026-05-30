@@ -40,6 +40,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "fast-check": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

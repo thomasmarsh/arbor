@@ -1,6 +1,8 @@
+import fc from 'fast-check';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { defineRoutes, route, section, type InferRoute } from './define-routes.js';
+import { routeFixtures } from '../test-utils/fixtures.js';
 
 describe('Empty and degenerate trees', () => {
   it('empty router: parse fails for root path', () => {
@@ -251,5 +253,50 @@ describe('Type-level only', () => {
     const _router = defineRoutes([route(A, 'a/')]);
     type Route = InferRoute<typeof _router>;
     expectTypeOf<{ tag: 'nonexistent' }>().not.toExtend<Route>();
+  });
+});
+
+describe('PBT — adversarial never-throw', () => {
+  const router = routeFixtures.combinedTree();
+  const knownTags = new Set(['users', 'user', 'settings', 'org', 'project', 'issue']);
+
+  it('router.parse never throws for any valid URL', () => {
+    fc.assert(fc.property(fc.webUrl(), (url) => {
+      expect(() => router.parse(new URL(url))).not.toThrow();
+    }), { numRuns: 500 });
+  });
+
+  it('parse result only contains known tags when it succeeds', () => {
+    fc.assert(fc.property(fc.webPath(), (path) => {
+      const result = router.parse(new URL('https://example.com' + path));
+      if (result.isOk()) {
+        let current: Record<string, unknown> | undefined = result.getOrThrow();
+        while (current) {
+          if (typeof current['tag'] === 'string') {
+            expect(knownTags.has(current['tag'])).toBe(true);
+          }
+          current = current['child'] as Record<string, unknown> | undefined;
+        }
+      }
+    }), { numRuns: 500 });
+  });
+
+  it('handles empty path segments (//)', () => {
+    expect(() => router.parse(new URL('https://example.com//'))).not.toThrow();
+  });
+
+  it('handles very long paths', () => {
+    const longPath = '/users/' + 'a'.repeat(1000);
+    expect(() => router.parse(new URL('https://example.com' + longPath))).not.toThrow();
+  });
+
+  it('handles query strings with special characters', () => {
+    expect(() => router.parse(new URL('https://example.com/users?a=%3C%3E&b=%22'))).not.toThrow();
+  });
+
+  it('handles URL with all segment kinds in path', () => {
+    const Wild = z.object({ tag: z.literal('wild'), id: z.string(), num: z.number(), rest: z.string() });
+    const mixedRouter = defineRoutes([route(Wild, ':id/#num/*rest/')]);
+    expect(() => mixedRouter.parse(new URL('https://example.com/users/42/a/b/c'))).not.toThrow();
   });
 });

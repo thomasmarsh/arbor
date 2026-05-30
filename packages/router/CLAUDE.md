@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 65 complete; Plan 67 is next
-- **Current Status**: Waves 0–6 complete (plans 18–65). Wave 7 (segment correctness + test quality) in progress. Plans 82–84 added for test infrastructure, inline snapshots, and framework-internal PBT. See `plan/work-order.md` for full queue.
+- **Current Task**: Plan 84 complete; Plan 67 is next
+- **Current Status**: Waves 0–6 complete (plans 18–65). Wave 7 (segment correctness + test quality) in progress. Plans 82–84 complete. See `plan/work-order.md` for full queue.
 
 ## Strict System Rules (Zero Preamble)
 

@@ -1,3 +1,4 @@
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { type Segment, matchSegments, parseSegments } from './segments.js';
 
@@ -117,5 +118,34 @@ describe('matchSegments', () => {
     ])('allows valid ordering: %s (%s)', (path) => {
       expect(() => parseSegments(path)).not.toThrow();
     });
+  });
+});
+
+describe('PBT — segment parser', () => {
+  const nameArb = fc.constantFrom('a', 'foo', 'bar', 'id', 'name', 'x', 'num', 'key');
+  const litArb = nameArb.map(n => `${n}/`);
+  const strParamArb = nameArb.map(n => `:${n}/`);
+  const numParamArb = nameArb.map(n => `#${n}/`);
+  const safeSegArb = fc.oneof(litArb, strParamArb, numParamArb);
+  const safePathArb = fc.array(safeSegArb, { minLength: 1, maxLength: 5 })
+    .map(segs => segs.join(''));
+
+  it('never throws for valid segment strings', () => {
+    fc.assert(fc.property(safePathArb, (path) => {
+      expect(() => parseSegments(path)).not.toThrow();
+    }), { numRuns: 500 });
+  });
+
+  it('every segment has a non-empty name or value', () => {
+    fc.assert(fc.property(safePathArb, (path) => {
+      const segs = parseSegments(path);
+      return segs.every(s => s.kind === 'lit' ? s.value.length > 0 : s.name.length > 0);
+    }), { numRuns: 500 });
+  });
+
+  it('returns at least one segment for any valid path', () => {
+    fc.assert(fc.property(safePathArb, (path) => {
+      return parseSegments(path).length >= 1;
+    }), { numRuns: 500 });
   });
 });
