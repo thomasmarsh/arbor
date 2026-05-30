@@ -7,7 +7,8 @@
       "Bash(perl -i -0pe ' *)",
       "Bash(rg -n \"from.*openapi-context\" /Users/tmarsh/git/arbor/packages/router/src/ -r --type ts)",
       "Bash(sort -t. -k1 -n)",
-      "Bash(rg \"contexts/index|security/index\" /Users/tmarsh/git/arbor/packages/router/src --include=\"*.ts\" -l)"
+      "Bash(rg \"contexts/index|security/index\" /Users/tmarsh/git/arbor/packages/router/src --include=\"*.ts\" -l)",
+      "Bash(xargs ls)"
     ]
   }
 }

@@ -5,7 +5,7 @@ Operational execution list. See `plan/workflow.md` for workflow rules and comple
 ## Current Queue
 
 ```text
-65 → 67 → 69 → 68 → 71 → 73 → 72 → 75 → 76 → 77 → 63 → 64 → 66 → 78 → 79 → 80 → 81
+67 → 82 → 83 → 69 → 68 → 84 → 71 → 73 → 72 → 75 → 76 → 77 → 63 → 64 → 66 → 78 → 79 → 80 → 81
 ```
 
 ---
@@ -63,18 +63,21 @@ section params, DI context, type-level tests, OpenAPI generator, status code nor
 
 See **plan 58** for the full prioritized smell inventory.
 
-### Wave 6 — Structural cleanup (current)
+### Wave 6 — Structural cleanup (complete)
 
-- **65**: Barrel cleanup + missing root exports (`ParseDiag`, `HandlerCtx`). Zero risk, standalone. **Next.**
+- **65** ✓ Barrel cleanup + missing root exports (`ParseDiag`, `HandlerCtx`).
 - **63**: Decompose `walkSpec()` (112-line function); remove spurious `generateSpec` re-export from `openapi-context.ts`.
 - **64**: Fix `openApiRoute()` cast-and-mutate pattern.
 - **66**: Extract rate-limit check from `executeRoute()` into named helper.
 
-### Wave 7 — Segment correctness
+### Wave 7 — Segment correctness + test quality (current)
 
-- **67**: Fix `num`/`opt-num` to reject non-integers (`parseInt` + round-trip check).
+- **67**: Fix `num`/`opt-num` to reject non-integers (`parseInt` + round-trip check). **Next.**
+- **82**: Test infrastructure — fixture builders + `it.each` table-driven refactor.
+- **83**: Inline snapshot adoption + `ParseDiag` diagnostics layer.
 - **69**: Enforce optional segment ordering at definition time.
 - **68**: Change wildcard capture from `string[]` to `string`. Breaking change — do after 69.
+- **84**: Framework-internal PBT — `fast-check` for core invariants (after segment fixes).
 
 ### Wave 8 — Feature completeness
 
@@ -169,7 +172,7 @@ See **plan 58** for the full prioritized smell inventory.
 | 62   | Unify response types; add `respond()` helper                 | ✓                     |
 | 63   | Decompose `walkSpec()`; fix `generateSpec` re-export         | queued                |
 | 64   | Fix `openApiRoute()` cast-and-mutate                         | queued                |
-| 65   | Barrel cleanup; add `ParseDiag`/`HandlerCtx` to root exports | **next**              |
+| 65   | Barrel cleanup; add `ParseDiag`/`HandlerCtx` to root exports | ✓                     |
 | 66   | Extract rate-limit logic from `executeRoute()`               | queued                |
 | 67   | Fix `num`/`opt-num` to reject non-integers                   | queued                |
 | 68   | Wildcard captures `string` not `string[]`                    | queued                |
@@ -186,3 +189,6 @@ See **plan 58** for the full prioritized smell inventory.
 | 79   | Property-based / fuzz testing from Zod schemas               | queued                |
 | 80   | Spike — typed DIY capability / environment system            | queued                |
 | 81   | Default handler supervision (let-it-crash safety net)        | queued                |
+| 82   | Test infrastructure: fixture builders + `it.each` refactor   | queued                |
+| 83   | Inline snapshot adoption + `ParseDiag` diagnostics layer     | queued                |
+| 84   | Framework-internal PBT — `fast-check` for core invariants    | queued                |

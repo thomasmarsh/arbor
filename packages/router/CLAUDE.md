@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 62 complete; Plan 65 is next
-- **Current Status**: Waves 0–5 complete (plans 18–62). Wave 6 (structural cleanup) in progress. See `plan/work-order.md` for full queue.
+- **Current Task**: Plan 65 complete; Plan 67 is next
+- **Current Status**: Waves 0–6 complete (plans 18–65). Wave 7 (segment correctness + test quality) in progress. Plans 82–84 added for test infrastructure, inline snapshots, and framework-internal PBT. See `plan/work-order.md` for full queue.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -32,6 +32,16 @@
 - Verification chain: `pnpm test && pnpm typecheck && pnpm lint`
 
 NOTE: Path structure described in `plan/topology.md`. Execution order in `plan/work-order.md`.
+
+## Testing
+
+Full philosophy in `plan/testing.md`. Quick decisions:
+
+- **Tier**: `expectTypeOf` → type contracts; `expect` + `it.each` → runtime; `toMatchInlineSnapshot` → structured/diagnostic output; `createTestClient` → full pipeline; `fast-check` → invariants.
+- **Snapshots**: inline only (`toMatchInlineSnapshot`). No external `.snap` files.
+- **Tables**: `it.each` when ≥ 3 tests share the same assertion shape with different data.
+- **Route fixtures**: build trees via `src/test-utils/fixtures.ts` (Plan 82), not raw `RouteNode` objects.
+- **PBT**: never-throw and round-trip properties; not for happy-path coverage.
 
 ## Architecture & Core Shapes
 
