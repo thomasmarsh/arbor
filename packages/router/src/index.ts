@@ -24,7 +24,7 @@ export { type Guard, composeGuards, pipeline, withGuard } from './server/guard.j
 export { withSession } from './server/with-session.js';
 export { withRbac } from './server/with-rbac.js';
 export { withApiKey, type ApiKeyOptions } from './server/with-api-key.js';
-export { httpRoute, respond, desc, type HttpContext, type HttpMethod, type HttpResponse } from './contexts/http-context.js';
+export { httpRoute, respond, desc, type HttpContext, type HttpMethod, type HttpResponse, type InferSingleSuccessBody } from './contexts/http-context.js';
 export { createMemoryStore, type RateLimitPolicy, type RateLimitStore, withRateLimit } from './server/rate-limit.js';
 export { createServer, type ErrorMapEntry, type HandlerCtx, type HandlerMap, type RateLimitKeyResolver } from './server/server.js';
 export { withMetrics, type MetricsEmitter, type RequestMetric } from './server/with-metrics.js';

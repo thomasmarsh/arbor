@@ -1,5 +1,5 @@
 import type z from 'zod';
-import type { HttpContext, HttpMethod, HttpResponse, HttpResponseUnion, SessionCtx } from '../contexts/http-context.js';
+import type { HttpContext, HttpMethod, HttpResponse, HttpResponseUnion, InferSingleSuccessBody, SessionCtx } from '../contexts/http-context.js';
 import { collectHttpMaps } from '../contexts/http-context.js';
 import type { HttpWalkNode } from '../contexts/http-context.js';
 import type { AnyCtxMap, RouterContract } from '../core/router-contract.js';
@@ -29,7 +29,9 @@ export type HandlerMap<
 > = {
   [Tag in keyof CtxMap & string]: (
     ctx: HandlerCtx<CtxMap, Routes, Tag>,
-  ) => Promise<HttpResponseUnion<CtxMap[Tag]['response']>>;
+  ) =>
+    | Promise<HttpResponseUnion<CtxMap[Tag]['response']> | InferSingleSuccessBody<CtxMap[Tag]['response']>>
+    | InferSingleSuccessBody<CtxMap[Tag]['response']>;
 };
 
 export type RateLimitKeyResolver = (req: { url: URL; headers: Record<string, string> }) => string;
@@ -43,7 +45,7 @@ type AnyHandler = (ctx: {
   headers: unknown;
   cookies: unknown;
   session?: unknown;
-}) => Promise<{ status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string> }>;
+}) => unknown;
 
 type DispatchResult = HttpResponse & { tag: string };
 
@@ -119,7 +121,7 @@ export function createServer<
     resolveSession?: (headers: Record<string, string>) => Promise<SessionCtx | null>;
   },
 ) {
-  const { methodMap, bodySchemaMap, headerSchemaMap, cookieSchemaMap, responseHeaderSchemaMap, responseCookieSchemaMap, rateLimitMap, requiresMap } =
+  const { methodMap, bodySchemaMap, headerSchemaMap, cookieSchemaMap, responseHeaderSchemaMap, responseCookieSchemaMap, rateLimitMap, requiresMap, wrapStatusMap } =
     collectHttpMaps(router.children as HttpWalkNode[]);
 
   const maxBodySize = options?.maxBodySize ?? DEFAULT_MAX_BODY_SIZE;
@@ -170,7 +172,11 @@ export function createServer<
     try {
       const params = extractParams(route);
       const query = (route as { query?: unknown }).query;
-      const handlerResult = await resolved.handler({ params, body: bodyResult.data, query, headers: headerResult.data, cookies: cookieResult.data, ...(session ? { session } : {}) });
+      const rawResult = await resolved.handler({ params, body: bodyResult.data, query, headers: headerResult.data, cookies: cookieResult.data, ...(session ? { session } : {}) });
+      const handlerResult: { status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string> } =
+        rawResult !== null && typeof rawResult === 'object' && typeof (rawResult as { status?: unknown }).status === 'number' && 'body' in rawResult
+          ? rawResult as { status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string> }
+          : { status: wrapStatusMap[tag] ?? 200, body: rawResult };
       const respResult = validateResponse(handlerResult, responseHeaderSchemaMap[tag], responseCookieSchemaMap[tag]);
       if (!respResult.ok) return { ...respResult, tag };
       const response: DispatchResult = { status: handlerResult.status, body: handlerResult.body, tag };

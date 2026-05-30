@@ -57,6 +57,7 @@ export function collectHttpMaps(nodes: HttpWalkNode[]): {
   rateLimitMap: Record<string, { windowMs: number; maxRequests: number }>;
   corsMap: Record<string, CorsConfig>;
   requiresMap: Record<string, readonly string[]>;
+  wrapStatusMap: Record<string, number>;
 } {
   return {
     methodMap:                walkCollect(nodes, (n) => getHttpMeta(n)?.method),
@@ -67,9 +68,27 @@ export function collectHttpMaps(nodes: HttpWalkNode[]): {
     responseCookieSchemaMap:  walkCollect(nodes, (n) => getHttpMeta(n)?.responseCookieSchemas) as Record<string, Record<number, z.ZodType>>,
     rateLimitMap:             walkCollect(nodes, (n) => getHttpMeta(n)?.rateLimit),
     corsMap:                  walkCollect(nodes, (n) => getHttpMeta(n)?.cors),
-  requiresMap:              walkCollect(nodes, (n) => getHttpMeta(n)?.requires),
+    requiresMap:              walkCollect(nodes, (n) => getHttpMeta(n)?.requires),
+    wrapStatusMap:            walkCollect(nodes, (n) => {
+      const schemas = getHttpMeta(n)?.responseSchemas;
+      if (!schemas) return undefined;
+      const twxxKeys = Object.keys(schemas).map(Number).filter((k) => k >= 200 && k < 300);
+      return twxxKeys.length === 1 ? twxxKeys[0] : undefined;
+    }),
   };
 }
+
+type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (x: infer I) => void ? I : never;
+type SuccessStatuses = 200 | 201 | 202 | 203 | 204;
+
+// Returns the body type when Resp has exactly one 2xx status key; otherwise never.
+// Enables handlers to return the domain object directly instead of calling respond().
+export type InferSingleSuccessBody<Resp> =
+  [keyof Resp & SuccessStatuses] extends [never]
+    ? never
+    : [keyof Resp & SuccessStatuses] extends [UnionToIntersection<keyof Resp & SuccessStatuses>]
+      ? Resp[keyof Resp & SuccessStatuses]
+      : never;
 
 export interface HttpContext<
   Method extends HttpMethod,

@@ -3,7 +3,8 @@ import z from 'zod';
 import { httpRoute, desc, respond } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
 import { createMemoryStore } from './rate-limit.js';
-import { createServer, resolveHandler, validateInput, validateResponse } from './server.js';
+import { createServer, resolveHandler, validateInput, validateResponse, type HandlerMap } from './server.js';
+import type { InferSingleSuccessBody } from '../contexts/http-context.js';
 
 describe('validateInput', () => {
   const schema = z.object({ name: z.string() });
@@ -474,7 +475,7 @@ describe('createServer', () => {
     it('handles multipart/form-data with File field', async () => {
       const s = createServer(uploadRouter, {
         upload: (ctx) =>
-          Promise.resolve({ status: 200, body: { filename: ctx.body.file.name } }),
+          Promise.resolve(respond(200, { filename: ctx.body.file.name })),
       });
       const fd = new FormData();
       fd.append('file', new File(['hello'], 'hello.txt', { type: 'text/plain' }));
@@ -747,6 +748,63 @@ describe('createServer', () => {
       }, { resolveSession });
       const result = await s.handle(new URL('http://localhost/public/'), 'GET');
       expect(result.status).toBe(200);
+    });
+  });
+
+  describe('IntoResponse — direct body return', () => {
+    const ItemSchema = z.object({ tag: z.literal('get-item'), id: z.string() });
+    const ItemResp = z.object({ id: z.string(), name: z.string() });
+    const singleStatusRouter = defineRoutes([
+      httpRoute(ItemSchema, 'GET', 'items/:id/', { response: { 200: ItemResp } }),
+    ]);
+
+    it('InferSingleSuccessBody resolves body for single-2xx route', () => {
+      interface Resp { 200: { id: string; name: string } }
+      expectTypeOf<InferSingleSuccessBody<Resp>>().toEqualTypeOf<{ id: string; name: string }>();
+    });
+
+    it('InferSingleSuccessBody is never for multi-2xx route', () => {
+      interface Resp { 200: { id: string }; 201: { id: string } }
+      expectTypeOf<InferSingleSuccessBody<Resp>>().toBeNever();
+    });
+
+    it('InferSingleSuccessBody resolves body when error codes are also declared', () => {
+      interface Resp { 200: { id: string; name: string }; 404: { error: string } }
+      expectTypeOf<InferSingleSuccessBody<Resp>>().toEqualTypeOf<{ id: string; name: string }>();
+    });
+
+    it('handler returning direct body async dispatches with wrapped 200', async () => {
+      const s = createServer(singleStatusRouter, {
+        'get-item': (ctx) => Promise.resolve({ id: ctx.params.id, name: 'Widget' }),
+      });
+      const result = await s.handle(new URL('https://example.com/items/42/'), 'GET');
+      expect(result.status).toBe(200);
+      expect(result.body).toEqual({ id: '42', name: 'Widget' });
+    });
+
+    it('handler returning direct body sync dispatches with wrapped 200', async () => {
+      const s = createServer(singleStatusRouter, {
+        'get-item': (ctx) => ({ id: ctx.params.id, name: 'Widget' }),
+      });
+      const result = await s.handle(new URL('https://example.com/items/7/'), 'GET');
+      expect(result.status).toBe(200);
+      expect(result.body).toEqual({ id: '7', name: 'Widget' });
+    });
+
+    it('explicit respond() still works on single-2xx route', async () => {
+      const s = createServer(singleStatusRouter, {
+        'get-item': (ctx) => Promise.resolve(respond(200, { id: ctx.params.id, name: 'Explicit' })),
+      });
+      const result = await s.handle(new URL('https://example.com/items/99/'), 'GET');
+      expect(result.status).toBe(200);
+      expect(result.body).toEqual({ id: '99', name: 'Explicit' });
+    });
+
+    it('multi-2xx route requires respond() — direct body is a type error', () => {
+      expectTypeOf<HandlerMap<
+        Record<'get-multi', { method: 'GET'; body: never; response: { 200: { id: string }; 201: { id: string } }; query: never; headers: never; cookies: never; session: never }>,
+        never
+      >['get-multi']>().not.toExtend<(ctx: never) => { id: string }>();
     });
   });
 });
