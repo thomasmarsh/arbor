@@ -5,7 +5,7 @@ Operational execution list. See `plan/workflow.md` for workflow rules and comple
 ## Current Queue
 
 ```text
-67 → 82 → 83 → 69 → 68 → 84 → 71 → 73 → 72 → 85 → 75 → 76 → 77 → 63 → 64 → 66 → 78 → 79 → 80 → 81
+67 → 82 → 83 → 69 → 68 → 84 → 71 → 73 → 72 → 85 → 75 → 76 → 77 → 63 → 64 → 66 → 78 → 79 → 80 → 81 → 86
 ```
 
 ---
@@ -194,3 +194,4 @@ See **plan 58** for the full prioritized smell inventory.
 | 83   | Inline snapshot adoption + `ParseDiag` diagnostics layer     | queued                |
 | 84   | Framework-internal PBT — `fast-check` for core invariants    | queued                |
 | 85   | Fix `HttpContext` arity; extract `RouterContract`; no casts  | queued                |
+| 86   | Lint: exhaustiveness-check, no-console, fix suppressions     | queued                |

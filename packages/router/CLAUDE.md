@@ -77,10 +77,19 @@ type Derive<N> =
 
 ## Non-Negotiable Working Style
 
-0. **Break down work per session:** No refactor binges or endless pontificating. If a change is too large, requires extensive decision-making, raises serious type-complexity concerns (e.g., TS instantiation limits), or would otherwise burn excessive tokens, pause immediately and take either or both of these actions:
-   a) Document open questions in a new plan file (spike if theory needs validating).
-   b) Document technical debt in `plan/` using format `plan/<sequence>.<topic>.md`.
-   c) Before editing blind, use `rg` (ripgrep) via the terminal to find exact symbol definitions. Do not read entire files just to scan for code signatures.
+0. **Session mode — choose before touching code:**
+
+   | Mode       | When to use                                                      | Output                             |
+   |------------|------------------------------------------------------------------|------------------------------------|
+   | **Deliver**| Bounded to 1–2 files, risk clear, no novel type design           | Code + tests, done                 |
+   | **Spike**  | Unknown territory, novel type constraint, or unclear feasibility | Scratch file or isolated prototype |
+   | **Plan**   | Cross-layer, cross-file (3+), or the plan doesn't exist yet      | `plan/<n>.md` + TODO stubs, stop   |
+
+   Pick the mode first. Do not drift from Deliver into Plan-scope mid-session; if scope expands, stop, write the plan, add `// TODO(plan/<n>): ...` stubs, and end the session cleanly.
+
+   Big changes are allowed only when: a plan exists, it explicitly says "deliver in one session," and the scope is fully bounded in that plan. Otherwise, write the plan now.
+
+   Before editing blind, use `rg` (ripgrep) to find exact symbol definitions. Do not read entire files just to scan for code signatures.
 1. **Smallest possible change**: One localized thing at a time. Prefer a 1-line change with a test.
 2. **TDD Workflow**: Write failing tests/stubs first to verify ergonomics before updating runtime code. **Exception — novel type designs**: if the plan introduces a type design involving union constraints + contextual typing, generic overloads, or index signatures intersected with mapped types, validate the type-level invariant in a minimal scratch file _before_ writing tests. See `plan/workflow.md` §TypeScript Type-Level Design Spikes for the scratch-file workflow and a table of quick-hypothesis checks. Do not iterate on the full implementation more than once without empirical confirmation of the root cause.
 3. **Test alongside**: Changes require tests (`expectTypeOf` for type-level, `expect` for runtime). Base cases first.

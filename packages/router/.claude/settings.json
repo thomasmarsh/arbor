@@ -13,7 +13,10 @@
       "Bash(rg -rn \"encodeURIComponent\\\\|buildUrl\\\\|print\\\\b\" /Users/tmarsh/git/arbor/packages/router/src/)",
       "Bash(tsx examples/test-client.ts)",
       "Bash(rg \"index-signature\\\\|prefer.*Record\\\\|no-explicit-any\" /Users/tmarsh/git/arbor/packages/router/eslint.config.*)",
-      "Bash(rg \"index-signature\\\\|prefer.*Record\\\\|no-explicit-any\" /Users/tmarsh/git/arbor/eslint.config.*)"
+      "Bash(rg \"index-signature\\\\|prefer.*Record\\\\|no-explicit-any\" /Users/tmarsh/git/arbor/eslint.config.*)",
+      "Bash(grep -v \"^$\")",
+      "Bash(eslint packages/router/src --rule '{\"@typescript-eslint/no-unsafe-assignment\":\"error\",\"@typescript-eslint/no-unsafe-call\":\"error\",\"@typescript-eslint/no-unsafe-member-access\":\"error\",\"@typescript-eslint/no-unsafe-return\":\"error\",\"@typescript-eslint/no-unsafe-argument\":\"error\"}')",
+      "Bash(node /Users/tmarsh/git/arbor/node_modules/.bin/eslint /Users/tmarsh/git/arbor/packages/router/src --rule '{\"@typescript-eslint/no-unsafe-assignment\":\"error\",\"@typescript-eslint/no-unsafe-call\":\"error\",\"@typescript-eslint/no-unsafe-member-access\":\"error\",\"@typescript-eslint/no-unsafe-return\":\"error\",\"@typescript-eslint/no-unsafe-argument\":\"error\"}')"
     ]
   }
 }
