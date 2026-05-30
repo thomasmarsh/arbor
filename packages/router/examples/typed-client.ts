@@ -29,15 +29,17 @@ type Router = typeof router;
 const server = createServer(router, {
   'get-me': async (ctx) => {
     const auth = ctx.headers?.authorization ?? '';
-    if (!auth.startsWith('Bearer ')) {
-      return { status: 401 as const, body: { error: 'unauthorized' } };
-    }
-    return { status: 200 as const, body: { id: '1', name: auth.slice(7) } };
+    return Promise.resolve(
+      auth.startsWith('Bearer ')
+        ? { status: 200 as const, body: { id: '1', name: auth.slice(7) } }
+        : { status: 401 as const, body: { error: 'unauthorized' } },
+    );
   },
-  'create-post': async (ctx) => ({
-    status: 201 as const,
-    body: { id: '42', title: ctx.body.title },
-  }),
+  'create-post': async (ctx) =>
+    Promise.resolve({
+      status: 201 as const,
+      body: { id: '42', title: ctx.body.title },
+    }),
 });
 
 const mockFetch: FetchLike = async (url, init) => {

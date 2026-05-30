@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import type z from 'zod';
 import type { Result } from '@arbor/common';
 import type { HttpContext, HttpMethod, HttpResponseUnion } from '../contexts/http-context.js';
 import { collectHttpMaps } from '../contexts/http-context.js';
@@ -34,7 +35,19 @@ export type HandlerMap<
   ) => Promise<HttpResponseUnion<CtxMap[Tag]['response']>>;
 };
 
+export type RateLimitKeyResolver = (req: { url: URL; headers: Record<string, string> }) => string;
+
 const DEFAULT_MAX_BODY_SIZE = 1024 * 1024;
+
+type AnyHandler = (ctx: {
+  params: unknown;
+  body: unknown;
+  query: unknown;
+  headers: unknown;
+  cookies: unknown;
+}) => Promise<{ status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string> }>;
+
+interface DispatchResult { status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string>; tag: string }
 
 function parseCookies(header: string): Record<string, string> {
   const cookies: Record<string, string> = {};
@@ -48,9 +61,51 @@ function parseCookies(header: string): Record<string, string> {
   return cookies;
 }
 
-interface DispatchResult { status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string>; tag: string }
+function extractParams(route: { tag: string }): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(route).filter(([k]) => k !== 'tag' && k !== 'child' && k !== 'query'),
+  );
+}
 
-export type RateLimitKeyResolver = (req: { url: URL; headers: Record<string, string> }) => string;
+export function validateInput(
+  schema: z.ZodType | undefined,
+  value: unknown,
+  errorMsg: string,
+  fallback?: unknown,
+): { ok: true; data: unknown } | { ok: false; status: 400; body: { error: string } } {
+  if (!schema) return { ok: true, data: fallback };
+  const r = schema.safeParse(value);
+  if (!r.success) return { ok: false, status: 400, body: { error: errorMsg } };
+  return { ok: true, data: r.data };
+}
+
+export function resolveHandler(
+  handlers: Record<string, AnyHandler>,
+  tag: string,
+  method: string,
+  expected: string | undefined,
+): { ok: true; handler: AnyHandler } | { ok: false; status: 405 | 404; body: { error: string } } {
+  if (expected && expected !== method) return { ok: false, status: 405, body: { error: 'method not allowed' } };
+  const handler = handlers[tag];
+  if (!handler) return { ok: false, status: 404, body: { error: `no handler for tag: ${tag}` } };
+  return { ok: true, handler };
+}
+
+export function validateResponse(
+  result: { status: number; headers?: Record<string, string>; cookies?: Record<string, string> },
+  headerSchemas: Record<number, z.ZodType> | undefined,
+  cookieSchemas: Record<number, z.ZodType> | undefined,
+): { ok: true } | { ok: false; status: 500; body: { error: string } } {
+  if (headerSchemas && result.headers) {
+    const schema = headerSchemas[result.status];
+    if (schema && !schema.safeParse(result.headers).success) return { ok: false, status: 500, body: { error: 'invalid response headers' } };
+  }
+  if (cookieSchemas && result.cookies) {
+    const schema = cookieSchemas[result.status];
+    if (schema && !schema.safeParse(result.cookies).success) return { ok: false, status: 500, body: { error: 'invalid response cookies' } };
+  }
+  return { ok: true };
+}
 
 export function createServer<
   Route extends { tag: string },
@@ -73,15 +128,6 @@ export function createServer<
   const { methodMap, bodySchemaMap, headerSchemaMap, cookieSchemaMap, responseHeaderSchemaMap, responseCookieSchemaMap, rateLimitMap } =
     collectHttpMaps(router.children as HttpWalkNode[]);
 
-  // Typed alias to avoid repeating the cast at every call site.
-  type UntypedHandler = (ctx: {
-    params: unknown;
-    body: unknown;
-    query: unknown;
-    headers: unknown;
-    cookies: unknown;
-  }) => Promise<{ status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string> }>;
-
   const maxBodySize = options?.maxBodySize ?? DEFAULT_MAX_BODY_SIZE;
   let _defaultRateLimitStore: RateLimitStore | undefined;
 
@@ -92,83 +138,28 @@ export function createServer<
     body: unknown,
     headers: Record<string, string>,
   ): Promise<DispatchResult> {
-    const tag = route.tag;
-
-    const expected = methodMap[tag];
-    if (expected && expected !== method) {
-      return { status: 405, body: { error: 'method not allowed' }, tag };
-    }
-
+    const { tag } = route;
     const rlPolicy = rateLimitMap[tag];
     if (rlPolicy) {
       const store = options?.rateLimitStore ?? (_defaultRateLimitStore ??= createMemoryStore());
-      const key = (options?.rateLimitKeyResolver
-        ? options.rateLimitKeyResolver({ url, headers })
-        : (headers['x-forwarded-for'] ?? url.hostname)) + ':' + tag;
+      const key = (options?.rateLimitKeyResolver ? options.rateLimitKeyResolver({ url, headers }) : (headers['x-forwarded-for'] ?? url.hostname)) + ':' + tag;
       const count = await store.increment(key, rlPolicy.windowMs);
-      if (count > rlPolicy.maxRequests) {
-        return {
-          status: 429,
-          body: { error: 'too many requests' },
-          headers: { 'retry-after': String(Math.ceil(rlPolicy.windowMs / 1000)) },
-          tag,
-        };
-      }
+      if (count > rlPolicy.maxRequests) return { status: 429, body: { error: 'too many requests' }, headers: { 'retry-after': String(Math.ceil(rlPolicy.windowMs / 1000)) }, tag };
     }
-
-    const handler = (handlers as Record<string, UntypedHandler>)[tag];
-    if (!handler) return { status: 404, body: { error: `no handler for tag: ${tag}` }, tag };
-
-    let validatedBody: unknown = body;
-    const bodySchema = bodySchemaMap[tag];
-    if (bodySchema) {
-      const result = bodySchema.safeParse(body);
-      if (!result.success) return { status: 400, body: { error: 'invalid request body' }, tag };
-      validatedBody = result.data;
-    }
-
-    let validatedHeaders: unknown = undefined;
-    const headerSchema = headerSchemaMap[tag];
-    if (headerSchema) {
-      const result = headerSchema.safeParse(headers);
-      if (!result.success) return { status: 400, body: { error: 'invalid request headers' }, tag };
-      validatedHeaders = result.data;
-    }
-
-    let validatedCookies: unknown = undefined;
-    const cookieSchema = cookieSchemaMap[tag];
-    if (cookieSchema) {
-      const raw = parseCookies(headers['cookie'] ?? '');
-      const result = cookieSchema.safeParse(raw);
-      if (!result.success) return { status: 400, body: { error: 'invalid request cookies' }, tag };
-      validatedCookies = result.data;
-    }
-
+    const resolved = resolveHandler(handlers as Record<string, AnyHandler>, tag, method, methodMap[tag]);
+    if (!resolved.ok) return { ...resolved, tag };
+    const bodyResult = validateInput(bodySchemaMap[tag], body, 'invalid request body', body);
+    if (!bodyResult.ok) return { ...bodyResult, tag };
+    const headerResult = validateInput(headerSchemaMap[tag], headers, 'invalid request headers');
+    if (!headerResult.ok) return { ...headerResult, tag };
+    const cookieResult = validateInput(cookieSchemaMap[tag], parseCookies(headers['cookie'] ?? ''), 'invalid request cookies');
+    if (!cookieResult.ok) return { ...cookieResult, tag };
     try {
-      const routeRecord = route as Record<string, unknown>;
-      const params = Object.fromEntries(
-        Object.entries(routeRecord).filter(([k]) => k !== 'tag' && k !== 'child' && k !== 'query'),
-      );
-      const handlerResult = await handler({ params, body: validatedBody, query: routeRecord['query'], headers: validatedHeaders, cookies: validatedCookies });
-
-      const headerSchemas = responseHeaderSchemaMap[tag];
-      if (headerSchemas && handlerResult.headers) {
-        const statusSchema = headerSchemas[handlerResult.status];
-        if (statusSchema) {
-          const parsed = statusSchema.safeParse(handlerResult.headers);
-          if (!parsed.success) console.warn('[router] response header validation failed:', parsed.error);
-        }
-      }
-
-      const cookieSchemas = responseCookieSchemaMap[tag];
-      if (cookieSchemas && handlerResult.cookies) {
-        const statusSchema = cookieSchemas[handlerResult.status];
-        if (statusSchema) {
-          const parsed = statusSchema.safeParse(handlerResult.cookies);
-          if (!parsed.success) console.warn('[router] response cookie validation failed:', parsed.error);
-        }
-      }
-
+      const params = extractParams(route);
+      const query = (route as { query?: unknown }).query;
+      const handlerResult = await resolved.handler({ params, body: bodyResult.data, query, headers: headerResult.data, cookies: cookieResult.data });
+      const respResult = validateResponse(handlerResult, responseHeaderSchemaMap[tag], responseCookieSchemaMap[tag]);
+      if (!respResult.ok) return { ...respResult, tag };
       const response: DispatchResult = { status: handlerResult.status, body: handlerResult.body, tag };
       if (handlerResult.headers) response.headers = handlerResult.headers;
       if (handlerResult.cookies) response.cookies = handlerResult.cookies;
@@ -176,10 +167,7 @@ export function createServer<
     } catch (e) {
       if (options?.errorMap) {
         for (const entry of options.errorMap) {
-          if (entry.match(e)) {
-            const mapped = entry.response(e);
-            return { status: mapped.status, body: mapped.body, tag };
-          }
+          if (entry.match(e)) { const mapped = entry.response(e); return { status: mapped.status, body: mapped.body, tag }; }
         }
       }
       return { status: 500, body: { error: 'internal server error' }, tag };

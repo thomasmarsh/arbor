@@ -3,7 +3,79 @@ import z from 'zod';
 import { httpRoute } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
 import { createMemoryStore } from './rate-limit.js';
-import { createServer } from './server.js';
+import { createServer, resolveHandler, validateInput, validateResponse } from './server.js';
+
+describe('validateInput', () => {
+  const schema = z.object({ name: z.string() });
+
+  it('returns ok:true with fallback when no schema', () => {
+    expect(validateInput(undefined, 'anything', 'err')).toEqual({ ok: true, data: undefined });
+  });
+
+  it('returns provided fallback when no schema', () => {
+    expect(validateInput(undefined, 'anything', 'err', 'anything')).toEqual({ ok: true, data: 'anything' });
+  });
+
+  it('returns ok:true with parsed data for valid input', () => {
+    expect(validateInput(schema, { name: 'alice' }, 'bad')).toEqual({ ok: true, data: { name: 'alice' } });
+  });
+
+  it('returns ok:false with 400 and message for invalid input', () => {
+    expect(validateInput(schema, { name: 123 }, 'bad input')).toEqual({ ok: false, status: 400, body: { error: 'bad input' } });
+  });
+});
+
+describe('resolveHandler', () => {
+  const handler = () => Promise.resolve({ status: 200, body: {} });
+
+  it('returns 405 when method does not match expected', () => {
+    expect(resolveHandler({ 'get-user': handler }, 'get-user', 'POST', 'GET')).toEqual({ ok: false, status: 405, body: { error: 'method not allowed' } });
+  });
+
+  it('returns 404 when no handler registered for tag', () => {
+    expect(resolveHandler({}, 'missing', 'GET', 'GET')).toEqual({ ok: false, status: 404, body: { error: 'no handler for tag: missing' } });
+  });
+
+  it('returns handler when method matches', () => {
+    const result = resolveHandler({ 'get-user': handler }, 'get-user', 'GET', 'GET');
+    expect(result).toMatchObject({ ok: true, handler });
+  });
+
+  it('returns handler when no expected method constraint', () => {
+    const result = resolveHandler({ 'get-user': handler }, 'get-user', 'GET', undefined);
+    expect(result).toMatchObject({ ok: true, handler });
+  });
+});
+
+describe('validateResponse', () => {
+  it('returns ok:true when no schemas provided', () => {
+    expect(validateResponse({ status: 200 }, undefined, undefined)).toEqual({ ok: true });
+  });
+
+  it('returns ok:true when response headers pass schema', () => {
+    const headers = { 200: z.object({ 'x-id': z.string() }) };
+    expect(validateResponse({ status: 200, headers: { 'x-id': 'abc' } }, headers, undefined)).toEqual({ ok: true });
+  });
+
+  it('returns ok:false with 500 when response headers fail schema', () => {
+    const headers = { 200: z.object({ 'x-id': z.string() }) };
+    expect(validateResponse({ status: 200, headers: { 'x-id': 123 as unknown as string } }, headers, undefined)).toEqual({
+      ok: false, status: 500, body: { error: 'invalid response headers' },
+    });
+  });
+
+  it('returns ok:false with 500 when response cookies fail schema', () => {
+    const cookies = { 200: z.object({ 'session-id': z.string() }) };
+    expect(validateResponse({ status: 200, cookies: { 'session-id': 0 as unknown as string } }, undefined, cookies)).toEqual({
+      ok: false, status: 500, body: { error: 'invalid response cookies' },
+    });
+  });
+
+  it('skips header check when no headers in result', () => {
+    const headers = { 200: z.object({ 'x-id': z.string() }) };
+    expect(validateResponse({ status: 200 }, headers, undefined)).toEqual({ ok: true });
+  });
+});
 
 describe('createServer', () => {
   const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });

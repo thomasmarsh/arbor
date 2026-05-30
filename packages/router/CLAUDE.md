@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 32 complete
-- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54, 55, 38, 39, 56, 32 complete. Plan 28 superseded by 47. Plan 32: `cookies` schema added to `httpRoute()`; request cookies validated from `Cookie` header via `parseCookies`; typed `ctx.cookies` in handlers; response cookies in handler return flow to `result.cookies`; Q10 resolved as option b (header parsing). See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Plan 60 complete
+- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54, 55, 38, 39, 56, 32, 60 complete. Plan 28 superseded by 47. Plan 60: `createServer` decomposed — `validateInput`, `resolveHandler`, `validateResponse` extracted as named exports with dedicated unit tests; `executeRoute` body reduced to ~37 lines; `UntypedHandler` removed (replaced by module-level `AnyHandler`); response validation now rejects (500) instead of warn-and-continue; `as Record<string, unknown>` and `as Record<string, UntypedHandler>` casts eliminated from `executeRoute`. See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 
