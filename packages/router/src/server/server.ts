@@ -125,6 +125,20 @@ export function createServer<
   const maxBodySize = options?.maxBodySize ?? DEFAULT_MAX_BODY_SIZE;
   let _defaultRateLimitStore: RateLimitStore | undefined;
 
+  async function applyRateLimit(
+    tag: string,
+    url: URL,
+    headers: Record<string, string>,
+  ): Promise<DispatchResult | null> {
+    const rlPolicy = rateLimitMap[tag];
+    if (!rlPolicy) return null;
+    const store = options?.rateLimitStore ?? (_defaultRateLimitStore ??= createMemoryStore());
+    const key = (options?.rateLimitKeyResolver ? options.rateLimitKeyResolver({ url, headers }) : (headers['x-forwarded-for'] ?? url.hostname)) + ':' + tag;
+    const count = await store.increment(key, rlPolicy.windowMs);
+    if (count > rlPolicy.maxRequests) return { status: 429, body: { error: 'too many requests' }, headers: { 'retry-after': String(Math.ceil(rlPolicy.windowMs / 1000)) }, tag };
+    return null;
+  }
+
   async function executeRoute(
     route: Route,
     url: URL,
@@ -133,13 +147,8 @@ export function createServer<
     headers: Record<string, string>,
   ): Promise<DispatchResult> {
     const { tag } = route;
-    const rlPolicy = rateLimitMap[tag];
-    if (rlPolicy) {
-      const store = options?.rateLimitStore ?? (_defaultRateLimitStore ??= createMemoryStore());
-      const key = (options?.rateLimitKeyResolver ? options.rateLimitKeyResolver({ url, headers }) : (headers['x-forwarded-for'] ?? url.hostname)) + ':' + tag;
-      const count = await store.increment(key, rlPolicy.windowMs);
-      if (count > rlPolicy.maxRequests) return { status: 429, body: { error: 'too many requests' }, headers: { 'retry-after': String(Math.ceil(rlPolicy.windowMs / 1000)) }, tag };
-    }
+    const rateLimitResult = await applyRateLimit(tag, url, headers);
+    if (rateLimitResult) return rateLimitResult;
     const requiredRoles = requiresMap[tag];
     let session: SessionCtx | undefined;
     if (requiredRoles) {
