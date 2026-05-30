@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 85 complete; Plan 75 is next
-- **Current Status**: Waves 0–6 complete (plans 18–65). Wave 7 complete (plans 82–84, 67–69). Wave 8 in progress: plans 71, 73, 72, 85 complete. See `plan/work-order.md` for full queue.
+- **Current Task**: Plan 75 complete; check `plan/work-order.md` for next
+- **Current Status**: Waves 0–6 complete (plans 18–65). Wave 7 complete (plans 82–84, 67–69). Wave 8 in progress: plans 71, 73, 72, 85, 75 complete. See `plan/work-order.md` for full queue.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -82,7 +82,7 @@ type Derive<N> =
    b) Document technical debt in `plan/` using format `plan/<sequence>.<topic>.md`.
    c) Before editing blind, use `rg` (ripgrep) via the terminal to find exact symbol definitions. Do not read entire files just to scan for code signatures.
 1. **Smallest possible change**: One localized thing at a time. Prefer a 1-line change with a test.
-2. **TDD Workflow**: Write failing tests/stubs first to verify ergonomics before updating runtime code.
+2. **TDD Workflow**: Write failing tests/stubs first to verify ergonomics before updating runtime code. **Exception — novel type designs**: if the plan introduces a type design involving union constraints + contextual typing, generic overloads, or index signatures intersected with mapped types, validate the type-level invariant in a minimal scratch file _before_ writing tests. See `plan/workflow.md` §TypeScript Type-Level Design Spikes for the scratch-file workflow and a table of quick-hypothesis checks. Do not iterate on the full implementation more than once without empirical confirmation of the root cause.
 3. **Test alongside**: Changes require tests (`expectTypeOf` for type-level, `expect` for runtime). Base cases first.
 4. **Always verify**: Run verification chain after every single change. Fix failures before moving forward.
 5. **Correct by construction**: Parse, don't validate. Use types over runtime checks to make illegal states unrepresentable.

@@ -11,7 +11,9 @@
       "Bash(xargs ls)",
       "Bash(rg -rn \"buildUrl\\\\|encodeURIComponent\" /Users/tmarsh/git/arbor/packages/router/src/)",
       "Bash(rg -rn \"encodeURIComponent\\\\|buildUrl\\\\|print\\\\b\" /Users/tmarsh/git/arbor/packages/router/src/)",
-      "Bash(tsx examples/test-client.ts)"
+      "Bash(tsx examples/test-client.ts)",
+      "Bash(rg \"index-signature\\\\|prefer.*Record\\\\|no-explicit-any\" /Users/tmarsh/git/arbor/packages/router/eslint.config.*)",
+      "Bash(rg \"index-signature\\\\|prefer.*Record\\\\|no-explicit-any\" /Users/tmarsh/git/arbor/eslint.config.*)"
     ]
   }
 }
