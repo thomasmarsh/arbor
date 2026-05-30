@@ -4,123 +4,110 @@
 
 Work through numbered plans in this sequence. Complete each fully (tests passing, typecheck clean) before starting the next.
 
-### Current queue (plans 19–23)
+### Current queue
 
 ```text
-19 → 21 → 27 → 25 → 20 → 22 → 26 → 23
+57 → 59 → 61 → 60 → 62
 ```
 
-Plan 24 (TanStack bridge) is **deferred** — do not start until 19–23 are complete.
-Plan 28 (`_child` removal) is **blocked** — see Q7 in `questions.md`. Spike 46
-must validate an approach first; a new implementation plan (28b) will follow.
-
-Rationale for ordering:
-
-- **19 first**: Phantom/runtime context split. Adds `_ctx`; unblocks all plans that read runtime schemas cast-free (25, 22, 23).
-- **28 removed from queue**: Blocked. `_child` is a load-bearing type memoization field; removing it causes `TS2589` due to mutual recursion in `Derive`/`ChildUnion`. See plan 46 spike.
-- **21 after 19**: Smallest plan — `Route extends { tag: string }` bound. Independent, zero-risk.
-- **27 after 21**: Normalize `Record<number>` vs `Record<string>` for response status codes. Small, independent; must land before the OpenAPI generator (23).
-- **25 after 19**: Server body validation and error boundary. Critical production safety floor. Needs `_ctx.bodySchema` from plan 19.
-- **20 after 25**: Section params in `print()` via full phantom threading (Q1). Type machinery is fresh from 19.
-- **22 after 19+25**: Server DI context with namespaced `ctx` shape (Q2). Builds on a validated foundation from plan 25.
-- **26 after 20+22**: Type-level test expansion. Section-param test requires plan 20; handler-exhaustiveness test requires the plan 22 handler shape.
-- **23 after 27+22**: OpenAPI generator, full-tree approach (Q3). Needs normalized status code types (27) and the unified context shape (22).
+Plans 19–27, 32, 36, 38–39, 42–43, 46–47, 50, 53–56 are **complete**.
+Plan 28 is **superseded** by plan 47 (FlattenChildrenImpl approach).
 
 ---
 
-### Wave 1 — Diagnostics and test foundation (after plan 23)
+### Wave 0 — Foundation (complete)
 
-```text
-42 ✓ (edge case tests)
-46 ✓ (derive restructure spike)
-47   ← NEXT: remove _child via FlattenChildrenImpl
-43   (inference limits benchmark — run after 47 lands)
-```
-
-- **42**: ✓ Done.
-- **46 spike**: ✓ Done. Depth-counter approach (`FlattenChildrenImpl<C, D>`)
-  passes all assertions including a 4-level tree; plan 47 opened.
-- **47**: Remove `_child` phantom field. Replace `Derive`/`ChildUnion` with
-  `FlattenChildrenImpl`. Unblocks plan 28. **Next in queue.**
-- **43 spike**: Benchmark type inference depth/complexity with the new
-  `FlattenChildrenImpl` implementation (which has a 15-level cap by default).
-  Measures tsc wall-clock time and TS2589 threshold vs. tree depth/breadth.
-  Run after plan 47 so the benchmark tests the new implementation.
+Plans 19, 21, 25, 20, 27, 22, 26, 23 — phantom/runtime split, body validation,
+section params, DI context, type-level tests, OpenAPI generator, status code normalization.
 
 ---
 
-### Wave 2 — API contract surface (after plan 22+23)
+### Wave 1 — Diagnostics and type machinery (complete)
 
 ```text
-29 → 30 → 31 spike
-        ↘ 35
+42 ✓  46 ✓  47 ✓  43 ✓
 ```
 
-- **29**: Typed response headers. Extends handler return type and OpenAPI spec.
-- **30**: Typed request headers. Extends `ctx` shape; same validation pattern as plan 25.
-- **31 spike**: ✓ Done. Typed HTTP API client architecture spike. Resolved Q8;
-  opened plan 48.
-- **48**: Typed HTTP client — options API (`{body?, headers?}`), `HttpResponseUnion`
-  return type, `./client` and `./server` subpath exports. Opens after plan 31.
-- **35**: Multipart/streaming body parsing (S1). Depends on plan 22 (ctx shape).
-  Can proceed in parallel with 29/30/48.
+- **42**: ✓ Edge case tests.
+- **46**: ✓ Depth-counter spike (`FlattenChildrenImpl`).
+- **47**: ✓ Removed `_child` phantom via `FlattenChildrenImpl`.
+- **43**: ✓ Inference depth benchmark.
 
 ---
 
-### Wave 3 — Infrastructure layer (after wave 2 + plan 22)
+### Wave 2 — API contract surface (complete)
 
 ```text
-41 (examples)   ← start after plan 22; add examples as features land
-44 → 45
-44 → 36
-44 → 37
+31 ✓  48 ✓  29/30 (typed headers — not yet started)
+35 (multipart — not yet started)
 ```
 
-- **41**: Examples directory. First batch (`basic-server`, `nested-routes`,
-  `query-params`) lands after plan 22. Add further examples as each feature
-  plan completes.
-- **44**: ~~Type-safe middleware pipeline~~ **Superseded by plan 49 spike.**
-  Use handler enrichers (`withEnricher`) instead — see plan 49.
-- **49 spike**: ✓ Done. Handler enrichers validated as middleware replacement.
-  `withEnricher` + `composeEnrichers` in `src/server/enrichers.ts`. Plans 36,
-  37, 38, 39, 40 each get a named enricher; no pipeline runner needed.
-- **50**: Publish enrichers to public API + redirect plans 36–40. **Next.**
-  Exports `Enricher`/`withEnricher`/`composeEnrichers`; closes plan 44;
-  updates plans 36–40 dependency sections to reference `withEnricher`.
-- **45**: Pluggable error mapping. Extends plan 25's catch block.
-- **36**: Per-route rate limiting. Implement as `withRateLimit` enricher.
-- **37**: Telemetry decorator (`withMetrics`). Implement as `withMetrics` enricher.
+- **31**: ✓ Typed HTTP client spike.
+- **48**: ✓ Typed HTTP client — options API, `HttpResponseUnion`, subpath exports.
+- **29/30**: Typed response/request headers. Not yet started.
+- **35**: Multipart/streaming body parsing. Not yet started.
 
 ---
 
-### Wave 4 — Security stack (after plan 44)
+### Wave 3 — Infrastructure layer (complete)
 
 ```text
-38 → 33
-39 → 34
-39 → 40
-32 (after 29 + 30 + Q10 resolved)
+49 ✓  50 ✓  45 ✓  36 ✓  38 ✓  39 ✓  32 ✓
 ```
 
-- **38**: CORS/CSRF server wrapper (SEC1). Functional decorator; reads per-route
-  `cors` field from plan 33.
-- **33**: Per-route CORS policy. Extends plan 38's server-level config.
-- **39**: JWT/session authentication contracts (SEC2). `protectedRoute` factory.
-- **40**: RBAC authorization (SEC3). Sits on top of plan 39.
-- **34**: API key authentication. Distinct auth strategy; follows the
-  `protectedRoute` composition pattern from plan 39.
-- **32**: Cookie handling. Blocked on Q10 (WinterCG CookieStore vs. custom
-  abstraction) and plans 29+30 (validated contract inputs pattern).
+- **49**: ✓ Handler enrichers spike.
+- **50**: ✓ Published enrichers API.
+- **45**: ✓ Pluggable error mapping.
+- **36**: ✓ Per-route rate limiting enricher.
+- **38**: ✓ CORS/CSRF server wrapper.
+- **39**: ✓ JWT/session authentication enricher.
+- **32**: ✓ Cookie handling.
+- **37**: Telemetry/metrics enricher. Not yet started.
+- **33/34/40**: Per-route CORS, API key auth, RBAC. Not yet started.
+
+---
+
+### Wave 4 — Context layer cleanup (complete)
+
+```text
+53 ✓  54 ✓  55 ✓  56 ✓
+```
+
+- **53**: ✓ RouteCtx moved to plugins.
+- **54**: ✓ RouteCtx removed via ctx param.
+- **55**: ✓ `_ctx`/`Ctx` renamed to `_meta`/`Meta`.
+- **56**: ✓ Core decoupled from HTTP context layer.
+
+---
+
+### Wave 5 — Structural health (current)
+
+```text
+57 → 59 → 61 → 60 → 62
+```
+
+- **57**: Rename `Enricher` → `Guard`; resolve Result overlap. **Next in queue.**
+- **59**: Decompose `walkParse` god function; unify walk boilerplate across `walkCollect`,
+  `walkPrint`, `buildMethodMap`, `buildResponseSchemaMap`.
+- **61**: Type the `_meta` bag — eliminate `as HttpContextData` / `as OpenApiCtxData`
+  casts by narrowing `WalkNode` per context layer. Can run parallel to 59.
+- **60**: Decompose `createServer` god function into `validateInput`, `resolveHandler`,
+  `validateResponse` steps, each returning typed `Result`.
+- **62**: Unify `DispatchResult` / `HttpResponseUnion` / handler return into one
+  `HttpResponse` type; add `respond(status, body)` helper to eliminate `status: N as const`.
+
+See **plan 58** for the full prioritized smell inventory and rationale.
 
 ---
 
 ### Deferred
 
-- **Plan 24** (TanStack bridge spike): Do not start until plans 19–23 complete.
-  See Q4 + Q6. If undeferred, lives in `packages/router-tanstack`.
-- **Plan 48** (typed HTTP client): Opens from plan 31 spike. See plan 48.
-- **Radix tree router** (spec.enhancements Phase 4): Performance optimization.
-  Not planned until a benchmark shows O(N) lookup is a real bottleneck.
+- **Plan 24** (TanStack bridge): Lives in `packages/router-tanstack` when undeferred. See Q4 + Q6.
+- **Plans 29/30** (typed headers): Wave 2 remainder. Opens after wave 5 settles the response type shape (plan 62).
+- **Plans 33/34/40** (per-route CORS, API key, RBAC): Wave 3 remainder.
+- **Plan 35** (multipart): Wave 2 remainder.
+- **Plan 37** (telemetry enricher): Wave 3 remainder.
+- **Radix tree router** (spec.enhancements Phase 4): Not until a benchmark shows O(N) lookup is a real bottleneck.
 
 ---
 
@@ -160,8 +147,19 @@ Rationale for ordering:
 | 47   | Remove `_child` phantom via depth-counter                  |
 | 48   | Typed HTTP client: options API + headers + subpath exports |
 | 49   | Spike: handler enrichers as middleware alt. — ✓ done       |
-| 50   | Publish enrichers API; redirect plans 36–40                |
-| 56   | Tech debt: core/ must not import from contexts/            |
+| 50   | Publish enrichers API; redirect plans 36–40 — ✓ done       |
+| 51   | Spike: RouteCtx design — superseded by 53                  |
+| 52   | Spike: openApiRoute wraps httpRoute — ✓ done               |
+| 53   | RouteCtx move to plugins — ✓ done                          |
+| 54   | RouteCtx removal via ctx param — ✓ done                    |
+| 55   | Rename `_ctx`/`Ctx` to `_meta`/`Meta` — ✓ done            |
+| 56   | Tech debt: core/ must not import from contexts/ — ✓ done   |
+| 57   | Rename Enricher → Guard; resolve Result overlap            |
+| 58   | Architectural smell assessment (reference backlog)         |
+| 59   | Decompose walkParse; unify walk boilerplate                |
+| 60   | Decompose createServer god function                        |
+| 61   | Type the `_meta` bag; eliminate accessor casts             |
+| 62   | Unify response types; add `respond()` helper               |
 
 ---
 
