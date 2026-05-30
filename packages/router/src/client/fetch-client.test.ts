@@ -98,7 +98,10 @@ describe('createClient', () => {
       });
 
       const client = createClient('https://example.com', router, { fetch: fetchFn });
-      await client.fetch({ tag: 'create-user' }, { body: { name: 'Alice', email: 'alice@test.com' } });
+      await client.fetch(
+        { tag: 'create-user' },
+        { body: { name: 'Alice', email: 'alice@test.com' } },
+      );
 
       expect(capturedUrl).toBe('https://example.com/users');
     });
@@ -165,7 +168,10 @@ describe('createClient', () => {
       });
 
       const client = createClient('https://example.com', router, { fetch: fetchFn });
-      await client.fetch({ tag: 'create-user' }, { body: { name: 'Alice', email: 'alice@test.com' } });
+      await client.fetch(
+        { tag: 'create-user' },
+        { body: { name: 'Alice', email: 'alice@test.com' } },
+      );
 
       expect(capturedMethod).toBe('POST');
     });
@@ -185,7 +191,10 @@ describe('createClient', () => {
       };
 
       const client = createClient('https://example.com', router, { fetch: fetchFn });
-      await client.fetch({ tag: 'create-user' }, { body: { name: 'Alice', email: 'alice@test.com' } });
+      await client.fetch(
+        { tag: 'create-user' },
+        { body: { name: 'Alice', email: 'alice@test.com' } },
+      );
 
       expect(JSON.parse(capturedBody)).toEqual({ name: 'Alice', email: 'alice@test.com' });
       expect(capturedHeaders['Content-Type']).toBe('application/json');
@@ -253,7 +262,7 @@ describe('createClient', () => {
       });
       const result = await client.fetch({ tag: 'get-user', id: '123' });
 
-      expect(result.isSuccess()).toBe(true);
+      expect(result.isOk()).toBe(true);
       expect(result.getOrThrow()).toEqual({
         status: 200,
         body: { id: '123', email: 'test@test.com' },
@@ -272,7 +281,7 @@ describe('createClient', () => {
       });
       const result = await client.fetch({ tag: 'get-user', id: '123' });
 
-      expect(result.isFailure()).toBe(true);
+      expect(result.isErr()).toBe(true);
     });
 
     it('returns Result.success when status has no schema (unvalidated passthrough)', async () => {
@@ -287,7 +296,7 @@ describe('createClient', () => {
       });
       const result = await client.fetch({ tag: 'get-user', id: '123' });
 
-      expect(result.isSuccess()).toBe(true);
+      expect(result.isOk()).toBe(true);
     });
 
     it('infers Result return type when validate is true', () => {

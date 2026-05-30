@@ -132,10 +132,10 @@ export function createClient<
         if (schema) {
           const parsed = schema.safeParse(responseBody);
           if (!parsed.success) {
-            return Result.failure(parsed.error);
+            return Result.err(parsed.error);
           }
         }
-        return Result.success(responseObj);
+        return Result.ok(responseObj);
       }
 
       return responseObj;

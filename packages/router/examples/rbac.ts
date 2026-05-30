@@ -11,21 +11,27 @@ interface Ctx {
 }
 
 const myWithSession = withSession<Ctx, UserSession>(async (ctx) => {
-  const auth = ctx.req.headers.get('authorization') ?? '';
-  if (!auth.startsWith('Bearer ')) return null;
-  const token = auth.slice(7);
-  if (token === 'admin-token') return { userId: 'user-1', roles: ['admin'] };
-  if (token === 'user-token') return { userId: 'user-2', roles: ['user'] };
-  return null;
+  const impl = () => {
+    const auth = ctx.req.headers.get('authorization') ?? '';
+    if (!auth.startsWith('Bearer ')) return null;
+    const token = auth.slice(7);
+    if (token === 'admin-token') return { userId: 'user-1', roles: ['admin'] };
+    if (token === 'user-token') return { userId: 'user-2', roles: ['user'] };
+    return null;
+  };
+
+  return Promise.resolve(impl());
 });
 
 // Compose session + RBAC: only 'admin' or 'super-user' may proceed.
 const adminOnly = composeEnrichers(myWithSession, withRbac(['admin', 'super-user']));
 
 const deleteUserHandler = withEnricher(adminOnly, async ({ session }) =>
-  new Response(JSON.stringify({ deleted: true, by: session.userId }), {
-    headers: { 'content-type': 'application/json' },
-  }),
+  Promise.resolve(
+    new Response(JSON.stringify({ deleted: true, by: session.userId }), {
+      headers: { 'content-type': 'application/json' },
+    }),
+  ),
 );
 
 const make = (token?: string) =>
@@ -35,11 +41,11 @@ const make = (token?: string) =>
   });
 
 const adminResp = await deleteUserHandler({ req: make('admin-token') });
-console.log('admin status:', adminResp.status);       // 200
-console.log('admin body:', await adminResp.json());   // { deleted: true, by: 'user-1' }
+console.log('admin status:', adminResp.status); // 200
+console.log('admin body:', await adminResp.json()); // { deleted: true, by: 'user-1' }
 
 const userResp = await deleteUserHandler({ req: make('user-token') });
-console.log('user status:', userResp.status);         // 403
+console.log('user status:', userResp.status); // 403
 
 const anonResp = await deleteUserHandler({ req: make() });
-console.log('anon status:', anonResp.status);         // 401
+console.log('anon status:', anonResp.status); // 401

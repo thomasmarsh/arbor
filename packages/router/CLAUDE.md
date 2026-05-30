@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 56 complete
-- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54, 55, 38, 39, 56 complete. Plan 28 superseded by 47. Plan 55: `_ctx`/`Ctx` renamed to `_meta`/`Meta` on `RouteNode`; `getHttpCtx`→`getHttpMeta`, `getOpenApiCtx`→`getOpenApiMeta`. Plan 56: HTTP collectors moved out of `core/`; `walkCollect` added to `core/walk.ts`; `collectHttpMaps` in `contexts/http-context.ts`; `createServer` calls `collectHttpMaps` internally. See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Plan 32 complete
+- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54, 55, 38, 39, 56, 32 complete. Plan 28 superseded by 47. Plan 32: `cookies` schema added to `httpRoute()`; request cookies validated from `Cookie` header via `parseCookies`; typed `ctx.cookies` in handlers; response cookies in handler return flow to `result.cookies`; Q10 resolved as option b (header parsing). See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -28,8 +28,8 @@
 ## Working Commands
 
 - Test suite: `pnpm test`
-- Type checking: `pnpm run typecheck`
-- Verification chain: `pnpm test && pnpm run typecheck && pnpm run lint`
+- Type checking: `pnpm typecheck`
+- Verification chain: `pnpm test && pnpm typecheck && pnpm lint`
 
 NOTE: Path structure described in `plan/spec.topology.md`
 

@@ -1,7 +1,7 @@
 // Typed HTTP client: options object API, request headers, TypedClient utility type.
 import z from 'zod';
-import { createClient, createServer, defineRoutes, httpRoute } from '../src/index.js';
 import type { FetchLike, TypedClient } from '../src/index.js';
+import { createClient, createServer, defineRoutes, httpRoute } from '../src/index.js';
 
 const AuthHeader = z.object({ authorization: z.string() });
 const GetMe = z.object({ tag: z.literal('get-me') });
@@ -25,7 +25,6 @@ const router = defineRoutes([
 
 // TypedClient<Route, Map> lets you annotate a variable without repeating generics.
 type Router = typeof router;
-let client: TypedClient<Router['_type'], Router['_ctxMap']>;
 
 const server = createServer(router, {
   'get-me': async (ctx) => {
@@ -45,10 +44,14 @@ const mockFetch: FetchLike = async (url, init) => {
   const reqHeaders: Record<string, string> = init.headers ?? {};
   const body: unknown = init.body ? JSON.parse(init.body) : undefined;
   const result = await server.handle(new URL(url), init.method, body, reqHeaders);
-  return { status: result.status, json: async () => result.body };
+  return { status: result.status, json: async () => Promise.resolve(result.body) };
 };
 
-client = createClient('http://localhost', router, { fetch: mockFetch });
+const client: TypedClient<Router['_type'], Router['_ctxMap']> = createClient(
+  'http://localhost',
+  router,
+  { fetch: mockFetch },
+);
 
 // Request headers are typed — { authorization: string } is required here.
 const me = await client.fetch({ tag: 'get-me' }, { headers: { authorization: 'Bearer alice' } });

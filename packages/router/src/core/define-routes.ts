@@ -31,11 +31,7 @@ export type { ParseDiag } from './walk.js';
 export function route<
   S extends z.ZodObject<any, any>,
   C extends RouteNode<unknown, any, any, any, any>[] = [],
->(
-  schema: S,
-  path: string,
-  children?: [...C],
-): RouteNode<z.infer<S>, [...C]> {
+>(schema: S, path: string, children?: [...C]): RouteNode<z.infer<S>, [...C]> {
   return {
     _type: undefined as never,
 
@@ -46,10 +42,7 @@ export function route<
   };
 }
 
-export function section<
-  Path extends string,
-  C extends RouteNode<unknown, any, any, any, any>[],
->(
+export function section<Path extends string, C extends RouteNode<unknown, any, any, any, any>[]>(
   path: Path,
   children: [...C],
 ): RouteNode<never, [...C], never, ExtractPathParams<Path> | CollectChildSectionParams<C>> {
@@ -102,11 +95,11 @@ export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] 
       try {
         segments = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
       } catch {
-        return Result.failure(`invalid URL encoding: ${url.pathname}`);
+        return Result.err(`invalid URL encoding: ${url.pathname}`);
       }
       const raw = walkParse(nodes, segments, url.searchParams);
-      if (!raw) return Result.failure(`no route: ${url.pathname}`);
-      return Result.success(raw) as Result<Route, string>;
+      if (!raw) return Result.err(`no route: ${url.pathname}`);
+      return Result.ok(raw) as Result<Route, string>;
     },
 
     parseDiagnostics(url: URL): { result: Result<Route, string>; diagnostics: ParseDiag[] } {
@@ -114,12 +107,12 @@ export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] 
       try {
         segs = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
       } catch {
-        return { result: Result.failure(`invalid URL encoding: ${url.pathname}`), diagnostics: [] };
+        return { result: Result.err(`invalid URL encoding: ${url.pathname}`), diagnostics: [] };
       }
       const diag: ParseDiag[] = [];
       const raw = walkParse(nodes, segs, url.searchParams, {}, diag);
-      if (!raw) return { result: Result.failure(`no route: ${url.pathname}`), diagnostics: diag };
-      return { result: Result.success(raw) as Result<Route, string>, diagnostics: diag };
+      if (!raw) return { result: Result.err(`no route: ${url.pathname}`), diagnostics: diag };
+      return { result: Result.ok(raw) as Result<Route, string>, diagnostics: diag };
     },
 
     print(

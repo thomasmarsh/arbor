@@ -113,34 +113,9 @@ etc.). Mixing schema declarations in there may muddy its purpose.
 
 ---
 
-## Q10 — Cookie handling: WinterCG `CookieStore` vs. custom abstraction? (open)
+## Q10 — Cookie handling: WinterCG `CookieStore` vs. custom abstraction? ✓
 
-Plan 32 needs to extract cookies from the request. Two options:
-
-**a) WinterCG `CookieStore` API** — standard, zero-dependency, but not
-available in all WinterCG-compatible runtimes yet (notably Node.js < 22
-without a polyfill).
-
-**b) Parse the `Cookie` header string directly** with a small utility — more
-portable, no polyfill needed, trivially testable.
-
-Decision affects whether we add a polyfill dependency or accept the runtime
-compatibility constraint.
-
-**See**: 32.cookie-handling.md
-
----
-
-## Q11 — Examples directory: co-located or top-level monorepo? (open)
-
-Plan 41 proposes `packages/router/examples/`. Two options:
-
-**a) Co-located** (`packages/router/examples/`) — simple, no extra package,
-examples import directly from `../src` without a publish step.
-
-**b) Top-level monorepo** (`examples/router/`) — consistent with how many
-monorepos organize user-facing demos; easier to grow into a docs site later.
-
-Resolved decision should be recorded before plan 41 begins.
-
-**See**: 41.examples-directory.md
+**Resolution**: Parse the `Cookie` header string directly (option b). Zero
+dependencies, portable across all runtimes, trivially testable. `CookieStore`
+can be adopted later without a breaking API change if needed.
+**See**: 32.DONE.cookie-handling.md

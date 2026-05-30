@@ -21,8 +21,10 @@ export interface HttpContextData {
   bodySchema?: z.ZodType;
   responseSchemas?: Record<number, z.ZodType>;
   responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
+  responseCookieSchemas?: Record<number, z.ZodObject<any, any>>;
   querySchema?: z.ZodObject<any, any>;
   headerSchema?: z.ZodObject<any, any>;
+  cookieSchema?: z.ZodObject<any, any>;
   rateLimit?: { windowMs: number; maxRequests: number };
   cors?: CorsConfig;
 }
@@ -35,17 +37,21 @@ export function collectHttpMaps(nodes: WalkNode[]): {
   methodMap: Record<string, string>;
   bodySchemaMap: Record<string, z.ZodType>;
   headerSchemaMap: Record<string, z.ZodType>;
+  cookieSchemaMap: Record<string, z.ZodType>;
   responseHeaderSchemaMap: Record<string, Record<number, z.ZodType>>;
+  responseCookieSchemaMap: Record<string, Record<number, z.ZodType>>;
   rateLimitMap: Record<string, { windowMs: number; maxRequests: number }>;
   corsMap: Record<string, CorsConfig>;
 } {
   return {
-    methodMap:               walkCollect(nodes, (n) => getHttpMeta(n)?.method),
-    bodySchemaMap:           walkCollect(nodes, (n) => getHttpMeta(n)?.bodySchema),
-    headerSchemaMap:         walkCollect(nodes, (n) => getHttpMeta(n)?.headerSchema),
-    responseHeaderSchemaMap: walkCollect(nodes, (n) => getHttpMeta(n)?.responseHeaderSchemas) as Record<string, Record<number, z.ZodType>>,
-    rateLimitMap:            walkCollect(nodes, (n) => getHttpMeta(n)?.rateLimit),
-    corsMap:                 walkCollect(nodes, (n) => getHttpMeta(n)?.cors),
+    methodMap:                walkCollect(nodes, (n) => getHttpMeta(n)?.method),
+    bodySchemaMap:            walkCollect(nodes, (n) => getHttpMeta(n)?.bodySchema),
+    headerSchemaMap:          walkCollect(nodes, (n) => getHttpMeta(n)?.headerSchema),
+    cookieSchemaMap:          walkCollect(nodes, (n) => getHttpMeta(n)?.cookieSchema),
+    responseHeaderSchemaMap:  walkCollect(nodes, (n) => getHttpMeta(n)?.responseHeaderSchemas) as Record<string, Record<number, z.ZodType>>,
+    responseCookieSchemaMap:  walkCollect(nodes, (n) => getHttpMeta(n)?.responseCookieSchemas) as Record<string, Record<number, z.ZodType>>,
+    rateLimitMap:             walkCollect(nodes, (n) => getHttpMeta(n)?.rateLimit),
+    corsMap:                  walkCollect(nodes, (n) => getHttpMeta(n)?.cors),
   };
 }
 
@@ -55,38 +61,49 @@ export interface HttpContext<
   Response extends Record<number, unknown>,
   Query = never,
   Headers = never,
+  Cookies = never,
 > {
   method: Method;
   body: Body;
   response: Response;
   query: Query;
   headers: Headers;
+  cookies: Cookies;
 }
 
 // A response for a single status code: either a bare Zod body schema or an
-// object with explicit body + optional headers schemas.
-type ResponseDescriptor = z.ZodType | { body: z.ZodType; headers?: z.ZodObject<any, any> };
+// object with explicit body + optional headers/cookies schemas.
+type ResponseDescriptor = z.ZodType | { body: z.ZodType; headers?: z.ZodObject<any, any>; cookies?: z.ZodObject<any, any> };
 
 type InferResponseDescriptor<D> =
   D extends z.ZodType
     ? z.infer<D>
-    : D extends { body: infer B extends z.ZodType; headers: infer H extends z.ZodObject<any, any> }
-      ? { body: z.infer<B>; headers: z.infer<H> }
-      : D extends { body: infer B extends z.ZodType }
-        ? z.infer<B>
-        : never;
+    : D extends { body: infer B extends z.ZodType; headers: infer H extends z.ZodObject<any, any>; cookies: infer CK extends z.ZodObject<any, any> }
+      ? { body: z.infer<B>; headers: z.infer<H>; cookies: z.infer<CK> }
+      : D extends { body: infer B extends z.ZodType; headers: infer H extends z.ZodObject<any, any> }
+        ? { body: z.infer<B>; headers: z.infer<H> }
+        : D extends { body: infer B extends z.ZodType; cookies: infer CK extends z.ZodObject<any, any> }
+          ? { body: z.infer<B>; cookies: z.infer<CK> }
+          : D extends { body: infer B extends z.ZodType }
+            ? z.infer<B>
+            : never;
 
 type InferResponseMap<R extends Record<number, ResponseDescriptor>> = {
   [K in keyof R]: InferResponseDescriptor<R[K]>;
 };
 
-// Maps an inferred response map to a discriminated union of { status, body[, headers] }.
+// Maps an inferred response map to a discriminated union of { status, body[, headers][, cookies] }.
 // Used by server.ts to type handler return values. Lives here (not core/) because
-// the headers shape is an HTTP-specific concern.
+// the headers/cookies shape is an HTTP-specific concern.
 export type HttpResponseUnion<Resp> = {
-  [S in keyof Resp]: Resp[S] extends { body: infer B; headers: infer H }
-    ? { status: S; body: B; headers: H }
-    : { status: S; body: Resp[S] };
+  [S in keyof Resp]:
+    Resp[S] extends { body: infer B; headers: infer H; cookies: infer CK }
+      ? { status: S; body: B; headers: H; cookies: CK }
+      : Resp[S] extends { body: infer B; headers: infer H }
+        ? { status: S; body: B; headers: H }
+        : Resp[S] extends { body: infer B; cookies: infer CK }
+          ? { status: S; body: B; cookies: CK }
+          : { status: S; body: Resp[S] };
 }[keyof Resp];
 
 export function httpRoute<
@@ -97,22 +114,25 @@ export function httpRoute<
   Res extends Record<number, ResponseDescriptor> = Record<number, ResponseDescriptor>,
   Q extends z.ZodObject<any, any> | undefined = undefined,
   H extends z.ZodObject<any, any> | undefined = undefined,
+  CK extends z.ZodObject<any, any> | undefined = undefined,
 >(
   schema: S,
   method: Method,
   path: string,
-  options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H; rateLimit?: { windowMs: number; maxRequests: number }; cors?: CorsConfig },
+  options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H; cookies?: CK; rateLimit?: { windowMs: number; maxRequests: number }; cors?: CorsConfig },
   children?: [...C],
 ): RouteNode<
   z.infer<S> & (Q extends z.ZodObject<any, any> ? { query: z.infer<Q> } : unknown),
   [...C],
-  HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never, H extends z.ZodObject<any, any> ? z.infer<H> : never>,
+  HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never, H extends z.ZodObject<any, any> ? z.infer<H> : never, CK extends z.ZodObject<any, any> ? z.infer<CK> : never>,
   never,
   HttpContextData
 > {
   const responseSchemas: Record<number, z.ZodType> = {};
   const responseHeaderSchemas: Record<number, z.ZodObject<any, any>> = {};
+  const responseCookieSchemas: Record<number, z.ZodObject<any, any>> = {};
   let hasHeaderSchemas = false;
+  let hasCookieSchemas = false;
 
   for (const [status, descriptor] of Object.entries(
     options.response as Record<string, unknown>,
@@ -127,6 +147,10 @@ export function httpRoute<
       if (d['headers']) {
         responseHeaderSchemas[s] = d['headers'] as z.ZodObject<any, any>;
         hasHeaderSchemas = true;
+      }
+      if (d['cookies']) {
+        responseCookieSchemas[s] = d['cookies'] as z.ZodObject<any, any>;
+        hasCookieSchemas = true;
       }
     }
   }
@@ -143,10 +167,12 @@ export function httpRoute<
       ...(options.body ? { bodySchema: options.body } : {}),
       ...(options.query ? { querySchema: options.query } : {}),
       ...(options.headers ? { headerSchema: options.headers } : {}),
+      ...(options.cookies ? { cookieSchema: options.cookies } : {}),
       ...(options.rateLimit ? { rateLimit: options.rateLimit } : {}),
       ...(options.cors ? { cors: options.cors } : {}),
       responseSchemas,
       ...(hasHeaderSchemas ? { responseHeaderSchemas } : {}),
+      ...(hasCookieSchemas ? { responseCookieSchemas } : {}),
     },
   };
 }

@@ -14,7 +14,7 @@ export interface ErrorMapEntry {
 }
 
 export interface HandlerCtx<
-  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown>>,
+  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown, unknown>>,
   Routes,
   Tag extends keyof CtxMap & string,
 > {
@@ -22,10 +22,11 @@ export interface HandlerCtx<
   body: CtxMap[Tag]['body'];
   query: CtxMap[Tag]['query'];
   headers: CtxMap[Tag]['headers'];
+  cookies: CtxMap[Tag]['cookies'];
 }
 
 export type HandlerMap<
-  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown>>,
+  CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown, unknown>>,
   Routes,
 > = {
   [Tag in keyof CtxMap & string]: (
@@ -35,13 +36,25 @@ export type HandlerMap<
 
 const DEFAULT_MAX_BODY_SIZE = 1024 * 1024;
 
-interface DispatchResult { status: number; body: unknown; headers?: Record<string, string>; tag: string }
+function parseCookies(header: string): Record<string, string> {
+  const cookies: Record<string, string> = {};
+  for (const part of header.split(';')) {
+    const idx = part.indexOf('=');
+    if (idx === -1) continue;
+    const name = part.slice(0, idx).trim();
+    const value = part.slice(idx + 1).trim();
+    if (name) cookies[name] = value;
+  }
+  return cookies;
+}
+
+interface DispatchResult { status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string>; tag: string }
 
 export type RateLimitKeyResolver = (req: { url: URL; headers: Record<string, string> }) => string;
 
 export function createServer<
   Route extends { tag: string },
-  Map extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown>>,
+  Map extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown, unknown>>,
 >(
   router: {
     _type: Route;
@@ -57,7 +70,7 @@ export function createServer<
     rateLimitKeyResolver?: RateLimitKeyResolver;
   },
 ) {
-  const { methodMap, bodySchemaMap, headerSchemaMap, responseHeaderSchemaMap, rateLimitMap } =
+  const { methodMap, bodySchemaMap, headerSchemaMap, cookieSchemaMap, responseHeaderSchemaMap, responseCookieSchemaMap, rateLimitMap } =
     collectHttpMaps(router.children as WalkNode[]);
 
   // Typed alias to avoid repeating the cast at every call site.
@@ -66,7 +79,8 @@ export function createServer<
     body: unknown;
     query: unknown;
     headers: unknown;
-  }) => Promise<{ status: number; body: unknown; headers?: Record<string, string> }>;
+    cookies: unknown;
+  }) => Promise<{ status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string> }>;
 
   const maxBodySize = options?.maxBodySize ?? DEFAULT_MAX_BODY_SIZE;
   let _defaultRateLimitStore: RateLimitStore | undefined;
@@ -121,12 +135,21 @@ export function createServer<
       validatedHeaders = result.data;
     }
 
+    let validatedCookies: unknown = undefined;
+    const cookieSchema = cookieSchemaMap[tag];
+    if (cookieSchema) {
+      const raw = parseCookies(headers['cookie'] ?? '');
+      const result = cookieSchema.safeParse(raw);
+      if (!result.success) return { status: 400, body: { error: 'invalid request cookies' }, tag };
+      validatedCookies = result.data;
+    }
+
     try {
       const routeRecord = route as Record<string, unknown>;
       const params = Object.fromEntries(
         Object.entries(routeRecord).filter(([k]) => k !== 'tag' && k !== 'child' && k !== 'query'),
       );
-      const handlerResult = await handler({ params, body: validatedBody, query: routeRecord['query'], headers: validatedHeaders });
+      const handlerResult = await handler({ params, body: validatedBody, query: routeRecord['query'], headers: validatedHeaders, cookies: validatedCookies });
 
       const headerSchemas = responseHeaderSchemaMap[tag];
       if (headerSchemas && handlerResult.headers) {
@@ -137,8 +160,18 @@ export function createServer<
         }
       }
 
+      const cookieSchemas = responseCookieSchemaMap[tag];
+      if (cookieSchemas && handlerResult.cookies) {
+        const statusSchema = cookieSchemas[handlerResult.status];
+        if (statusSchema) {
+          const parsed = statusSchema.safeParse(handlerResult.cookies);
+          if (!parsed.success) console.warn('[router] response cookie validation failed:', parsed.error);
+        }
+      }
+
       const response: DispatchResult = { status: handlerResult.status, body: handlerResult.body, tag };
       if (handlerResult.headers) response.headers = handlerResult.headers;
+      if (handlerResult.cookies) response.cookies = handlerResult.cookies;
       return response;
     } catch (e) {
       if (options?.errorMap) {
@@ -171,13 +204,13 @@ export function createServer<
       method: string,
       body?: unknown,
       headers?: Record<string, string>,
-    ): Promise<{ status: number; body: unknown; headers?: Record<string, string>; tag: string }> {
+    ): Promise<{ status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string>; tag: string }> {
       return dispatch(url, method, body, headers ?? {});
     },
 
     async handleRequest(
       request: Request,
-    ): Promise<{ status: number; body: unknown; headers?: Record<string, string>; tag: string }> {
+    ): Promise<{ status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string>; tag: string }> {
       const bodyResult = await parseBody(request, maxBodySize);
       if (!bodyResult.ok) return { status: bodyResult.status, body: bodyResult.body, tag: 'unmatched' };
       const headers: Record<string, string> = {};

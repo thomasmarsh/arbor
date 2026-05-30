@@ -137,6 +137,90 @@ describe('createServer', () => {
     });
   });
 
+  describe('cookies', () => {
+    const SessionRoute = z.object({ tag: z.literal('create-session') });
+    const SessionBody = z.object({ username: z.string() });
+    const SessionResp = z.object({ ok: z.boolean() });
+    const CsrfCookieSchema = z.object({ 'csrf-token': z.string() });
+    const SessionCookieSchema = z.object({ 'session-id': z.string() });
+
+    const routerWithCookies = defineRoutes([
+      httpRoute(SessionRoute, 'POST', 'session/', {
+        body: SessionBody,
+        cookies: CsrfCookieSchema,
+        response: { 200: { body: SessionResp, cookies: SessionCookieSchema } },
+      }),
+    ]);
+
+    it('returns 400 when required cookie is missing', async () => {
+      const s = createServer(routerWithCookies, {
+        'create-session': () =>
+          Promise.resolve({ status: 200 as const, body: { ok: true }, cookies: { 'session-id': 'x' } }),
+      });
+      const result = await s.handle(
+        new URL('https://example.com/session/'),
+        'POST',
+        { username: 'alice' },
+        {},
+      );
+      expect(result.status).toBe(400);
+    });
+
+    it('passes validated cookies to handler ctx', async () => {
+      let captured: unknown;
+      const s = createServer(routerWithCookies, {
+        'create-session': (ctx) => {
+          captured = ctx.cookies;
+          return Promise.resolve({ status: 200 as const, body: { ok: true }, cookies: { 'session-id': 'x' } });
+        },
+      });
+      await s.handle(
+        new URL('https://example.com/session/'),
+        'POST',
+        { username: 'alice' },
+        { cookie: 'csrf-token=secret123' },
+      );
+      expect((captured as Record<string, string>)['csrf-token']).toBe('secret123');
+    });
+
+    it('response cookies appear in result', async () => {
+      const s = createServer(routerWithCookies, {
+        'create-session': () =>
+          Promise.resolve({ status: 200 as const, body: { ok: true }, cookies: { 'session-id': 'abc123' } }),
+      });
+      const result = await s.handle(
+        new URL('https://example.com/session/'),
+        'POST',
+        { username: 'alice' },
+        { cookie: 'csrf-token=tok' },
+      );
+      expect(result.cookies?.['session-id']).toBe('abc123');
+    });
+
+    it('handler ctx.cookies is typed correctly', () => {
+      createServer(routerWithCookies, {
+        'create-session': (ctx) => {
+          expectTypeOf(ctx.cookies).toEqualTypeOf<{ 'csrf-token': string }>();
+          return Promise.resolve({ status: 200 as const, body: { ok: true }, cookies: { 'session-id': 'x' } });
+        },
+      });
+      expect(true).toBe(true);
+    });
+
+    it('cookies is never for routes without cookie schema', () => {
+      createServer(router, {
+        'get-user': (ctx) => {
+          expectTypeOf(ctx.cookies).toEqualTypeOf<never>();
+          return Promise.resolve({ status: 200 as const, body: { id: '1', email: '' } });
+        },
+        'create-user': (ctx) =>
+          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
+        'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+      });
+      expect(true).toBe(true);
+    });
+  });
+
   describe('request headers', () => {
     const HeaderRoute = z.object({ tag: z.literal('get-with-req-headers'), id: z.string() });
     const ReqHeaderSchema = z.object({

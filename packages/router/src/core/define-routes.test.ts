@@ -63,7 +63,7 @@ describe('defineRoutes', () => {
     });
 
     it('returns failure for unknown route', () => {
-      expect(router.parse(url('/unknown')).isFailure()).toBe(true);
+      expect(router.parse(url('/unknown')).isErr()).toBe(true);
     });
   });
 
@@ -116,7 +116,7 @@ describe('defineRoutes', () => {
     for (const path of paths) {
       it(`parse then print: ${path}`, () => {
         const result = router.parse(url(path));
-        expect(result.isSuccess()).toBe(true);
+        expect(result.isOk()).toBe(true);
         const parsed = result.getOrThrow();
         expect(printRoute(router, parsed as unknown as Record<string, unknown>)).toBe(path);
       });
@@ -160,7 +160,7 @@ describe('defineRoutes', () => {
     ]);
 
     it('section is not a valid terminal route', () => {
-      expect(sectionRouter.parse(new URL('https://example.com/orgs/acme')).isFailure()).toBe(true);
+      expect(sectionRouter.parse(new URL('https://example.com/orgs/acme')).isErr()).toBe(true);
     });
 
     it('section passes through to children', () => {
@@ -172,7 +172,10 @@ describe('defineRoutes', () => {
     });
 
     it('prints through a section when params are in child', () => {
-      const url = sectionRouter.print({ child: { tag: 'project', projectId: 42 } }, { orgId: 'acme' });
+      const url = sectionRouter.print(
+        { child: { tag: 'project', projectId: 42 } },
+        { orgId: 'acme' },
+      );
       expect(url).toBe('/orgs/acme/42');
     });
 
@@ -183,9 +186,7 @@ describe('defineRoutes', () => {
 
     it('section path params are not preserved in parse result', () => {
       // orgId is captured by the section but is not in the returned result
-      const parsed = sectionRouter
-        .parse(new URL('https://example.com/orgs/acme/42'))
-        .getOrThrow();
+      const parsed = sectionRouter.parse(new URL('https://example.com/orgs/acme/42')).getOrThrow();
       expect(parsed).toEqual({ child: { tag: 'project', projectId: 42 } });
     });
 
@@ -202,27 +203,28 @@ describe('defineRoutes', () => {
     ]);
 
     it('nested section is not a valid terminal route at outer level', () => {
-      expect(
-        nestedSectionRouter.parse(new URL('https://example.com/orgs/acme')).isFailure(),
-      ).toBe(true);
+      expect(nestedSectionRouter.parse(new URL('https://example.com/orgs/acme')).isErr()).toBe(
+        true,
+      );
     });
 
     it('nested section is not a valid terminal route at inner level', () => {
       expect(
-        nestedSectionRouter.parse(new URL('https://example.com/orgs/acme/projects')).isFailure(),
+        nestedSectionRouter.parse(new URL('https://example.com/orgs/acme/projects')).isErr(),
       ).toBe(true);
     });
 
     it('parses through two nested sections', () => {
       expect(
-        nestedSectionRouter
-          .parse(new URL('https://example.com/orgs/acme/projects/7'))
-          .getOrThrow(),
+        nestedSectionRouter.parse(new URL('https://example.com/orgs/acme/projects/7')).getOrThrow(),
       ).toMatchObject({ child: { child: { tag: 'issue', issueId: '7' } } });
     });
 
     it('prints through two nested sections when params are in innermost child', () => {
-      const url = nestedSectionRouter.print({ child: { child: { tag: 'issue', issueId: '7', page: 1 } } }, { orgId: 'acme' });
+      const url = nestedSectionRouter.print(
+        { child: { child: { tag: 'issue', issueId: '7', page: 1 } } },
+        { orgId: 'acme' },
+      );
       expect(url).toBe('/orgs/acme/projects/7?page=1');
     });
 
@@ -232,16 +234,16 @@ describe('defineRoutes', () => {
         .getOrThrow();
       // orgId captured by outer section is absent from the result
       expect(parsed).toMatchObject({ child: { child: { tag: 'issue', issueId: '7' } } });
-      expect((parsed as { child?: { child?: { orgId?: unknown } } }).child?.child?.orgId).toBeUndefined();
+      expect(
+        (parsed as { child?: { child?: { orgId?: unknown } } }).child?.child?.orgId,
+      ).toBeUndefined();
     });
 
     it('roundtrip works for nested sections without path params', () => {
       const prefixRouter = defineRoutes([
         section('v1/', [section('api/', [route(Project, '#projectId/')])]),
       ]);
-      const parsed = prefixRouter
-        .parse(new URL('https://example.com/v1/api/42'))
-        .getOrThrow();
+      const parsed = prefixRouter.parse(new URL('https://example.com/v1/api/42')).getOrThrow();
       expect(prefixRouter.print(parsed)).toBe('/v1/api/42');
     });
   });
@@ -249,27 +251,29 @@ describe('defineRoutes', () => {
   describe('parseDiagnostics', () => {
     it('returns success result with empty diagnostics when route matches', () => {
       const { result, diagnostics } = router.parseDiagnostics(url('/users'));
-      expect(result.isSuccess()).toBe(true);
+      expect(result.isOk()).toBe(true);
       expect(diagnostics).toHaveLength(0);
     });
 
     it('returns failure result with segment-mismatch diagnostics for unknown route', () => {
       const { result, diagnostics } = router.parseDiagnostics(url('/unknown'));
-      expect(result.isFailure()).toBe(true);
+      expect(result.isErr()).toBe(true);
       expect(diagnostics.some((d) => d.kind === 'segment-mismatch')).toBe(true);
     });
 
     it('returns failure result with schema-error diagnostic for invalid query param', () => {
-      const { result, diagnostics } = router.parseDiagnostics(url('/orgs/acme/42/7?status=invalid'));
-      expect(result.isFailure()).toBe(true);
+      const { result, diagnostics } = router.parseDiagnostics(
+        url('/orgs/acme/42/7?status=invalid'),
+      );
+      expect(result.isErr()).toBe(true);
       const schemaErrors = diagnostics.filter((d) => d.kind === 'schema-error');
       expect(schemaErrors).toHaveLength(1);
       expect(schemaErrors[0]).toMatchObject({ kind: 'schema-error', path: ':issueId/' });
     });
 
     it('does not affect parse() — parse never allocates the accumulator', () => {
-      expect(router.parse(url('/users')).isSuccess()).toBe(true);
-      expect(router.parse(url('/unknown')).isFailure()).toBe(true);
+      expect(router.parse(url('/users')).isOk()).toBe(true);
+      expect(router.parse(url('/unknown')).isErr()).toBe(true);
     });
   });
 

@@ -13,10 +13,11 @@ const router = defineRoutes([
 
 const server = createServer(router, {
   'get-user': async (ctx) => {
-    if (ctx.params.id === '42') {
-      return { status: 200 as const, body: { id: '42', name: 'Alice' } };
-    }
-    return { status: 404 as const, body: { error: 'user not found' } };
+    return Promise.resolve(
+      ctx.params.id === '42'
+        ? { status: 200 as const, body: { id: '42', name: 'Alice' } }
+        : { status: 404 as const, body: { error: 'user not found' } },
+    );
   },
 });
 

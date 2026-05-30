@@ -171,8 +171,9 @@ Rationale for ordering:
 2. Write the failing test first (type-level with `expectTypeOf`, runtime with `expect`).
 3. Run `pnpm test` — confirm it fails for the right reason.
 4. Implement the minimum change to make it pass.
-5. Run `pnpm test && pnpm run typecheck && pnpm run lint`.
-6. Fix any failures before moving to the next plan.
+5. Run `pnpm test && pnpm typecheck && pnpm lint`.
+6. Run `pnpm run examples`
+7. Fix any failures before moving to the next plan.
 
 ## What "Complete" Means
 
@@ -180,6 +181,7 @@ A plan is complete when:
 
 - All new behavior is tested
 - No existing tests are broken
-- `pnpm test && pnpm run typecheck && pnpm run lint` passes clean
-- If `examples/` is present, then all examples are brought up to date with code changes
+- All examples in `examples/` are brought up to date with code changes
+- `pnpm test && pnpm typecheck && pnpm lint` passes clean
+- `pnpm run examples` runs cleanly
 - The plan file's CLAUDE.md entry is updated (status → complete)

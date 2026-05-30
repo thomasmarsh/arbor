@@ -5,12 +5,12 @@ import { defineRoutes, route, section, type InferRoute } from './define-routes.j
 describe('Empty and degenerate trees', () => {
   it('empty router: parse fails for root path', () => {
     const emptyRouter = defineRoutes([]);
-    expect(emptyRouter.parse(new URL('https://example.com/')).isFailure()).toBe(true);
+    expect(emptyRouter.parse(new URL('https://example.com/')).isErr()).toBe(true);
   });
 
   it('empty router: parse fails for any non-root path', () => {
     const emptyRouter = defineRoutes([]);
-    expect(emptyRouter.parse(new URL('https://example.com/anything')).isFailure()).toBe(true);
+    expect(emptyRouter.parse(new URL('https://example.com/anything')).isErr()).toBe(true);
   });
 
   it('empty router: print returns "/"', () => {
@@ -30,7 +30,9 @@ describe('Empty and degenerate trees', () => {
     const router = defineRoutes([route(Home, 'home/')]);
     const printed = router.print({ tag: 'home' });
     expect(printed).toBe('/home');
-    expect(router.parse(new URL(`https://example.com${printed}`)).getOrThrow()).toEqual({ tag: 'home' });
+    expect(router.parse(new URL(`https://example.com${printed}`)).getOrThrow()).toEqual({
+      tag: 'home',
+    });
   });
 
   it('tag-only schema: parse result contains only the tag field', () => {
@@ -50,7 +52,7 @@ describe('Empty and degenerate trees', () => {
   it('parse fails when URL has extra segments beyond a leaf route', () => {
     const Home = z.object({ tag: z.literal('home') });
     const router = defineRoutes([route(Home, 'home/')]);
-    expect(router.parse(new URL('https://example.com/home/extra')).isFailure()).toBe(true);
+    expect(router.parse(new URL('https://example.com/home/extra')).isErr()).toBe(true);
   });
 });
 
@@ -58,13 +60,13 @@ describe('Path segment edge cases', () => {
   it('trailing slash in URL matches route defined with trailing slash', () => {
     const A = z.object({ tag: z.literal('a') });
     const router = defineRoutes([route(A, 'a/')]);
-    expect(router.parse(new URL('https://example.com/a/')).isSuccess()).toBe(true);
+    expect(router.parse(new URL('https://example.com/a/')).isOk()).toBe(true);
   });
 
   it('no trailing slash in URL matches route defined with trailing slash', () => {
     const A = z.object({ tag: z.literal('a') });
     const router = defineRoutes([route(A, 'a/')]);
-    expect(router.parse(new URL('https://example.com/a')).isSuccess()).toBe(true);
+    expect(router.parse(new URL('https://example.com/a')).isOk()).toBe(true);
   });
 
   it('consecutive path params: both segments captured', () => {
@@ -119,7 +121,9 @@ describe('Schema edge cases', () => {
   it('tag-only schema (no other fields): parse result is exactly the tag', () => {
     const Empty = z.object({ tag: z.literal('empty') });
     const router = defineRoutes([route(Empty, 'empty/')]);
-    expect(router.parse(new URL('https://example.com/empty')).getOrThrow()).toEqual({ tag: 'empty' });
+    expect(router.parse(new URL('https://example.com/empty')).getOrThrow()).toEqual({
+      tag: 'empty',
+    });
   });
 
   it('optional query field absent: field omitted from parse result', () => {
@@ -146,19 +150,25 @@ describe('Schema edge cases', () => {
   it('field with default present: explicit query value overrides default', () => {
     const Page = z.object({ tag: z.literal('page'), n: z.coerce.number().default(1) });
     const router = defineRoutes([route(Page, 'page/')]);
-    expect(router.parse(new URL('https://example.com/page?n=5')).getOrThrow()).toMatchObject({ n: 5 });
+    expect(router.parse(new URL('https://example.com/page?n=5')).getOrThrow()).toMatchObject({
+      n: 5,
+    });
   });
 
   it('optional path param absent: field omitted from result', () => {
     const Detail = z.object({ tag: z.literal('detail'), id: z.string().optional() });
     const router = defineRoutes([route(Detail, 'detail/:id?/')]);
-    expect(router.parse(new URL('https://example.com/detail')).getOrThrow()).toEqual({ tag: 'detail' });
+    expect(router.parse(new URL('https://example.com/detail')).getOrThrow()).toEqual({
+      tag: 'detail',
+    });
   });
 
   it('optional path param present: field captured', () => {
     const Detail = z.object({ tag: z.literal('detail'), id: z.string().optional() });
     const router = defineRoutes([route(Detail, 'detail/:id?/')]);
-    expect(router.parse(new URL('https://example.com/detail/42')).getOrThrow()).toMatchObject({ id: '42' });
+    expect(router.parse(new URL('https://example.com/detail/42')).getOrThrow()).toMatchObject({
+      id: '42',
+    });
   });
 });
 
@@ -176,7 +186,7 @@ describe('Composition', () => {
     const aRouter = defineRoutes([route(A, 'a/')]);
     const emptyRouter = defineRoutes([]);
     const composed = defineRoutes([...aRouter.children, ...emptyRouter.children]);
-    expect(composed.parse(new URL('https://example.com/b')).isFailure()).toBe(true);
+    expect(composed.parse(new URL('https://example.com/b')).isErr()).toBe(true);
   });
 
   it('two routers with same path prefix: first registered route wins', () => {
@@ -185,7 +195,9 @@ describe('Composition', () => {
     const r1 = defineRoutes([route(A, 'api/')]);
     const r2 = defineRoutes([route(B, 'api/')]);
     const composed = defineRoutes([...r1.children, ...r2.children]);
-    expect(composed.parse(new URL('https://example.com/api')).getOrThrow()).toMatchObject({ tag: 'a-v1' });
+    expect(composed.parse(new URL('https://example.com/api')).getOrThrow()).toMatchObject({
+      tag: 'a-v1',
+    });
   });
 
   it('duplicate tag in different branches: throws at construction', () => {
@@ -193,7 +205,9 @@ describe('Composition', () => {
     const B = z.object({ tag: z.literal('dup') });
     const r1 = defineRoutes([route(A, 'a/')]);
     const r2 = defineRoutes([route(B, 'b/')]);
-    expect(() => defineRoutes([...r1.children, ...r2.children])).toThrow('duplicate route tag: "dup"');
+    expect(() => defineRoutes([...r1.children, ...r2.children])).toThrow(
+      'duplicate route tag: "dup"',
+    );
   });
 
   it('composed section and flat route: both paths resolve correctly', () => {
@@ -202,7 +216,9 @@ describe('Composition', () => {
     const sectionRouter = defineRoutes([section('v1/', [route(A, 'a/')])]);
     const bRouter = defineRoutes([route(B, 'b/')]);
     const composed = defineRoutes([...sectionRouter.children, ...bRouter.children]);
-    expect(composed.parse(new URL('https://example.com/v1/a')).getOrThrow()).toMatchObject({ child: { tag: 'a' } });
+    expect(composed.parse(new URL('https://example.com/v1/a')).getOrThrow()).toMatchObject({
+      child: { tag: 'a' },
+    });
     expect(composed.parse(new URL('https://example.com/b')).getOrThrow()).toEqual({ tag: 'b' });
   });
 });
