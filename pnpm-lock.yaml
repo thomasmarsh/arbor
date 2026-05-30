@@ -6,6 +6,9 @@ settings:
 
 catalogs:
   default:
+    fast-check:
+      specifier: ^3.0.0
+      version: 3.23.2
     typescript:
       specifier: ^5.5.0
       version: 5.9.3
@@ -156,6 +159,9 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.19
+      fast-check:
+        specifier: 'catalog:'
+        version: 3.23.2
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
