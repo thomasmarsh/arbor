@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import { httpRoute } from '../contexts/http-context.js';
+import { httpRoute, respond } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
 import { createServer } from './server.js';
 
@@ -11,7 +11,7 @@ describe('Server over single-route router', () => {
       httpRoute(Only, 'GET', 'only/', { response: { 200: z.object({ ok: z.boolean() }) } }),
     ]);
     const server = createServer(router, {
-      only: () => Promise.resolve({ status: 200 as const, body: { ok: true } }),
+      only: () => Promise.resolve(respond(200, { ok: true })),
     });
     const result = await server.handle(new URL('https://example.com/other'), 'GET');
     expect(result.status).toBe(404);
@@ -23,7 +23,7 @@ describe('Server over single-route router', () => {
       httpRoute(Only, 'GET', 'only/', { response: { 200: z.object({ ok: z.boolean() }) } }),
     ]);
     const server = createServer(router, {
-      only: () => Promise.resolve({ status: 200 as const, body: { ok: true } }),
+      only: () => Promise.resolve(respond(200, { ok: true })),
     });
     const result = await server.handle(new URL('https://example.com/only'), 'GET');
     expect(result).toMatchObject({ status: 200, body: { ok: true } });
@@ -48,10 +48,10 @@ describe('Body and query types', () => {
     createServer(router, {
       'get-item': (ctx) => {
         expectTypeOf(ctx.body).toEqualTypeOf<never>();
-        return Promise.resolve({ status: 200 as const, body: { id: ctx.params.id } });
+        return Promise.resolve(respond(200, { id: ctx.params.id }));
       },
-      'post-item': (_ctx) => Promise.resolve({ status: 201 as const, body: { id: '1' } }),
-      search: (_ctx) => Promise.resolve({ status: 200 as const, body: { id: '1' } }),
+      'post-item': (_ctx) => Promise.resolve(respond(201, { id: '1' })),
+      search: (_ctx) => Promise.resolve(respond(200, { id: '1' })),
     });
   });
 
@@ -59,18 +59,18 @@ describe('Body and query types', () => {
     createServer(router, {
       'get-item': (ctx) => {
         expectTypeOf(ctx.query).toEqualTypeOf<never>();
-        return Promise.resolve({ status: 200 as const, body: { id: ctx.params.id } });
+        return Promise.resolve(respond(200, { id: ctx.params.id }));
       },
-      'post-item': (_ctx) => Promise.resolve({ status: 201 as const, body: { id: '1' } }),
-      search: (_ctx) => Promise.resolve({ status: 200 as const, body: { id: '1' } }),
+      'post-item': (_ctx) => Promise.resolve(respond(201, { id: '1' })),
+      search: (_ctx) => Promise.resolve(respond(200, { id: '1' })),
     });
   });
 
   it('route with query schema and defaults: absent params use defaults', async () => {
     const server = createServer(router, {
-      'get-item': () => Promise.resolve({ status: 200 as const, body: { id: '1' } }),
-      'post-item': () => Promise.resolve({ status: 201 as const, body: { id: '1' } }),
-      search: (ctx) => Promise.resolve({ status: 200 as const, body: { id: String(ctx.query.page) } }),
+      'get-item': () => Promise.resolve(respond(200, { id: '1' })),
+      'post-item': () => Promise.resolve(respond(201, { id: '1' })),
+      search: (ctx) => Promise.resolve(respond(200, { id: String(ctx.query.page) })),
     });
     const result = await server.handle(new URL('https://example.com/search'), 'GET');
     expect(result).toMatchObject({ status: 200, body: { id: '1' } });
@@ -78,9 +78,9 @@ describe('Body and query types', () => {
 
   it('route with optional query param present: value is accessible', async () => {
     const server = createServer(router, {
-      'get-item': () => Promise.resolve({ status: 200 as const, body: { id: '1' } }),
-      'post-item': () => Promise.resolve({ status: 201 as const, body: { id: '1' } }),
-      search: (ctx) => Promise.resolve({ status: 200 as const, body: { id: ctx.query.q ?? 'none' } }),
+      'get-item': () => Promise.resolve(respond(200, { id: '1' })),
+      'post-item': () => Promise.resolve(respond(201, { id: '1' })),
+      search: (ctx) => Promise.resolve(respond(200, { id: ctx.query.q ?? 'none' })),
     });
     const result = await server.handle(new URL('https://example.com/search?q=hello'), 'GET');
     expect(result).toMatchObject({ status: 200, body: { id: 'hello' } });
@@ -98,7 +98,7 @@ describe('Path segment edge cases in server', () => {
   it('consecutive path params: both params accessible at runtime', async () => {
     const server = createServer(router, {
       pair: (ctx) =>
-        Promise.resolve({ status: 200 as const, body: { result: `${ctx.params.x}+${ctx.params.y}` } }),
+        Promise.resolve(respond(200, { result: `${ctx.params.x}+${ctx.params.y}` })),
     });
     const result = await server.handle(new URL('https://example.com/foo/bar'), 'GET');
     expect(result).toMatchObject({ status: 200, body: { result: 'foo+bar' } });
@@ -108,7 +108,7 @@ describe('Path segment edge cases in server', () => {
     createServer(router, {
       pair: (ctx) => {
         expectTypeOf(ctx.params).toEqualTypeOf<{ x: string; y: string }>();
-        return Promise.resolve({ status: 200 as const, body: { result: '' } });
+        return Promise.resolve(respond(200, { result: '' }));
       },
     });
   });
@@ -120,7 +120,7 @@ describe('Path segment edge cases in server', () => {
       httpRoute(CatchAll, 'GET', '*rest/', { response: { 200: CatchResp } }),
     ]);
     const server = createServer(wildcardRouter, {
-      'catch-all': () => Promise.resolve({ status: 200 as const, body: { matched: true } }),
+      'catch-all': () => Promise.resolve(respond(200, { matched: true })),
     });
     const result = await server.handle(new URL('https://example.com/any/path/here'), 'GET');
     expect(result).toMatchObject({ status: 200, body: { matched: true } });
@@ -141,9 +141,9 @@ describe('HTTP method edge cases', () => {
   ]);
 
   const server = createServer(router, {
-    'get-item': (ctx) => Promise.resolve({ status: 200 as const, body: { id: ctx.params.id } }),
-    'delete-item': (ctx) => Promise.resolve({ status: 204 as const, body: { id: ctx.params.id } }),
-    'put-item': (ctx) => Promise.resolve({ status: 200 as const, body: { id: ctx.params.id } }),
+    'get-item': (ctx) => Promise.resolve(respond(200, { id: ctx.params.id })),
+    'delete-item': (ctx) => Promise.resolve(respond(204, { id: ctx.params.id })),
+    'put-item': (ctx) => Promise.resolve(respond(200, { id: ctx.params.id })),
   });
 
   it('DELETE route: dispatches correctly', async () => {

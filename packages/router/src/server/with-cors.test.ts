@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import z from 'zod';
-import { collectHttpMaps, httpRoute } from '../contexts/http-context.js';
+import { collectHttpMaps, httpRoute, respond } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
 import type { HttpWalkNode } from '../contexts/http-context.js';
 import { createServer } from './server.js';
@@ -11,7 +11,7 @@ const router = defineRoutes([
   httpRoute(GetUser, 'GET', 'users/:id/', { response: { 200: z.object({ id: z.string() }) } }),
 ]);
 const handler = vi.fn((ctx: { params: { id: string }; body: unknown; query: unknown; headers: unknown }) =>
-  Promise.resolve({ status: 200 as const, body: { id: ctx.params.id } }),
+  Promise.resolve(respond(200, { id: ctx.params.id })),
 );
 const server = createServer(router, { 'get-user': handler });
 
@@ -140,9 +140,9 @@ describe('withCors — per-route override', () => {
   ]);
   const perRouteServer = createServer(routerWithCorsRoutes, {
     'list-posts': vi.fn((_ctx: { params: { slug: string }; body: unknown; query: unknown; headers: unknown }) =>
-      Promise.resolve({ status: 200 as const, body: { slug: 'hello' } })),
+      Promise.resolve(respond(200, { slug: 'hello' }))),
     'delete-post': vi.fn((_ctx: { params: { id: string }; body: unknown; query: unknown; headers: unknown }) =>
-      Promise.resolve({ status: 200 as const, body: { ok: true } })),
+      Promise.resolve(respond(200, { ok: true }))),
   });
 
   it('route-level cors overrides server-level: wildcard route allows any origin', async () => {

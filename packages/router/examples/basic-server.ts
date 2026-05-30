@@ -1,6 +1,6 @@
 // Minimal HTTP server: one GET route, in-memory dispatch.
 import z from 'zod';
-import { createServer, defineRoutes, httpRoute } from '../src/index.js';
+import { createServer, defineRoutes, httpRoute, respond } from '../src/index.js';
 
 const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
 const UserResp = z.object({ id: z.string(), name: z.string() });
@@ -15,8 +15,8 @@ const server = createServer(router, {
   'get-user': async (ctx) => {
     return Promise.resolve(
       ctx.params.id === '42'
-        ? { status: 200 as const, body: { id: '42', name: 'Alice' } }
-        : { status: 404 as const, body: { error: 'user not found' } },
+        ? respond(200, { id: '42', name: 'Alice' })
+        : respond(404, { error: 'user not found' }),
     );
   },
 });

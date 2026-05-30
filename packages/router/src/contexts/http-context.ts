@@ -16,6 +16,16 @@ export interface CorsConfig {
   csrf?: boolean;
 }
 
+export interface HttpResponse<
+  Status extends number = number,
+  Body = unknown,
+> {
+  status: Status;
+  body: Body;
+  headers?: Record<string, string>;
+  cookies?: Record<string, string>;
+}
+
 export interface HttpContextData {
   method: HttpMethod;
   bodySchema?: z.ZodType;
@@ -73,20 +83,21 @@ export interface HttpContext<
   cookies: Cookies;
 }
 
-// A response for a single status code: either a bare Zod body schema or an
-// object with explicit body + optional headers/cookies schemas.
-type ResponseDescriptor = z.ZodType | { body: z.ZodType; headers?: z.ZodObject<any, any>; cookies?: z.ZodObject<any, any> };
+// A response descriptor object with an explicit _desc discriminant.
+interface ResponseDescriptorObj { _desc: true; body: z.ZodType; headers?: z.ZodObject<any, any>; cookies?: z.ZodObject<any, any> }
+// A response for a single status code: either a bare Zod body schema or an explicit descriptor.
+type ResponseDescriptor = z.ZodType | ResponseDescriptorObj;
 
 type InferResponseDescriptor<D> =
   D extends z.ZodType
     ? z.infer<D>
-    : D extends { body: infer B extends z.ZodType; headers: infer H extends z.ZodObject<any, any>; cookies: infer CK extends z.ZodObject<any, any> }
+    : D extends { _desc: true; body: infer B extends z.ZodType; headers: infer H extends z.ZodObject<any, any>; cookies: infer CK extends z.ZodObject<any, any> }
       ? { body: z.infer<B>; headers: z.infer<H>; cookies: z.infer<CK> }
-      : D extends { body: infer B extends z.ZodType; headers: infer H extends z.ZodObject<any, any> }
+      : D extends { _desc: true; body: infer B extends z.ZodType; headers: infer H extends z.ZodObject<any, any> }
         ? { body: z.infer<B>; headers: z.infer<H> }
-        : D extends { body: infer B extends z.ZodType; cookies: infer CK extends z.ZodObject<any, any> }
+        : D extends { _desc: true; body: infer B extends z.ZodType; cookies: infer CK extends z.ZodObject<any, any> }
           ? { body: z.infer<B>; cookies: z.infer<CK> }
-          : D extends { body: infer B extends z.ZodType }
+          : D extends { _desc: true; body: infer B extends z.ZodType }
             ? z.infer<B>
             : never;
 
@@ -107,6 +118,22 @@ export type HttpResponseUnion<Resp> = {
           ? { status: S; body: B; cookies: CK }
           : { status: S; body: Resp[S] };
 }[keyof Resp];
+
+export function respond<S extends number, B>(status: S, body: B): { status: S; body: B };
+export function respond<S extends number, B, O extends { headers?: Record<string, string>; cookies?: Record<string, string> }>(
+  status: S, body: B, opts: O,
+): { status: S; body: B } & O;
+export function respond(status: number, body: unknown, opts?: Record<string, unknown>) {
+  return opts ? { status, body, ...opts } : { status, body };
+}
+
+export function desc<B extends z.ZodType>(body: B): { _desc: true; body: B };
+export function desc<B extends z.ZodType, O extends { headers?: z.ZodObject<any, any>; cookies?: z.ZodObject<any, any> }>(
+  body: B, opts: O,
+): { _desc: true; body: B } & O;
+export function desc(body: z.ZodType, opts?: Record<string, unknown>) {
+  return opts ? { _desc: true as const, body, ...opts } : { _desc: true as const, body };
+}
 
 export function httpRoute<
   S extends z.ZodObject<any, any>,
@@ -140,20 +167,13 @@ export function httpRoute<
     options.response as Record<string, unknown>,
   )) {
     const s = Number(status);
-    const d = descriptor as Record<string, unknown>;
-    if (typeof d['safeParse'] === 'function') {
-      // bare ZodType
+    if ('_desc' in Object(descriptor)) {
+      const d = descriptor as ResponseDescriptorObj;
+      responseSchemas[s] = d.body;
+      if (d.headers) { responseHeaderSchemas[s] = d.headers; hasHeaderSchemas = true; }
+      if (d.cookies) { responseCookieSchemas[s] = d.cookies; hasCookieSchemas = true; }
+    } else {
       responseSchemas[s] = descriptor as z.ZodType;
-    } else if ('body' in d) {
-      responseSchemas[s] = d['body'] as z.ZodType;
-      if (d['headers']) {
-        responseHeaderSchemas[s] = d['headers'] as z.ZodObject<any, any>;
-        hasHeaderSchemas = true;
-      }
-      if (d['cookies']) {
-        responseCookieSchemas[s] = d['cookies'] as z.ZodObject<any, any>;
-        hasCookieSchemas = true;
-      }
     }
   }
 

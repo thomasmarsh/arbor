@@ -1,7 +1,7 @@
 import type { Result } from '@arbor/common';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import { httpRoute } from '../contexts/http-context.js';
+import { httpRoute, desc } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
 import { createClient, type FetchLike, type TypedClient } from './fetch-client.js';
 
@@ -34,7 +34,7 @@ describe('createClient', () => {
     }),
     httpRoute(ProtectedRoute, 'GET', 'protected/', {
       headers: AuthHeader,
-      response: { 200: { body: HeaderResp, headers: RespHeader } },
+      response: { 200: desc(HeaderResp, { headers: RespHeader }) },
     }),
   ]);
 

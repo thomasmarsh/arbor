@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import { httpRoute } from '../contexts/http-context.js';
+import { httpRoute, desc, respond } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
 import { createMemoryStore } from './rate-limit.js';
 import { createServer, resolveHandler, validateInput, validateResponse } from './server.js';
@@ -103,16 +103,13 @@ describe('createServer', () => {
 
   const server = createServer(router, {
     'get-user': (ctx) => {
-      return Promise.resolve({
-        status: 200 as const,
-        body: { id: ctx.params.id, email: 'test@test.com' },
-      });
+      return Promise.resolve(respond(200, { id: ctx.params.id, email: 'test@test.com' }));
     },
     'create-user': (ctx) => {
-      return Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } });
+      return Promise.resolve(respond(201, { id: '1', email: ctx.body.email }));
     },
     'search-items': (ctx) => {
-      return Promise.resolve({ status: 200 as const, body: { count: ctx.query.page } });
+      return Promise.resolve(respond(200, { count: ctx.query.page }));
     },
   });
 
@@ -121,21 +118,15 @@ describe('createServer', () => {
       createServer(router, {
         'get-user': (ctx) => {
           expectTypeOf(ctx.params).toEqualTypeOf<{ id: string }>();
-          return Promise.resolve({
-            status: 200 as const,
-            body: { id: ctx.params.id, email: 'a@b.com' },
-          });
+          return Promise.resolve(respond(200, { id: ctx.params.id, email: 'a@b.com' }));
         },
         'create-user': (ctx) => {
           expectTypeOf(ctx.body).toEqualTypeOf<{ name: string; email: string }>();
-          return Promise.resolve({
-            status: 201 as const,
-            body: { id: '1', email: ctx.body.email },
-          });
+          return Promise.resolve(respond(201, { id: '1', email: ctx.body.email }));
         },
         'search-items': (ctx) => {
           expectTypeOf(ctx.query).toEqualTypeOf<{ page: number }>();
-          return Promise.resolve({ status: 200 as const, body: { count: ctx.query.page } });
+          return Promise.resolve(respond(200, { count: ctx.query.page }));
         },
       });
     });
@@ -144,15 +135,15 @@ describe('createServer', () => {
       createServer(router, {
         'get-user': (ctx) => {
           expectTypeOf(ctx.query).toEqualTypeOf<never>();
-          return Promise.resolve({ status: 200 as const, body: { id: '1', email: '' } });
+          return Promise.resolve(respond(200, { id: '1', email: '' }));
         },
         'create-user': (ctx) => {
           expectTypeOf(ctx.query).toEqualTypeOf<never>();
-          return Promise.resolve({ status: 201 as const, body: { id: '1', email: '' } });
+          return Promise.resolve(respond(201, { id: '1', email: '' }));
         },
         'search-items': (ctx) => {
           expectTypeOf(ctx.query).toEqualTypeOf<{ page: number }>();
-          return Promise.resolve({ status: 200 as const, body: { count: ctx.query.page } });
+          return Promise.resolve(respond(200, { count: ctx.query.page }));
         },
       });
       expect(true).toBe(true);
@@ -164,18 +155,14 @@ describe('createServer', () => {
     const HeaderSchema = z.object({ 'x-request-id': z.string() });
     const routerWithHeaders = defineRoutes([
       httpRoute(TaggedWithHeaders, 'GET', 'items/:id/', {
-        response: { 200: { body: UserResp, headers: HeaderSchema } },
+        response: { 200: desc(UserResp, { headers: HeaderSchema }) },
       }),
     ]);
 
     it('handler return type includes headers when declared', () => {
       createServer(routerWithHeaders, {
         'get-with-headers': (ctx) => {
-          const ret = {
-            status: 200 as const,
-            body: { id: ctx.params.id, email: 'a@b.com' },
-            headers: { 'x-request-id': 'abc' },
-          };
+          const ret = respond(200, { id: ctx.params.id, email: 'a@b.com' }, { headers: { 'x-request-id': 'abc' } });
           expectTypeOf(ret).toExtend<{
             status: 200;
             body: { id: string; email: string };
@@ -190,11 +177,7 @@ describe('createServer', () => {
     it('passes response headers through handle', async () => {
       const s = createServer(routerWithHeaders, {
         'get-with-headers': () =>
-          Promise.resolve({
-            status: 200 as const,
-            body: { id: '1', email: 'test@test.com' },
-            headers: { 'x-request-id': 'test-id' },
-          }),
+          Promise.resolve(respond(200, { id: '1', email: 'test@test.com' }, { headers: { 'x-request-id': 'test-id' } })),
       });
       const result = await s.handle(new URL('https://example.com/items/1'), 'GET');
       expect(result.status).toBe(200);
@@ -220,14 +203,14 @@ describe('createServer', () => {
       httpRoute(SessionRoute, 'POST', 'session/', {
         body: SessionBody,
         cookies: CsrfCookieSchema,
-        response: { 200: { body: SessionResp, cookies: SessionCookieSchema } },
+        response: { 200: desc(SessionResp, { cookies: SessionCookieSchema }) },
       }),
     ]);
 
     it('returns 400 when required cookie is missing', async () => {
       const s = createServer(routerWithCookies, {
         'create-session': () =>
-          Promise.resolve({ status: 200 as const, body: { ok: true }, cookies: { 'session-id': 'x' } }),
+          Promise.resolve(respond(200, { ok: true }, { cookies: { 'session-id': 'x' } })),
       });
       const result = await s.handle(
         new URL('https://example.com/session/'),
@@ -243,7 +226,7 @@ describe('createServer', () => {
       const s = createServer(routerWithCookies, {
         'create-session': (ctx) => {
           captured = ctx.cookies;
-          return Promise.resolve({ status: 200 as const, body: { ok: true }, cookies: { 'session-id': 'x' } });
+          return Promise.resolve(respond(200, { ok: true }, { cookies: { 'session-id': 'x' } }));
         },
       });
       await s.handle(
@@ -258,7 +241,7 @@ describe('createServer', () => {
     it('response cookies appear in result', async () => {
       const s = createServer(routerWithCookies, {
         'create-session': () =>
-          Promise.resolve({ status: 200 as const, body: { ok: true }, cookies: { 'session-id': 'abc123' } }),
+          Promise.resolve(respond(200, { ok: true }, { cookies: { 'session-id': 'abc123' } })),
       });
       const result = await s.handle(
         new URL('https://example.com/session/'),
@@ -273,7 +256,7 @@ describe('createServer', () => {
       createServer(routerWithCookies, {
         'create-session': (ctx) => {
           expectTypeOf(ctx.cookies).toEqualTypeOf<{ 'csrf-token': string }>();
-          return Promise.resolve({ status: 200 as const, body: { ok: true }, cookies: { 'session-id': 'x' } });
+          return Promise.resolve(respond(200, { ok: true }, { cookies: { 'session-id': 'x' } }));
         },
       });
       expect(true).toBe(true);
@@ -283,11 +266,11 @@ describe('createServer', () => {
       createServer(router, {
         'get-user': (ctx) => {
           expectTypeOf(ctx.cookies).toEqualTypeOf<never>();
-          return Promise.resolve({ status: 200 as const, body: { id: '1', email: '' } });
+          return Promise.resolve(respond(200, { id: '1', email: '' }));
         },
         'create-user': (ctx) =>
-          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
-        'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+          Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
+        'search-items': () => Promise.resolve(respond(200, { count: 0 })),
       });
       expect(true).toBe(true);
     });
@@ -309,7 +292,7 @@ describe('createServer', () => {
     it('returns 400 when required header is missing', async () => {
       const s = createServer(routerWithReqHeaders, {
         'get-with-req-headers': () =>
-          Promise.resolve({ status: 200 as const, body: { id: '1', email: 'a@b.com' } }),
+          Promise.resolve(respond(200, { id: '1', email: 'a@b.com' })),
       });
       const result = await s.handle(new URL('https://example.com/reports/1'), 'GET', undefined, {});
       expect(result.status).toBe(400);
@@ -319,7 +302,7 @@ describe('createServer', () => {
       const tenantId = '550e8400-e29b-41d4-a716-446655440000';
       const s = createServer(routerWithReqHeaders, {
         'get-with-req-headers': (ctx) =>
-          Promise.resolve({ status: 200 as const, body: { id: ctx.headers['x-tenant-id'], email: 'a@b.com' } }),
+          Promise.resolve(respond(200, { id: ctx.headers['x-tenant-id'], email: 'a@b.com' })),
       });
       const result = await s.handle(
         new URL('https://example.com/reports/1'),
@@ -338,7 +321,7 @@ describe('createServer', () => {
             'x-tenant-id': string;
             'accept-language'?: string | undefined;
           }>();
-          return Promise.resolve({ status: 200 as const, body: { id: '1', email: 'a@b.com' } });
+          return Promise.resolve(respond(200, { id: '1', email: 'a@b.com' }));
         },
       });
       expect(true).toBe(true);
@@ -348,11 +331,11 @@ describe('createServer', () => {
       createServer(router, {
         'get-user': (ctx) => {
           expectTypeOf(ctx.headers).toEqualTypeOf<never>();
-          return Promise.resolve({ status: 200 as const, body: { id: '1', email: '' } });
+          return Promise.resolve(respond(200, { id: '1', email: '' }));
         },
         'create-user': (ctx) =>
-          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
-        'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+          Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
+        'search-items': () => Promise.resolve(respond(200, { count: 0 })),
       });
       expect(true).toBe(true);
     });
@@ -410,8 +393,8 @@ describe('createServer', () => {
           throw new Error('boom');
         },
         'create-user': (ctx) =>
-          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
-        'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+          Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
+        'search-items': () => Promise.resolve(respond(200, { count: 0 })),
       });
       const result = await crashingServer.handle(new URL('https://example.com/users/1'), 'GET');
       expect(result.status).toBe(500);
@@ -422,8 +405,8 @@ describe('createServer', () => {
       const rejectingServer = createServer(router, {
         'get-user': () => Promise.reject(new Error('async boom')),
         'create-user': (ctx) =>
-          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
-        'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+          Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
+        'search-items': () => Promise.resolve(respond(200, { count: 0 })),
       });
       const result = await rejectingServer.handle(new URL('https://example.com/users/1'), 'GET');
       expect(result.status).toBe(500);
@@ -447,10 +430,10 @@ describe('createServer', () => {
 
     it('dispatches JSON body via handleRequest', async () => {
       const s = createServer(router, {
-        'get-user': () => Promise.resolve({ status: 200 as const, body: { id: '1', email: 'a@b.com' } }),
+        'get-user': () => Promise.resolve(respond(200, { id: '1', email: 'a@b.com' })),
         'create-user': (ctx) =>
-          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
-        'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+          Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
+        'search-items': () => Promise.resolve(respond(200, { count: 0 })),
       });
       const req = new Request('https://example.com/users', {
         method: 'POST',
@@ -476,10 +459,10 @@ describe('createServer', () => {
 
     it('returns 415 for unsupported content-type', async () => {
       const s = createServer(router, {
-        'get-user': () => Promise.resolve({ status: 200 as const, body: { id: '1', email: 'a@b.com' } }),
+        'get-user': () => Promise.resolve(respond(200, { id: '1', email: 'a@b.com' })),
         'create-user': (ctx) =>
-          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
-        'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+          Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
+        'search-items': () => Promise.resolve(respond(200, { count: 0 })),
       });
       const req = new Request('https://example.com/users', {
         method: 'POST',
@@ -494,10 +477,10 @@ describe('createServer', () => {
       const s = createServer(
         router,
         {
-          'get-user': () => Promise.resolve({ status: 200 as const, body: { id: '1', email: 'a@b.com' } }),
+          'get-user': () => Promise.resolve(respond(200, { id: '1', email: 'a@b.com' })),
           'create-user': (ctx) =>
-            Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
-          'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+            Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
+          'search-items': () => Promise.resolve(respond(200, { count: 0 })),
         },
         { maxBodySize: 100 },
       );
@@ -520,7 +503,7 @@ describe('createServer', () => {
       }),
     ]);
     const handlers = {
-      login: () => Promise.resolve({ status: 200 as const, body: { ok: true } }),
+      login: () => Promise.resolve(respond(200, { ok: true })),
     };
 
     it('allows requests within the limit', async () => {
@@ -580,18 +563,18 @@ describe('createServer', () => {
           throw new ConflictError('duplicate');
         },
         'create-user': (ctx) =>
-          Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
+          Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
         'search-items': () => Promise.reject(new NotFoundError('items')),
       },
       {
         errorMap: [
           {
             match: (e) => e instanceof ConflictError,
-            response: () => ({ status: 409 as const, body: { error: 'conflict' } }),
+            response: () => (respond(409, { error: 'conflict' })),
           },
           {
             match: (e) => e instanceof NotFoundError,
-            response: (e) => ({ status: 404 as const, body: { error: (e as NotFoundError).message } }),
+            response: (e) => (respond(404, { error: (e as NotFoundError).message })),
           },
         ],
       },
@@ -617,14 +600,14 @@ describe('createServer', () => {
             throw new ConflictError('x');
           },
           'create-user': (ctx) =>
-            Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
-          'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+            Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
+          'search-items': () => Promise.resolve(respond(200, { count: 0 })),
         },
         {
           errorMap: [
             {
               match: (e) => e instanceof NotFoundError,
-              response: () => ({ status: 404 as const, body: { error: 'not found' } }),
+              response: () => (respond(404, { error: 'not found' })),
             },
           ],
         },
@@ -641,18 +624,18 @@ describe('createServer', () => {
             throw new ConflictError('x');
           },
           'create-user': (ctx) =>
-            Promise.resolve({ status: 201 as const, body: { id: '1', email: ctx.body.email } }),
-          'search-items': () => Promise.resolve({ status: 200 as const, body: { count: 0 } }),
+            Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
+          'search-items': () => Promise.resolve(respond(200, { count: 0 })),
         },
         {
           errorMap: [
             {
               match: () => true,
-              response: () => ({ status: 409 as const, body: { error: 'first' } }),
+              response: () => (respond(409, { error: 'first' })),
             },
             {
               match: () => true,
-              response: () => ({ status: 503 as const, body: { error: 'second' } }),
+              response: () => (respond(503, { error: 'second' })),
             },
           ],
         },

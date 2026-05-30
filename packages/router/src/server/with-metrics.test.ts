@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import z from 'zod';
-import { httpRoute } from '../contexts/http-context.js';
+import { httpRoute, respond } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
 import { createServer } from './server.js';
 import { withMetrics, type RequestMetric } from './with-metrics.js';
@@ -10,7 +10,7 @@ const router = defineRoutes([
   httpRoute(GetUser, 'GET', 'users/:id/', { response: { 200: z.object({ id: z.string() }) } }),
 ]);
 const server = createServer(router, {
-  'get-user': (ctx) => Promise.resolve({ status: 200 as const, body: { id: ctx.params.id } }),
+  'get-user': (ctx) => Promise.resolve(respond(200, { id: ctx.params.id })),
 });
 
 describe('withMetrics', () => {

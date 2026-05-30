@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plan 60 complete
-- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54, 55, 38, 39, 56, 32, 60 complete. Plan 28 superseded by 47. Plan 60: `createServer` decomposed — `validateInput`, `resolveHandler`, `validateResponse` extracted as named exports with dedicated unit tests; `executeRoute` body reduced to ~37 lines; `UntypedHandler` removed (replaced by module-level `AnyHandler`); response validation now rejects (500) instead of warn-and-continue; `as Record<string, unknown>` and `as Record<string, UntypedHandler>` casts eliminated from `executeRoute`. See `plan/spec.workflow.md` for execution order.
+- **Current Task**: Plan 62 complete
+- **Current Status**: Plans 19, 21, 25, 20, 27, 22, 26, 23, 42, 46, 47, 43, 36, 53, 54, 55, 38, 39, 56, 32, 60, 62 complete. Plan 28 superseded by 47. Plan 62: `HttpResponse<S, B>` interface defined and exported; `respond(status, body[, opts])` helper eliminates `status: N as const` (zero occurrences remain); `desc(body[, opts])` replaces duck-typed descriptor objects with `_desc: true` discriminant; `DispatchResult` aliased to `HttpResponse & { tag: string }`; `httpRoute()` uses `'_desc' in Object(descriptor)` check; `respond`, `desc`, `HttpResponse` exported from `src/index.ts`; stale `enrichers.ts` reference in examples script fixed. See `plan/spec.workflow.md` for execution order.
 
 ## Strict System Rules (Zero Preamble)
 

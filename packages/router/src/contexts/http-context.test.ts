@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import type { InferContext } from '../core/define-routes.js';
-import { httpRoute, type HttpContext, type HttpMethod } from './http-context.js';
+import { httpRoute, desc, type HttpContext, type HttpMethod } from './http-context.js';
 
 describe('HttpMethod', () => {
   it('is a union of HTTP verbs', () => {
@@ -161,7 +161,7 @@ describe('httpRoute', () => {
 
     it('infers headers type from descriptor object', () => {
       const r = httpRoute(GetUser, 'GET', ':id/', {
-        response: { 200: { body: UserResponse, headers: HeaderSchema } },
+        response: { 200: desc(UserResponse, { headers: HeaderSchema }) },
       });
       expect(r._meta).toBeDefined();
 
@@ -173,14 +173,14 @@ describe('httpRoute', () => {
 
     it('stores body schema in responseSchemas when using descriptor', () => {
       const r = httpRoute(GetUser, 'GET', ':id/', {
-        response: { 200: { body: UserResponse, headers: HeaderSchema } },
+        response: { 200: desc(UserResponse, { headers: HeaderSchema }) },
       });
       expect(r._meta?.responseSchemas?.[200]).toBe(UserResponse);
     });
 
     it('stores header schema in responseHeaderSchemas', () => {
       const r = httpRoute(GetUser, 'GET', ':id/', {
-        response: { 200: { body: UserResponse, headers: HeaderSchema } },
+        response: { 200: desc(UserResponse, { headers: HeaderSchema }) },
       });
       expect(r._meta?.responseHeaderSchemas?.[200]).toBe(HeaderSchema);
     });
@@ -196,7 +196,7 @@ describe('httpRoute', () => {
       const ErrorResponse = z.object({ error: z.string() });
       const r = httpRoute(GetUser, 'GET', ':id/', {
         response: {
-          200: { body: UserResponse, headers: HeaderSchema },
+          200: desc(UserResponse, { headers: HeaderSchema }),
           404: ErrorResponse,
         },
       });

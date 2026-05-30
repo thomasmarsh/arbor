@@ -2,7 +2,7 @@
 
 import type z from 'zod';
 import type { Result } from '@arbor/common';
-import type { HttpContext, HttpMethod, HttpResponseUnion } from '../contexts/http-context.js';
+import type { HttpContext, HttpMethod, HttpResponse, HttpResponseUnion } from '../contexts/http-context.js';
 import { collectHttpMaps } from '../contexts/http-context.js';
 import type { HttpWalkNode } from '../contexts/http-context.js';
 import type { RouteNode } from '../core/route-node.js';
@@ -47,7 +47,7 @@ type AnyHandler = (ctx: {
   cookies: unknown;
 }) => Promise<{ status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string> }>;
 
-interface DispatchResult { status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string>; tag: string }
+type DispatchResult = HttpResponse & { tag: string };
 
 function parseCookies(header: string): Record<string, string> {
   const cookies: Record<string, string> = {};

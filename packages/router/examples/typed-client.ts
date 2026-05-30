@@ -1,7 +1,7 @@
 // Typed HTTP client: options object API, request headers, TypedClient utility type.
 import z from 'zod';
 import type { FetchLike, TypedClient } from '../src/index.js';
-import { createClient, createServer, defineRoutes, httpRoute } from '../src/index.js';
+import { createClient, createServer, defineRoutes, httpRoute, respond } from '../src/index.js';
 
 const AuthHeader = z.object({ authorization: z.string() });
 const GetMe = z.object({ tag: z.literal('get-me') });
@@ -31,15 +31,12 @@ const server = createServer(router, {
     const auth = ctx.headers?.authorization ?? '';
     return Promise.resolve(
       auth.startsWith('Bearer ')
-        ? { status: 200 as const, body: { id: '1', name: auth.slice(7) } }
-        : { status: 401 as const, body: { error: 'unauthorized' } },
+        ? respond(200, { id: '1', name: auth.slice(7) })
+        : respond(401, { error: 'unauthorized' }),
     );
   },
   'create-post': async (ctx) =>
-    Promise.resolve({
-      status: 201 as const,
-      body: { id: '42', title: ctx.body.title },
-    }),
+    Promise.resolve(respond(201, { id: '42', title: ctx.body.title })),
 });
 
 const mockFetch: FetchLike = async (url, init) => {

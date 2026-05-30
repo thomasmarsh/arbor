@@ -32,7 +32,7 @@
     "test:watch": "vitest",
     "clean": "rm -rf dist *.tsbuildinfo",
     "bench:inference": "tsx scripts/inference-bench.ts",
-    "examples": "tsx examples/basic-server.ts && tsx examples/basic-client.ts && tsx examples/query-params.ts && tsx examples/nested-routes.ts && tsx examples/openapi-output.ts && tsx examples/enrichers.ts && tsx examples/typed-client.ts"
+    "examples": "tsx examples/basic-server.ts && tsx examples/basic-client.ts && tsx examples/query-params.ts && tsx examples/nested-routes.ts && tsx examples/openapi-output.ts && tsx examples/guards.ts && tsx examples/typed-client.ts && tsx examples/auth-protected.ts && tsx examples/rbac.ts"
   },
   "dependencies": {
     "@arbor/common": "workspace:*",

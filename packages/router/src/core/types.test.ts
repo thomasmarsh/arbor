@@ -1,6 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import { httpRoute } from '../contexts/http-context.js';
+import { httpRoute, respond } from '../contexts/http-context.js';
 import { createServer } from '../server/server.js';
 import { defineRoutes, route, section, type InferRoute, type ResponseUnion } from './define-routes.js';
 
@@ -114,7 +114,7 @@ describe('Composition type safety', () => {
 
 describe('Handler map exhaustiveness', () => {
   it('missing handler tags are a type error', () => {
-    const incomplete = { 'get-user': () => Promise.resolve({ status: 200 as const, body: { id: '1', email: '' } }) };
+    const incomplete = { 'get-user': () => Promise.resolve(respond(200, { id: '1', email: '' })) };
     // @ts-expect-error — 'create-user' and 'search-items' are missing
     createServer(httpRouter, incomplete);
   });

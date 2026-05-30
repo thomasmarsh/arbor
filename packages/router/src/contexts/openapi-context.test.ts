@@ -10,6 +10,7 @@ import {
   type OpenApiContext,
   type OpenApiMeta,
 } from './openapi-context.js';
+import { respond } from './http-context.js';
 
 describe('OpenApiContext', () => {
   it('extends HttpContext with meta', () => {
@@ -79,10 +80,7 @@ describe('openApiRoute', () => {
 
     const server = createServer(router, {
       'get-user': (ctx) => {
-        return Promise.resolve({
-          status: 200 as const,
-          body: { id: ctx.params.id, email: 'test@test.com' },
-        });
+        return Promise.resolve(respond(200, { id: ctx.params.id, email: 'test@test.com' }));
       },
     });
 

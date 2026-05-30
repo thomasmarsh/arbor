@@ -1,7 +1,7 @@
 // Type-safe HTTP client wired to an in-memory server (no real HTTP needed).
 import z from 'zod';
 import type { FetchLike } from '../src/index.js';
-import { createClient, createServer, defineRoutes, httpRoute } from '../src/index.js';
+import { createClient, createServer, defineRoutes, httpRoute, respond } from '../src/index.js';
 
 const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
 const UserResp = z.object({ id: z.string(), name: z.string() });
@@ -14,10 +14,7 @@ const router = defineRoutes([
 
 const server = createServer(router, {
   'get-user': async (ctx) =>
-    Promise.resolve({
-      status: 200 as const,
-      body: { id: ctx.params.id, name: 'Alice' },
-    }),
+    Promise.resolve(respond(200, { id: ctx.params.id, name: 'Alice' })),
 });
 
 // Mock fetch delegates to the in-memory server so no real HTTP is needed.
