@@ -122,6 +122,22 @@ describe('matchSegments', () => {
       expect(matchSegments(segs, ['abc'], {})).toBeNull();
     });
 
+    it.each([['1.5'], ['1e3'], ['1.0']])(
+      'rejects non-integer numeric string %s for num',
+      (input) => {
+        const segs = parseSegments('#id/');
+        expect(matchSegments(segs, [input], {})).toBeNull();
+      },
+    );
+
+    it('accepts negative integer for num', () => {
+      const segs = parseSegments('#id/');
+      expect(matchSegments(segs, ['-5'], {})).toEqual({
+        params: { id: -5 },
+        rest: [],
+      });
+    });
+
     it('fails when required param is missing', () => {
       const segs = parseSegments(':id/');
       expect(matchSegments(segs, [], {})).toBeNull();
@@ -158,6 +174,25 @@ describe('matchSegments', () => {
       expect(matchSegments(segs, ['abc'], {})).toEqual({
         params: {},
         rest: ['abc'],
+      });
+    });
+
+    it.each([['1.5'], ['1e3'], ['1.0']])(
+      'skips non-integer numeric string %s for opt-num',
+      (input) => {
+        const segs = parseSegments('#id?/');
+        expect(matchSegments(segs, [input], {})).toEqual({
+          params: {},
+          rest: [input],
+        });
+      },
+    );
+
+    it('accepts negative integer for opt-num', () => {
+      const segs = parseSegments('#id?/');
+      expect(matchSegments(segs, ['-5'], {})).toEqual({
+        params: { id: -5 },
+        rest: [],
       });
     });
   });

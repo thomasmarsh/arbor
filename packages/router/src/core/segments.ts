@@ -54,8 +54,8 @@ export function matchSegments(
 
       case 'num': {
         if (url == null) return null;
-        const n = Number(url);
-        if (isNaN(n)) return null;
+        const n = parseInt(url, 10);
+        if (isNaN(n) || String(n) !== url) return null;
         next[seg.name] = n;
         urlIndex++;
         break;
@@ -70,8 +70,8 @@ export function matchSegments(
 
       case 'opt-num': {
         if (url != null) {
-          const n = Number(url);
-          if (!isNaN(n)) {
+          const n = parseInt(url, 10);
+          if (!isNaN(n) && String(n) === url) {
             next[seg.name] = n;
             urlIndex++;
           }
