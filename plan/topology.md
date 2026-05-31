@@ -1,9 +1,9 @@
 # Source Topology
 
-Actual `src/` layout as of plan 62.
+All paths are relative to the workspace root (`/Users/tmarsh/git/arbor`). Actual `packages/router/src/` layout as of plan 62; `contexts/` reorganized post-plan 90.
 
 ```text
-src/
+packages/router/src/
 ├── index.ts                        # Root barrel — public API surface
 ├── index.test.ts                   # Root export smoke tests
 │
@@ -21,11 +21,16 @@ src/
 │   └── types.test.ts               # Type-level tests (expectTypeOf)
 │
 ├── contexts/                       # Protocol-specific route factories (extend core via Meta)
-│   ├── index.ts
 │   ├── http-context.ts             # httpRoute(), HttpContextData, HttpResponseUnion, respond(), desc()
 │   ├── http-context.test.ts
-│   ├── openapi-context.ts          # openApiRoute(), OpenApiCtxData
-│   └── openapi-context.test.ts
+│   ├── realtime/                   # SSE + WS route factories (evolving; future @arbor/router-realtime)
+│   │   ├── sse-context.ts          # sseRoute(), SseMeta, collectSseSchemaMaps()
+│   │   ├── sse-context.test.ts
+│   │   ├── ws-context.ts           # wsRoute(), WsMeta, WsAdapter, createWsAdapterPair()
+│   │   └── ws-context.test.ts
+│   └── openapi/                    # OpenAPI metadata layer (optional leaf)
+│       ├── openapi-context.ts      # openApiRoute(), OpenApiCtxData
+│       └── openapi-context.test.ts
 │
 ├── openapi/                        # OpenAPI spec generation
 │   ├── index.ts
@@ -77,13 +82,13 @@ core  ←  client
 
 | Symbol | File | Purpose |
 | --- | --- | --- |
-| `RouteNode<R,C,Ctx,SP,Meta>` | `core/route-node.ts` | Core route shape; `_type` is phantom |
-| `FlattenChildrenImpl<C>` | `core/route-node.ts` | Depth-counted recursive type; replaces `_child` phantom |
-| `Derive<N>` | `core/route-node.ts` | Union of all descendant route nodes |
-| `httpRoute()` | `contexts/http-context.ts` | Creates an HTTP route node with method + status map |
-| `HttpContextData` | `contexts/http-context.ts` | `_meta` shape for HTTP routes |
-| `respond(status, body)` | `contexts/http-context.ts` | Type-safe response constructor |
-| `createServer()` | `server/server.ts` | WinterCG request handler factory |
-| `withGuard()` | `server/guard.ts` | Wraps a route handler with a pre-check guard |
-| `createClient()` | `client/fetch-client.ts` | Typed fetch client factory |
-| `generateSpec()` | `openapi/generate-spec.ts` | Walks route tree → OpenAPI 3 JSON |
+| `RouteNode<R,C,Ctx,SP,Meta>` | `packages/router/src/core/route-node.ts` | Core route shape; `_type` is phantom |
+| `FlattenChildrenImpl<C>` | `packages/router/src/core/route-node.ts` | Depth-counted recursive type; replaces `_child` phantom |
+| `Derive<N>` | `packages/router/src/core/route-node.ts` | Union of all descendant route nodes |
+| `httpRoute()` | `packages/router/src/contexts/http-context.ts` | Creates an HTTP route node with method + status map |
+| `HttpContextData` | `packages/router/src/contexts/http-context.ts` | `_meta` shape for HTTP routes |
+| `respond(status, body)` | `packages/router/src/contexts/http-context.ts` | Type-safe response constructor |
+| `createServer()` | `packages/router/src/server/server.ts` | WinterCG request handler factory |
+| `withGuard()` | `packages/router/src/server/guard.ts` | Wraps a route handler with a pre-check guard |
+| `createClient()` | `packages/router/src/client/fetch-client.ts` | Typed fetch client factory |
+| `generateSpec()` | `packages/router/src/openapi/generate-spec.ts` | Walks route tree → OpenAPI 3 JSON |

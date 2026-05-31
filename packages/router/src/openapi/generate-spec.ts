@@ -4,7 +4,7 @@ import z from 'zod';
 import type { RouteNode } from '../core/define-routes.js';
 import type { Segment } from '../core/segments.js';
 import { getShape, getTag } from '../core/walk.js';
-import { getOpenApiMeta, type OpenApiCtxData, type OpenApiWalkNode } from '../contexts/openapi-context.js';
+import { getOpenApiMeta, type OpenApiCtxData, type OpenApiWalkNode } from '../contexts/openapi/openapi-context.js';
 
 function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
   const { $schema: _, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;

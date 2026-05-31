@@ -22,7 +22,8 @@
     "db:reset": "scripts/db.sh reset && dotenv -e packages/api/.env.local -- turbo db:migrate",
     "db:migrate": "dotenv -e packages/api/.env.local -- turbo db:migrate",
     "db:generate": "dotenv -e packages/api/.env.local -- turbo db:generate",
-    "db:status": "scripts/db.sh status"
+    "db:status": "scripts/db.sh status",
+    "arbor": "uv --directory tools/arbor-cli run arbor"
   },
   "packageManager": "pnpm@11.3.0",
   "devDependencies": {

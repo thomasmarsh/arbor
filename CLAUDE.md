@@ -2,26 +2,29 @@
 
 ## Active Focus
 
-- **Current Task**: Plans 80, 81, 86, 91 remain. Check `plan/work-order.md` for full queue.
-- **Current Status**: Waves 0–13 complete (plans 18–79, 63–66, 82–85 all done). Session type waves 15–17: plans 87–90 done, 91 queued. Remaining pre-session queue: 80, 81, 86. See `plan/work-order.md` for ordering.
+`plan/ledger.jsonl` is the source of truth. Find the current task with:
+
+```bash
+rg '"status": "next"' plan/ledger.jsonl
+```
 
 ## Strict System Rules (Zero Preamble)
 
 **Execution Mode**: Determine if the task is a Code Edit or an Architectural Plan.
 
-    - **Code Edits**: Output raw `SEARCH/REPLACE` blocks immediately. The first byte of your reply must be the markdown code fence. Zero conversational introductions, filler, or conclusions.
-    - **Architectural Plans**: When creating or modifying files in `plan/`, you are permitted a concise, step-by-step prose analysis before outputting the markdown blocks.
+- **Code Edits**: Output raw `SEARCH/REPLACE` blocks immediately. The first byte of your reply must be the markdown code fence. Zero conversational introductions, filler, or conclusions.
+- **Architectural Plans**: When creating or modifying files in `plan/`, you are permitted a concise, step-by-step prose analysis before outputting the markdown blocks.
 
 - **Diff Structure**: Include 2-3 lines of matching context buffer code inside the `SEARCH` block. Never rewrite entire files. Keep search blocks focused tightly on the changing lines to maximize token efficiency.
 - **Example Style**:
 
-      ```diff
-      <<<<<<< SEARCH
-      export type Derive<N> = N extends RouteNode<unknown, any, any, any>
-      =======
-      export type Derive<N> = N extends RouteNode<unknown, any, any, any, infer Query>
-      >>>>>>> REPLACE
-      ```
+```diff
+<<<<<<< SEARCH
+export type Derive<N> = N extends RouteNode<unknown, any, any, any>
+=======
+export type Derive<N> = N extends RouteNode<unknown, any, any, any, infer Query>
+>>>>>>> REPLACE
+```
 
 - **Minimize reads**: Do not read entire source files to discover structure except when required for whole file analysis. Prefer targeted rg (ripgrep) lookups first to locate exact line ranges, then read only those ranges.
 
@@ -29,9 +32,12 @@
 
 ## Working Commands
 
-- Test suite: `pnpm test`
-- Type checking: `pnpm typecheck`
-- Verification chain: `pnpm test && pnpm typecheck && pnpm lint && pnpm run examples`
+Working directory is the workspace root (`/Users/tmarsh/git/arbor`). Source lives in `packages/router/`.
+
+- Test suite: `pnpm --filter @arbor/router test`
+- Type checking: `pnpm --filter @arbor/router typecheck`
+- Run examples: `pnpm --filter @arbor/router run examples`
+- Verification chain: `pnpm --filter @arbor/router test && pnpm --filter @arbor/router typecheck && pnpm lint && pnpm --filter @arbor/router run examples`
 - Lint config: `/Users/tmarsh/git/arbor/eslint.config.js` (workspace root — no local config)
 
 NOTE: Path structure described in `plan/topology.md`. Execution order in `plan/work-order.md`.
@@ -43,7 +49,7 @@ Full philosophy in `plan/testing.md`. Quick decisions:
 - **Tier**: `expectTypeOf` → type contracts; `expect` + `it.each` → runtime; `toMatchInlineSnapshot` → structured/diagnostic output; `createTestClient` → full pipeline; `fast-check` → invariants.
 - **Snapshots**: inline only (`toMatchInlineSnapshot`). No external `.snap` files.
 - **Tables**: `it.each` when ≥ 3 tests share the same assertion shape with different data.
-- **Route fixtures**: build trees via `src/test-utils/fixtures.ts` (Plan 82), not raw `RouteNode` objects.
+- **Route fixtures**: build trees via `packages/router/src/test-utils/fixtures.ts` (Plan 82), not raw `RouteNode` objects.
 - **PBT**: never-throw and round-trip properties; not for happy-path coverage.
 
 ## Architecture & Core Shapes
@@ -109,9 +115,9 @@ type Derive<N> =
 - `IteratorResult<T>.value` is `T | any = any; toEqualTypeOf<T>()` fails on `any`. Test channel message types via `expectTypeOf(ch.messages)`, not `result.value`.
 - Write a scratch file first for novel `expectTypeOf` assertions.
 
-## Examples (`examples/`)
+## Examples (`packages/router/examples/`)
 
-Self-contained runnable demos in `examples/`. Run them as a smoke test with `pnpm run examples`.
+Self-contained runnable demos in `packages/router/examples/`. Run them as a smoke test with `pnpm --filter @arbor/router run examples`.
 
 **Keep them current**: when a plan changes the public API, update any example that exercises it. The examples are the human-facing documentation — stale examples are worse than no examples.
 
@@ -132,7 +138,7 @@ Self-contained runnable demos in `examples/`. Run them as a smoke test with `pnp
 
 **Rules for examples**:
 
-- Import only from `../src/index.js` (no publish step needed).
+- Import only from `../src/index.js` relative to the examples dir (resolves to `packages/router/src/index.js`).
 - No `expect`/`describe` — real code only.
 - No casting or `any`/`unknown` (with rare exceptions) - examples should showcase type safety.
 - Every example must produce visible output when run with `tsx`.

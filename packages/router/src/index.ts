@@ -16,22 +16,45 @@ export {
 } from './core/define-routes.js';
 
 // HTTP
-export { type AnyCtxMap, type RouterContract } from './core/router-contract.js';
 export { createClient, type FetchLike, type TypedClient } from './client/fetch-client.js';
 export { matchResponse, type MatchHandlers } from './client/match-response.js';
 export { createTestClient } from './client/test-client.js';
-export { type Guard, composeGuards, pipeline, withGuard } from './server/guard.js';
-export { withSession } from './server/with-session.js';
-export { withRbac } from './server/with-rbac.js';
+export {
+  desc,
+  httpRoute,
+  respond,
+  type HttpContext,
+  type HttpMethod,
+  type HttpResponse,
+  type InferSingleSuccessBody,
+} from './contexts/http-context.js';
+export { type AnyCtxMap, type RouterContract } from './core/router-contract.js';
+export { composeGuards, pipeline, withGuard, type Guard } from './server/guard.js';
+export {
+  createMemoryStore,
+  withRateLimit,
+  type RateLimitPolicy,
+  type RateLimitStore,
+} from './server/rate-limit.js';
+export {
+  createServer,
+  type ErrorMapEntry,
+  type HandlerCtx,
+  type HandlerMap,
+  type RateLimitKeyResolver,
+} from './server/server.js';
 export { withApiKey, type ApiKeyOptions } from './server/with-api-key.js';
-export { httpRoute, respond, desc, type HttpContext, type HttpMethod, type HttpResponse, type InferSingleSuccessBody } from './contexts/http-context.js';
-export { createMemoryStore, type RateLimitPolicy, type RateLimitStore, withRateLimit } from './server/rate-limit.js';
-export { createServer, type ErrorMapEntry, type HandlerCtx, type HandlerMap, type RateLimitKeyResolver } from './server/server.js';
-export { withMetrics, type MetricsEmitter, type RequestMetric } from './server/with-metrics.js';
 export { withCors, type CorsConfig } from './server/with-cors.js';
+export { withMetrics, type MetricsEmitter, type RequestMetric } from './server/with-metrics.js';
+export { withRbac } from './server/with-rbac.js';
+export { withSession } from './server/with-session.js';
 
 // OpenAPI
-export { openApiRoute, type OpenApiContext, type OpenApiMeta } from './contexts/openapi-context.js';
+export {
+  openApiRoute,
+  type OpenApiContext,
+  type OpenApiMeta,
+} from './contexts/openapi/openapi-context.js';
 export { generateSpec } from './openapi/index.js';
 
 // Session types
@@ -51,11 +74,28 @@ export {
 } from './core/session.js';
 
 // SSE
-export { sseRoute, type SseContext, type SseMeta } from './contexts/sse-context.js';
-export { createSseServer, type SseHandlerMap, type SseHandlerCtx, type SseRouterContract } from './server/sse-dispatch.js';
 export { createSseClient, type SseClient, type SseFetchLike } from './client/sse-client.js';
+export { sseRoute, type SseContext, type SseMeta } from './contexts/realtime/sse-context.js';
+export {
+  createSseServer,
+  type SseHandlerCtx,
+  type SseHandlerMap,
+  type SseRouterContract,
+} from './server/sse-dispatch.js';
 
 // WebSocket
-export { wsRoute, createWsAdapterPair, type WsAdapter, type WsChannel, type WsContext, type WsMeta } from './contexts/ws-context.js';
-export { createWsServer, type WsHandlerMap, type WsHandlerCtx, type WsRouterContract } from './server/ws-dispatch.js';
 export { createWsClient, type WsClient, type WsConnectFn } from './client/ws-client.js';
+export {
+  createWsAdapterPair,
+  wsRoute,
+  type WsAdapter,
+  type WsChannel,
+  type WsContext,
+  type WsMeta,
+} from './contexts/realtime/ws-context.js';
+export {
+  createWsServer,
+  type WsHandlerCtx,
+  type WsHandlerMap,
+  type WsRouterContract,
+} from './server/ws-dispatch.js';

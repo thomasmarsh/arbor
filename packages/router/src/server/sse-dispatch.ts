@@ -3,7 +3,7 @@
 import type { Result } from '@arbor/common';
 import type { RouteNode } from '../core/route-node.js';
 import { walkCollect } from '../core/walk.js';
-import { type SseContext, type SseWalkNode, getSseMeta } from '../contexts/sse-context.js';
+import { type SseContext, type SseWalkNode, getSseMeta } from '../contexts/realtime/sse-context.js';
 
 // ─── Handler types ────────────────────────────────────────────────────────────
 

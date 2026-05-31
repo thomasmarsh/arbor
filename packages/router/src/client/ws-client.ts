@@ -9,7 +9,7 @@ import {
   type WsAdapter,
   type WsContext,
   type WsWalkNode,
-} from '../contexts/ws-context.js';
+} from '../contexts/realtime/ws-context.js';
 
 // ─── Transport abstraction ─────────────────────────────────────────────────────
 //

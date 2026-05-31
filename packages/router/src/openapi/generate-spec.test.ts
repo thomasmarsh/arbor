@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import z from 'zod';
 import { defineRoutes, section } from '../core/define-routes.js';
-import { openApiRoute } from '../contexts/openapi-context.js';
+import { openApiRoute } from '../contexts/openapi/openapi-context.js';
 import { generateSpec } from './generate-spec.js';
 
 const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });

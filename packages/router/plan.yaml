@@ -1,0 +1,129 @@
+meta:
+  schema_version: "3.0.0"
+  description: "Hierarchical taxonomy catalog with decoupled chronological wave dispatching."
+
+# ========================================================
+# SCHEDULING LAYER (When things happen chronologically)
+# ========================================================
+waves:
+  - id: "wave-6"
+    name: "Wave 6 — Structural Cleanup"
+    status: "Complete"
+  - id: "wave-7"
+    name: "Wave 7 — Segment Correctness + Test Quality"
+    status: "Current"
+    focus: "Fixing segment parsers and table-driven testing foundations."
+  - id: "wave-8"
+    name: "Wave 8 — Feature Completeness"
+    status: "Queued"
+  - id: "browser-a"
+    name: "Browser Wave A — Foundation"
+    status: "Queued"
+  - id: "wave-g"
+    name: "Wave G — TCA Opt-In Layer"
+    status: "Queued"
+  - id: "wave-h"
+    name: "Wave H — Server-Side Rendering"
+    status: "Queued"
+
+# ========================================================
+# TAXONOMY LAYER (The Structural Architecture Tree)
+# ========================================================
+epics:
+  - id: "E1"
+    title: "Core Server Type Machinery & Infrastructure"
+    stories:
+      - id: "S1"
+        title: "Dynamic Segment Evaluation & Integrity"
+        layer: "Server"
+        items:
+          - id: 67
+            kind: "Task"
+            wave: "wave-7"
+            status: "Next"
+            text: "Fix num/opt-num to reject non-integers via round-trip check"
+          - id: 68
+            kind: "Task"
+            wave: "wave-7"
+            status: "Queued"
+            text: "Wildcard captures string not string[]"
+            deps: [69]
+          - id: 69
+            kind: "Task"
+            wave: "wave-7"
+            status: "Queued"
+            text: "Enforce optional segment ordering at definition time"
+          - id: 70
+            kind: "Task"
+            wave: "wave-7"
+            status: "Low Priority"
+            text: "Pattern/regex segment kind"
+
+      - id: "S2"
+        title: "Contract Generation & Testing Automation"
+        layer: "Server"
+        items:
+          - id: 63
+            kind: "Task"
+            wave: "wave-6"
+            status: "Done"
+            text: "Decompose walkSpec() god function"
+          - id: 84
+            kind: "Task"
+            wave: "wave-7"
+            status: "Done"
+            text: "Framework-internal PBT — fast-check for core invariants"
+
+  - id: "E2"
+    title: "Browser Integration & Client Packages"
+    stories:
+      - id: "S3"
+        title: "Reactive Routing Foundations"
+        layer: "Browser"
+        items:
+          - id: 94
+            kind: "Spike"
+            wave: "browser-a"
+            status: "Queued"
+            text: "Browser package scaffold (jsdom vs vitest browser mode)"
+          - id: 95
+            kind: "Task"
+            wave: "browser-a"
+            status: "Queued"
+            text: "BrowserRouter — History API; navigate/subscribe/getRoute"
+            deps: [94]
+
+  - id: "E3"
+    title: "Advanced Architecture Extensions"
+    stories:
+      - id: "S4"
+        title: "The Composable Architecture Integration"
+        layer: "TCA"
+        items:
+          - id: 113
+            kind: "Spike"
+            wave: "wave-g"
+            status: "Queued"
+            text: "Spike — router as TCA Store validating streaming effects and teardown"
+          - id: 114
+            kind: "Task"
+            wave: "wave-g"
+            status: "Queued"
+            text: "Deliver routerReducer, RouterState, and core action machinery"
+
+      - id: "S5"
+        title: "WinterCG Compliant Streaming SSR"
+        layer: "SSR"
+        items:
+          - id: 119
+            kind: "Spike"
+            wave: "wave-h"
+            status: "Queued"
+            text: "Spike — SSR foundations and valtio server safety bounds"
+          - id: 120
+            kind: "Task"
+            wave: "wave-h"
+            status: "Queued"
+            text: "RouterAdapter interface + StaticRouter delivery"
+            deps: [119]
+

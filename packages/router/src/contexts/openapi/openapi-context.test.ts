@@ -2,11 +2,11 @@
 
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import { defineRoutes, section, type InferContext } from '../core/define-routes.js';
-import { createServer } from '../server/server.js';
+import { defineRoutes, section, type InferContext } from '../../core/define-routes.js';
+import { generateSpec } from '../../openapi/generate-spec.js';
+import { createServer } from '../../server/server.js';
+import { respond } from '../http-context.js';
 import { openApiRoute, type OpenApiContext, type OpenApiMeta } from './openapi-context.js';
-import { generateSpec } from '../openapi/generate-spec.js';
-import { respond } from './http-context.js';
 
 describe('OpenApiContext', () => {
   it('extends HttpContext with meta', () => {
@@ -247,7 +247,10 @@ describe('generateSpec', () => {
         string,
         Record<string, unknown>
       >;
-      const content = responses['200']!['content'] as Record<string, { schema: Record<string, unknown> }>;
+      const content = responses['200']!['content'] as Record<
+        string,
+        { schema: Record<string, unknown> }
+      >;
       const schema = content['application/json']!.schema;
       expect(schema['type']).toBe('object');
       expect((schema['properties'] as Record<string, unknown>)['tags']).toEqual({
@@ -261,7 +264,10 @@ describe('generateSpec', () => {
         string,
         Record<string, unknown>
       >;
-      const content = responses['200']!['content'] as Record<string, { schema: Record<string, unknown> }>;
+      const content = responses['200']!['content'] as Record<
+        string,
+        { schema: Record<string, unknown> }
+      >;
       const schema = content['application/json']!.schema;
       const result = (schema['properties'] as Record<string, Record<string, unknown>>)['result']!;
       expect(result['anyOf']).toBeDefined();

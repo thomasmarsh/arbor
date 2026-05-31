@@ -2,9 +2,9 @@
 
 import type { Result } from '@arbor/common';
 import type { RouteNode } from '../core/route-node.js';
-import type { SseContext, SseWalkNode } from '../contexts/sse-context.js';
+import type { SseContext, SseWalkNode } from '../contexts/realtime/sse-context.js';
 import { walkCollect } from '../core/walk.js';
-import { getSseMeta } from '../contexts/sse-context.js';
+import { getSseMeta } from '../contexts/realtime/sse-context.js';
 
 // ─── Transport abstraction ────────────────────────────────────────────────────
 

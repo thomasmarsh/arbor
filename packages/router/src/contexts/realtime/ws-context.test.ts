@@ -1,9 +1,9 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import { defineRoutes } from '../core/define-routes.js';
-import type { InferSession, Recv, Send } from '../core/session.js';
-import { createWsClient, type WsConnectFn } from '../client/ws-client.js';
-import { createWsServer } from '../server/ws-dispatch.js';
+import { defineRoutes } from '../../core/define-routes.js';
+import type { InferSession, Recv, Send } from '../../core/session.js';
+import { createWsClient, type WsConnectFn } from '../../client/ws-client.js';
+import { createWsServer } from '../../server/ws-dispatch.js';
 import {
   createWsAdapterPair,
   wsRoute,

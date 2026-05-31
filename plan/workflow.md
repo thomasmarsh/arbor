@@ -1,5 +1,52 @@
 # Development Workflow
 
+## Ledger
+
+`plan/ledger.jsonl` is the single source of truth for task status and sequencing.
+Every task is one line of JSON — `rg` and `sed` operate directly on it.
+
+### Reading the ledger
+
+```bash
+# Current focus task (status = next)
+rg '"status": "next"' plan/ledger.jsonl
+
+# Next queued task
+rg '"status": "queued"' plan/ledger.jsonl | head -1
+
+# Look up a specific task by id
+rg '"id": 86,' plan/ledger.jsonl
+
+# All tasks in a wave
+rg '"wave": "w14"' plan/ledger.jsonl
+
+# All tasks in a story
+rg '"story": "s4"' plan/ledger.jsonl
+
+# All queued tasks in a story
+rg '"story": "s4"' plan/ledger.jsonl | rg '"status": "queued"'
+```
+
+### Updating status
+
+Each task lives on one line. Target by id and update only the status field:
+
+```bash
+# Start work on a task (queued → next)
+sed -i '' '/"id": 86,/s/"status": "queued"/"status": "next"/' plan/ledger.jsonl
+
+# Mark the current task done
+sed -i '' '/"id": 86,/s/"status": "next"/"status": "done"/' plan/ledger.jsonl
+
+# Block a task
+sed -i '' '/"id": 28,/s/"status": "[^"]*"/"status": "blocked"/' plan/ledger.jsonl
+
+# Supersede a task
+sed -i '' '/"id": 44,/s/"status": "[^"]*"/"status": "superseded"/' plan/ledger.jsonl
+```
+
+---
+
 ## Prioritization Criteria
 
 Evaluate queued plans in this order:
@@ -46,7 +93,7 @@ itself as a **spike** before writing tests or implementation:
 - Novel use of conditional types to infer return/parameter types from generics
 
 **The rule:** validate the type-level invariant in the smallest possible isolated
-file *before* writing tests or implementation. A 10–20 line scratch file that
+file _before_ writing tests or implementation. A 10–20 line scratch file that
 confirms "TypeScript can infer `body` correctly here" costs one iteration.
 Finding out it doesn't — after writing a full test suite — costs fifteen.
 
@@ -66,12 +113,12 @@ Finding out it doesn't — after writing a full test suite — costs fifteen.
 When you encounter unexpected `body: any`, `body: unknown`, or `body: never`,
 check these in order — each can be tested in 3–5 lines:
 
-| Hypothesis | Quick test |
-| --- | --- |
-| TypeScript is narrowing the response variable | Try `declare const ok: Res` vs. `const ok: Res = literal` |
-| Index signature intersects and widens/narrows body type | Inline the intersection manually; check `keyof` and `Extract` |
-| Overload 1 is poisoning contextual types for overload 2 | Temporarily remove overload 1 and see if body infers correctly |
-| Union argument is being distributed over overload checks | Replace union variable with `declare const` of the full union |
+| Hypothesis                                               | Quick test                                                     |
+| -------------------------------------------------------- | -------------------------------------------------------------- |
+| TypeScript is narrowing the response variable            | Try `declare const ok: Res` vs. `const ok: Res = literal`      |
+| Index signature intersects and widens/narrows body type  | Inline the intersection manually; check `keyof` and `Extract`  |
+| Overload 1 is poisoning contextual types for overload 2  | Temporarily remove overload 1 and see if body infers correctly |
+| Union argument is being distributed over overload checks | Replace union variable with `declare const` of the full union  |
 
 **Do not spend more than one full iteration theorising in prose.** If a mental
 model predicts the error but the fix doesn't work, the mental model is wrong —
@@ -81,8 +128,8 @@ test a different hypothesis empirically instead.
 
 ## Session Type Design Spikes
 
-Session types introduce a distinct class of type-level challenge: *recursive phantom types
-with a computed dual*. Before writing tests or implementation for any session type plan
+Session types introduce a distinct class of type-level challenge: _recursive phantom types
+with a computed dual_. Before writing tests or implementation for any session type plan
 (87–91), spike the type-level claim first.
 
 ### When to treat as a session type spike
@@ -109,11 +156,11 @@ A plan involves session type machinery if it touches any of:
 
 ### Hypotheses to eliminate early (session types)
 
-| Hypothesis | Quick test |
-| --- | --- |
-| `Dual<S>` distributes over union | `Dual<Send<A, End> \| End>` — should be `Recv<A, End> \| End` |
-| Recursive `Dual` hits TS depth limit | 5-deep chain; `tsc --diagnostics` |
-| `Channel<S>` contextual typing works | `(ch: Channel<Send<string, End>>) => ch.send('hello')` no cast |
+| Hypothesis                             | Quick test                                                                                  |
+| -------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `Dual<S>` distributes over union       | `Dual<Send<A, End> \| End>` — should be `Recv<A, End> \| End`                               |
+| Recursive `Dual` hits TS depth limit   | 5-deep chain; `tsc --diagnostics`                                                           |
+| `Channel<S>` contextual typing works   | `(ch: Channel<Send<string, End>>) => ch.send('hello')` no cast                              |
 | New `_meta` key widens HTTP extractors | `type M = Extract<SseMeta<E> & HttpContextData, { __httpMethod: any }>` — must still narrow |
 
 ---
@@ -127,4 +174,8 @@ A plan is complete when:
 - All examples in `examples/` are brought up to date with code changes
 - `pnpm test && pnpm typecheck && pnpm lint` passes clean
 - `pnpm run examples` runs cleanly
-- The plan file is renamed to `N.DONE.topic.md` and CLAUDE.md is updated
+- The task status is set to `"done"` in `plan/ledger.jsonl`:
+
+  ```bash
+  sed -i '' '/"id": N,/s/"status": "next"/"status": "done"/' plan/ledger.jsonl
+  ```

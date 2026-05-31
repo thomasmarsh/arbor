@@ -34,13 +34,31 @@ Active work is tracked numerically in `plan/work-order.md`. Current target areas
 
 ---
 
-## Out of Scope for This Package
+## Browser Integration (new packages — Wave 20)
 
-These items require a separate package and must not be implemented in `@arbor/router`:
+The browser integration story is now active. See `BROWSER.md` at the workspace root for
+the full master plan and wave breakdown (plans 94–112).
 
-- **Browser-side navigation runtime** — parallel loaders, pending/error lifecycle states, query-param inheritance across navigations. Belongs in `packages/router-browser` or `packages/router-tanstack`.
-- **TanStack Router bridge** — `adaptToTanStackTree` adapter. Lives in `packages/router-tanstack` when undeferred (see `plan/spec.tanstack-bridge.md`). Blocked until Plans 63–77 stabilise the API surface.
-- **E2E integration test rig** — fires malformed inputs at a live server. A CI/developer tooling concern; no plan until the feature surface stabilises.
+**Package structure:**
+
+| Package | Contents |
+| --- | --- |
+| `packages/router-browser` | Framework-agnostic `BrowserRouter`, History API, search params, loaders, scroll restoration |
+| `packages/router-react` | React hooks + components: `RouterProvider`, `useRoute`, `<Link>`, `<RouteLayout>`, SSE/WS hooks |
+| `packages/router-tanstack` | TanStack Router bridge (spike 106 must go first) |
+| `packages/router-devtools` | Browser DevTools overlay (plan 110) |
+
+**`@arbor/router` is unchanged.** Browser packages are pure consumers. The constraint
+from wave 4–6 holds: `core/` must not import from any browser package.
+
+## Out of Scope for `@arbor/router`
+
+These items must not be implemented in the core router package:
+
+- **Browser-side navigation runtime** — in `packages/router-browser` (plans 94–96, 100–104, 109, 111–112).
+- **React components / hooks** — in `packages/router-react` (plans 97–99, 105, 107–109).
+- **TanStack Router bridge** — in `packages/router-tanstack` (plan 106 spike first).
+- **E2E integration test rig** — CI/developer tooling concern; no plan until feature surface stabilises.
 
 ---
 
@@ -48,7 +66,7 @@ These items require a separate package and must not be implemented in `@arbor/ro
 
 - **Plan 70** — Pattern/regex segment kind (`~name:regex`). Do after segment correctness wave (67–69) settles.
 - **Plan 74** — Radix tree router. Benchmark O(N) against real workloads first; implement only if measurable.
-- **Plan 24** — TanStack bridge. Separate package; unblocked after API surface stabilises.
+- **Plan 24** — TanStack bridge. Superseded by plan 106 (spike); will decide go/no-go there.
 
 ---
 

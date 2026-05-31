@@ -266,12 +266,12 @@ the type theory across the entire framework.
 
 ### From Haskell / PureScript
 
-**Servant-style type-level API descriptions.** Haskell's Servant library encodes the entire
-API as a type. @arbor/router is already philosophically Servant-adjacent — but with session
-types now live, the analogy goes deeper: `wsRoute` with `Dual<S>` is structurally identical
-to Servant's `WebSocket` combinator. The next step is making the inferred route type truly
-isomorphic to the OpenAPI output, so type-level changes automatically invalidate outdated
-client code.
+  **Servant-style type-level API descriptions.** Haskell's Servant library encodes the entire
+  API as a type. @arbor/router is already philosophically Servant-adjacent — but with session
+  types now live, the analogy goes deeper: `wsRoute` with `Dual<S>` is structurally identical
+  to Servant's `WebSocket` combinator. The next step is making the inferred route type truly
+  isomorphic to the OpenAPI output, so type-level changes automatically invalidate outdated
+  client code.
 
 **Effect-tracked handlers.** Haskell tracks IO effects in types. In TypeScript, Plan 92's
 capability system is a working approximation: handlers declare their dependencies as part

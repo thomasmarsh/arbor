@@ -1,0 +1,161 @@
+{"type": "meta", "version": "5.0.0", "description": "Unified Arbor Router relational ledger."}
+{"type": "epic", "id": "e1", "title": "Core Server Type Machinery & Infrastructure"}
+{"type": "epic", "id": "e2", "title": "Browser Integration & Client Packages"}
+{"type": "epic", "id": "e3", "title": "Advanced Architecture Systems"}
+{"type": "story", "id": "s1", "epic": "e1", "layer": "server", "title": "Type Foundations & Content Aggregation"}
+{"type": "story", "id": "s2", "epic": "e1", "layer": "server", "title": "Core Context & State Refactoring"}
+{"type": "story", "id": "s3", "epic": "e1", "layer": "server", "title": "Segment Constraints & Input Correctness"}
+{"type": "story", "id": "s4", "epic": "e1", "layer": "server", "title": "Session Types & Protocols Surface"}
+{"type": "story", "id": "s5", "epic": "e2", "layer": "Browser", "title": "Browser Navigation Core & Lifecycles"}
+{"type": "story", "id": "s6", "epic": "e2", "layer": "Browser", "title": "React Bindings & UI Polish"}
+{"type": "story", "id": "s7", "epic": "e3", "layer": "TCA", "title": "The Composable Architecture Layer"}
+{"type": "story", "id": "s8", "epic": "e3", "layer": "SSR", "title": "WinterCG Streaming & SSR Infrastructure"}
+{"type": "story", "id": "s11", "epic": "e2", "layer": "Browser", "title": "Browser Data Layer"}
+{"type": "story", "id": "s12", "epic": "e2", "layer": "Browser", "title": "Browser Real-time"}
+{"type": "story", "id": "s13", "epic": "e2", "layer": "Browser", "title": "Browser UX Polish"}
+{"type": "story", "id": "s14", "epic": "e2", "layer": "Browser", "title": "Browser Ecosystem Bridges"}
+{"type": "wave", "id": "w0", "name": "Wave 0 — Foundation"}
+{"type": "wave", "id": "w1", "name": "Wave 1 — Diagnostics and type machinery"}
+{"type": "wave", "id": "w2", "name": "Wave 2 — API contract surface"}
+{"type": "wave", "id": "w3", "name": "Wave 3 — Infrastructure layer"}
+{"type": "wave", "id": "w4", "name": "Wave 4 — Context layer cleanup"}
+{"type": "wave", "id": "w5", "name": "Wave 5 — Structural health"}
+{"type": "wave", "id": "w6", "name": "Wave 6 — Structural cleanup"}
+{"type": "wave", "id": "w7", "name": "Wave 7 — Segment correctness + test quality"}
+{"type": "wave", "id": "w8", "name": "Wave 8 — Feature completeness"}
+{"type": "wave", "id": "w9", "name": "Wave 9 — Client correctness"}
+{"type": "wave", "id": "w10", "name": "Wave 10 — Ergonomics"}
+{"type": "wave", "id": "w11", "name": "Wave 11 — Infrastructure cleanup"}
+{"type": "wave", "id": "w12", "name": "Wave 12 — Handler ergonomics"}
+{"type": "wave", "id": "w13", "name": "Wave 13 — Testing automation"}
+{"type": "wave", "id": "w14", "name": "Wave 14 — Architecture spikes"}
+{"type": "wave", "id": "w15", "name": "Wave 15 — Session type feasibility"}
+{"type": "wave", "id": "w16", "name": "Wave 16 — Real-time protocols"}
+{"type": "wave", "id": "w17", "name": "Wave 17 — MPST spike"}
+{"type": "wave", "id": "w18", "name": "Wave 18 — Capability system implementation"}
+{"type": "wave", "id": "w19", "name": "Wave 19 — HTTP session annotation"}
+{"type": "wave", "id": "wa", "name": "Browser Wave A — Foundation"}
+{"type": "wave", "id": "wb", "name": "Browser Wave B — React bindings"}
+{"type": "wave", "id": "wc", "name": "Browser Wave C — Data layer"}
+{"type": "wave", "id": "wd", "name": "Browser Wave D — Real-time in browser"}
+{"type": "wave", "id": "we", "name": "Browser Wave E — UX polish"}
+{"type": "wave", "id": "wf", "name": "Browser Wave F — Ecosystem bridges"}
+{"type": "wave", "id": "wg", "name": "Wave G — TCA opt-in layer"}
+{"type": "wave", "id": "wh", "name": "Wave H — Server-side rendering"}
+{"type": "wave", "id": "future-machinery", "name": "Future Machinery"}
+{"type": "task", "id": 18, "epic": "e1", "story": "s1", "kind": "task", "wave": "w0", "layer": "server", "status": "done", "text": "Eliminate unjustified casts", "file": "18.improve-type-safety.md"}
+{"type": "task", "id": 19, "epic": "e1", "story": "s1", "kind": "task", "wave": "w0", "layer": "server", "status": "done", "text": "Phantom/runtime context split", "file": "19.phantom-context-split.md"}
+{"type": "task", "id": 20, "epic": "e1", "story": "s1", "kind": "task", "wave": "w0", "layer": "server", "status": "done", "text": "Type-safe section params in print()", "file": "20.print-section-params.md"}
+{"type": "task", "id": 21, "epic": "e1", "story": "s1", "kind": "task", "wave": "w0", "layer": "server", "status": "done", "text": "Route extends { tag: string } constraint", "file": "21.route-tag-constraint.md"}
+{"type": "task", "id": 22, "epic": "e1", "story": "s1", "kind": "task", "wave": "w0", "layer": "server", "status": "done", "text": "Server handler DI context", "file": "22.server-di-context.md"}
+{"type": "task", "id": 23, "epic": "e1", "story": "s1", "kind": "task", "wave": "w0", "layer": "server", "status": "done", "text": "OpenAPI spec generator", "file": "23.openapi-generator.md"}
+{"type": "task", "id": 24, "epic": "e2", "story": "s14", "kind": "spike", "wave": "w0", "layer": "general", "status": "superseded", "text": "TanStack bridge spike", "file": "24.spike-tanstack-bridge.md"}
+{"type": "task", "id": 25, "epic": "e1", "story": "s1", "kind": "task", "wave": "w0", "layer": "server", "status": "done", "text": "Server body validation and error boundary", "file": "25.server-validation-error-boundary.md"}
+{"type": "task", "id": 26, "epic": "e1", "story": "s1", "kind": "task", "wave": "w0", "layer": "server", "status": "done", "text": "Expand type-level test coverage", "file": "26.type-level-test-coverage.md"}
+{"type": "task", "id": 27, "epic": "e1", "story": "s1", "kind": "task", "wave": "w0", "layer": "server", "status": "done", "text": "Normalize response status code types", "file": "27.normalize-status-code-types.md"}
+{"type": "task", "id": 28, "epic": "e1", "story": "s1", "kind": "task", "wave": "w1", "layer": "server", "status": "blocked", "text": "Remove child phantom", "file": "28.remove-child-phantom.md"}
+{"type": "task", "id": 29, "epic": "e1", "story": "s1", "kind": "task", "wave": "w2", "layer": "server", "status": "done", "text": "Typed response headers", "file": "29.typed-response-headers.md"}
+{"type": "task", "id": 30, "epic": "e1", "story": "s1", "kind": "task", "wave": "w2", "layer": "server", "status": "done", "text": "Typed request headers", "file": "30.typed-request-headers.md"}
+{"type": "task", "id": 31, "epic": "e1", "story": "s1", "kind": "spike", "wave": "w2", "layer": "server", "status": "done", "text": "Typed HTTP API client spike", "file": "31.spike-typed-client.md"}
+{"type": "task", "id": 32, "epic": "e1", "story": "s1", "kind": "task", "wave": "w3", "layer": "server", "status": "done", "text": "Cookie handling", "file": "32.cookie-handling.md"}
+{"type": "task", "id": 33, "epic": "e1", "story": "s1", "kind": "task", "wave": "w3", "layer": "server", "status": "done", "text": "Per-route CORS policy override", "file": "33.per-route-cors.md"}
+{"type": "task", "id": 34, "epic": "e1", "story": "s1", "kind": "task", "wave": "w3", "layer": "server", "status": "done", "text": "API key authentication", "file": "34.api-key-auth.md"}
+{"type": "task", "id": 35, "epic": "e1", "story": "s1", "kind": "task", "wave": "w2", "layer": "server", "status": "done", "text": "Multipart / streaming body parsing", "file": "35.multipart-streaming.md"}
+{"type": "task", "id": 36, "epic": "e1", "story": "s1", "kind": "task", "wave": "w3", "layer": "server", "status": "done", "text": "Per-route rate limiting", "file": "36.rate-limiting.md"}
+{"type": "task", "id": 37, "epic": "e1", "story": "s1", "kind": "task", "wave": "w3", "layer": "server", "status": "done", "text": "Telemetry / metrics decorator", "file": "37.telemetry-decorator.md"}
+{"type": "task", "id": 38, "epic": "e1", "story": "s1", "kind": "task", "wave": "w3", "layer": "server", "status": "done", "text": "CORS / CSRF server wrapper", "file": "38.cors-csrf-wrapper.md"}
+{"type": "task", "id": 39, "epic": "e1", "story": "s1", "kind": "task", "wave": "w3", "layer": "server", "status": "done", "text": "JWT / session contracts", "file": "39.jwt-session-contracts.md"}
+{"type": "task", "id": 40, "epic": "e1", "story": "s1", "kind": "task", "wave": "w3", "layer": "server", "status": "done", "text": "RBAC authorization", "file": "40.rbac-authorization.md"}
+{"type": "task", "id": 41, "epic": "e1", "story": "s1", "kind": "task", "wave": "w3", "layer": "server", "status": "done", "text": "Examples directory", "file": "41.examples-directory.md"}
+{"type": "task", "id": 42, "epic": "e1", "story": "s1", "kind": "task", "wave": "w1", "layer": "server", "status": "done", "text": "Edge and corner case tests", "file": "42.edge-case-tests.md"}
+{"type": "task", "id": 43, "epic": "e1", "story": "s1", "kind": "spike", "wave": "w1", "layer": "server", "status": "done", "text": "Type inference depth limits spike", "file": "43.spike-inference-limits.md"}
+{"type": "task", "id": 44, "epic": "e1", "story": "s1", "kind": "task", "wave": "w3", "layer": "server", "status": "superseded", "text": "Type-safe middleware pipeline", "file": "44.middleware-pipeline.md"}
+{"type": "task", "id": 45, "epic": "e1", "story": "s1", "kind": "task", "wave": "w3", "layer": "server", "status": "done", "text": "Pluggable error mapping engine", "file": "45.pluggable-error-mapping.md"}
+{"type": "task", "id": 46, "epic": "e1", "story": "s1", "kind": "spike", "wave": "w1", "layer": "server", "status": "done", "text": "Spike: restructure Derive without mutual recursion", "file": "46.spike-derive-no-mutual-recursion.md"}
+{"type": "task", "id": 47, "epic": "e1", "story": "s1", "kind": "task", "wave": "w1", "layer": "server", "status": "done", "text": "Remove child phantom via depth counter", "file": "47.remove-child-phantom-via-depth-counter.md"}
+{"type": "task", "id": 48, "epic": "e1", "story": "s1", "kind": "task", "wave": "w2", "layer": "server", "status": "done", "text": "Typed HTTP client API", "file": "48.typed-http-client.md"}
+{"type": "task", "id": 49, "epic": "e1", "story": "s1", "kind": "spike", "wave": "w3", "layer": "server", "status": "done", "text": "Spike: handler enrichers as middleware alt", "file": "49.spike-handler-enrichers.md"}
+{"type": "task", "id": 50, "epic": "e1", "story": "s1", "kind": "task", "wave": "w3", "layer": "server", "status": "done", "text": "Publish enrichers API", "file": "50.publish-enrichers-api.md"}
+{"type": "task", "id": 51, "epic": "e1", "story": "s2", "kind": "spike", "wave": "w4", "layer": "server", "status": "superseded", "text": "Spike: RouteCtx design constraints", "file": "51.spike-routectx-design.md"}
+{"type": "task", "id": 52, "epic": "e1", "story": "s1", "kind": "spike", "wave": "w3", "layer": "server", "status": "done", "text": "Spike: openApiRoute wraps httpRoute", "file": "52.spike-openapiroute-wraps-httproute.md"}
+{"type": "task", "id": 53, "epic": "e1", "story": "s2", "kind": "task", "wave": "w4", "layer": "server", "status": "done", "text": "RouteCtx move to plugins directory", "file": "53.routectx-move-to-plugins.md"}
+{"type": "task", "id": 54, "epic": "e1", "story": "s2", "kind": "task", "wave": "w4", "layer": "server", "status": "done", "text": "RouteCtx removal via explicit ctx param", "file": "54.routectx-removal-via-ctx-param.md"}
+{"type": "task", "id": 55, "epic": "e1", "story": "s2", "kind": "task", "wave": "w4", "layer": "server", "status": "done", "text": "Rename _ctx/Ctx to _meta/Meta bag", "file": "55.rename-ctx-to-meta.md"}
+{"type": "task", "id": 56, "epic": "e1", "story": "s2", "kind": "task", "wave": "w4", "layer": "server", "status": "done", "text": "Tech debt core framework context decoupling", "file": "56.tech-debt.core-context-coupling.md"}
+{"type": "task", "id": 57, "epic": "e1", "story": "s2", "kind": "task", "wave": "w5", "layer": "server", "status": "done", "text": "Rename Enricher to Guard and resolve Result overlap", "file": "57.guard-rename-and-result-overlap.md"}
+{"type": "task", "id": 58, "epic": "e1", "story": "s2", "kind": "task", "wave": "w5", "layer": "general", "status": "queued", "text": "Architectural smells and technical debt assessment", "file": "58.smells-assessment.md"}
+{"type": "task", "id": 59, "epic": "e1", "story": "s2", "kind": "task", "wave": "w5", "layer": "server", "status": "done", "text": "Decompose walkParse god function; unify boilerplate", "file": "59.walk-decompose.md"}
+{"type": "task", "id": 60, "epic": "e1", "story": "s2", "kind": "task", "wave": "w5", "layer": "server", "status": "done", "text": "Decompose createServer god function block", "file": "60.server-decompose.md"}
+{"type": "task", "id": 61, "epic": "e1", "story": "s2", "kind": "task", "wave": "w5", "layer": "server", "status": "done", "text": "Type the internal _meta bag; eliminate casts", "file": "61.meta-bag-typing.md"}
+{"type": "task", "id": 62, "epic": "e1", "story": "s2", "kind": "task", "wave": "w5", "layer": "server", "status": "done", "text": "Unify response types and add respond() helper", "file": "62.response-type-unification.md"}
+{"type": "task", "id": 63, "epic": "e1", "story": "s2", "kind": "task", "wave": "w6", "layer": "server", "status": "done", "text": "Decompose massive walkSpec() spec compilation routine", "file": "63.openapi-spec-decompose.md"}
+{"type": "task", "id": 64, "epic": "e1", "story": "s2", "kind": "task", "wave": "w6", "layer": "server", "status": "done", "text": "Fix openApiRoute() unsafe cast-and-mutate anti-pattern", "file": "64.openapi-context-mutation-fix.md"}
+{"type": "task", "id": 65, "epic": "e1", "story": "s2", "kind": "task", "wave": "w6", "layer": "server", "status": "done", "text": "Module exports barrel cleanup and interface audit", "file": "65.module-barrel-and-export-audit.md"}
+{"type": "task", "id": 66, "epic": "e1", "story": "s2", "kind": "task", "wave": "w6", "layer": "server", "status": "done", "text": "Extract and decouple rate-limiting validation hooks", "file": "66.rate-limit-decouple.md"}
+{"type": "task", "id": 67, "epic": "e1", "story": "s3", "kind": "task", "wave": "w7", "layer": "server", "status": "done", "text": "Enforce num/opt-num parameters reject non-integers", "file": "67.num-segment-integer-only.md"}
+{"type": "task", "id": 68, "epic": "e1", "story": "s3", "kind": "task", "wave": "w7", "layer": "server", "status": "done", "text": "Convert wildcard path evaluation captures to flat string", "file": "68.wildcard-string-not-array.md"}
+{"type": "task", "id": 69, "epic": "e1", "story": "s3", "kind": "task", "wave": "w7", "layer": "server", "status": "done", "text": "Enforce optional layout segments matching sorting ordering", "file": "69.optional-segment-ordering.md"}
+{"type": "task", "id": 70, "epic": "e1", "story": "s3", "kind": "task", "wave": "w7", "layer": "general", "status": "queued", "text": "Evaluate native pattern-based matching regex segments", "file": "70.pattern-segment.md"}
+{"type": "task", "id": 71, "epic": "e1", "story": "s3", "kind": "task", "wave": "w8", "layer": "server", "status": "done", "text": "Type-level validation method body requirements checking", "file": "71.method-body-type-safety.md"}
+{"type": "task", "id": 72, "epic": "e1", "story": "s3", "kind": "task", "wave": "w8", "layer": "server", "status": "done", "text": "Deliver createMockClient mock runtime harness utility", "file": "72.create-mock-client.md"}
+{"type": "task", "id": 73, "epic": "e1", "story": "s3", "kind": "task", "wave": "w8", "layer": "server", "status": "done", "text": "Include RFC required Allow metadata arrays on 405 actions", "file": "73.allow-header-on-405.md"}
+{"type": "task", "id": 74, "epic": "e1", "story": "s3", "kind": "spike", "wave": "w7", "layer": "general", "status": "queued", "text": "Performance spike: Radix tree router implementation", "file": "74.radix-tree-spike.md"}
+{"type": "task", "id": 75, "epic": "e1", "story": "s3", "kind": "task", "wave": "w9", "layer": "server", "status": "done", "text": "Deliver matchResponse compile-time exhaustiveness tracker", "file": "75.match-response-combinator.md"}
+{"type": "task", "id": 76, "epic": "e1", "story": "s3", "kind": "task", "wave": "w10", "layer": "server", "status": "done", "text": "Fluent builder .use() pipe layout middleware", "file": "76.use-builder.md"}
+{"type": "task", "id": 77, "epic": "e1", "story": "s3", "kind": "task", "wave": "w10", "layer": "server", "status": "done", "text": "Declarative requires authorization annotations setup", "file": "77.declarative-requires.md"}
+{"type": "task", "id": 78, "epic": "e1", "story": "s3", "kind": "task", "wave": "w12", "layer": "server", "status": "done", "text": "Deliver IntoResponse automatic raw entity mapping", "file": "78.into-response.md"}
+{"type": "task", "id": 79, "epic": "e1", "story": "s3", "kind": "task", "wave": "w13", "layer": "server", "status": "done", "text": "Automated pipeline data fuzz testing utilizing Zod", "file": "79.property-based-testing.md"}
+{"type": "task", "id": 80, "epic": "e1", "story": "s2", "kind": "spike", "wave": "w14", "layer": "server", "status": "done", "text": "Spike — typed dependency-free custom capability system", "file": "80.spike-capability-system.md"}
+{"type": "task", "id": 81, "epic": "e1", "story": "s2", "kind": "task", "wave": "w14", "layer": "server", "status": "done", "text": "Framework default context supervisor engine", "file": "81.handler-supervision.md"}
+{"type": "task", "id": 82, "epic": "e1", "story": "s3", "kind": "task", "wave": "w7", "layer": "server", "status": "done", "text": "Test runner macro infrastructure refactoring execution", "file": "82.test-infrastructure.md"}
+{"type": "task", "id": 83, "epic": "e1", "story": "s3", "kind": "task", "wave": "w7", "layer": "server", "status": "done", "text": "Transition to localized snapshot coverage via ParseDiag", "file": "83.inline-snapshots.md"}
+{"type": "task", "id": 84, "epic": "e1", "story": "s3", "kind": "task", "wave": "w7", "layer": "server", "status": "done", "text": "Internal PBT validation using fast-check patterns", "file": "84.framework-pbt.md"}
+{"type": "task", "id": 85, "epic": "e1", "story": "s3", "kind": "task", "wave": "w8", "layer": "server", "status": "done", "text": "Resolve internal context arity mismatching layers", "file": "85.fix-ctx-map-arity.md"}
+{"type": "task", "id": 86, "epic": "e1", "story": "s3", "kind": "task", "wave": "w14", "layer": "server", "status": "next", "text": "Strict static validation lint regulations adjustment", "file": "86.lint-rules-and-suppressions.md"}
+{"type": "task", "id": 87, "epic": "e1", "story": "s4", "kind": "spike", "wave": "w15", "layer": "server", "status": "done", "text": "Spike — advanced session types depth feasibility bounds", "file": "87.spike-session-types-feasibility.md"}
+{"type": "task", "id": 88, "epic": "e1", "story": "s4", "kind": "task", "wave": "w15", "layer": "server", "status": "done", "text": "Primitive message mapping and sessionRoute generation", "file": "88.session-type-foundations.md"}
+{"type": "task", "id": 89, "epic": "e1", "story": "s4", "kind": "task", "wave": "w16", "layer": "server", "status": "done", "text": "Deliver typed Server-Sent Events sseRoute layer", "file": "89.sse-route.md"}
+{"type": "task", "id": 90, "epic": "e1", "story": "s4", "kind": "task", "wave": "w16", "layer": "server", "status": "done", "text": "Deliver typed bidirectional WebSocket wsRoute system", "file": "90.ws-route.md"}
+{"type": "task", "id": 91, "epic": "e1", "story": "s4", "kind": "spike", "wave": "w17", "layer": "server", "status": "queued", "text": "Spike — multi-party structural session projections", "file": "91.spike-mpst.md"}
+{"type": "task", "id": 92, "epic": "e1", "story": "s2", "kind": "task", "wave": "w18", "layer": "server", "status": "queued", "text": "Deliver ServiceRegistry injection framework integration", "file": "92.capability-system-impl.md", "deps": [80]}
+{"type": "task", "id": 93, "epic": "e1", "story": "s4", "kind": "task", "wave": "w19", "layer": "server", "status": "queued", "text": "Unify execution data boundaries with session annotations", "file": "93.http-session-annotation.md", "deps": [88]}
+{"type": "task", "id": 94, "epic": "e2", "story": "s5", "kind": "spike", "wave": "wa", "layer": "Browser", "status": "queued", "text": "Spike — isolated client packages scaffolding environment", "file": "94.spike-browser-package-scaffold.md"}
+{"type": "task", "id": 95, "epic": "e2", "story": "s5", "kind": "task", "wave": "wa", "layer": "Browser", "status": "queued", "text": "BrowserRouter History abstraction driver implementation", "file": "95.browser-navigation-core.md", "deps": [94]}
+{"type": "task", "id": 96, "epic": "e2", "story": "s5", "kind": "task", "wave": "wa", "layer": "Browser", "status": "queued", "text": "Compile typed dynamic window location query converters", "file": "96.browser-search-params.md", "deps": [95]}
+{"type": "task", "id": 97, "epic": "e2", "story": "s6", "kind": "task", "wave": "wb", "layer": "Browser", "status": "queued", "text": "React bindings context tracking hooks creation", "file": "97.react-router-bindings.md", "deps": [95]}
+{"type": "task", "id": 98, "epic": "e2", "story": "s6", "kind": "task", "wave": "wb", "layer": "Browser", "status": "queued", "text": "Deliver click tracking accessible Link visual component", "file": "98.link-component.md", "deps": [97]}
+{"type": "task", "id": 99, "epic": "e2", "story": "s6", "kind": "task", "wave": "wb", "layer": "Browser", "status": "queued", "text": "Deliver compound conditional layout wrapper component", "file": "99.route-layouts.md", "deps": [97]}
+{"type": "task", "id": 100, "epic": "e2", "story": "s11", "kind": "spike", "wave": "wc", "layer": "Browser", "status": "queued", "text": "Spike — data loader architecture", "file": "100.spike-data-loaders.md", "deps": [97]}
+{"type": "task", "id": 101, "epic": "e2", "story": "s11", "kind": "task", "wave": "wc", "layer": "Browser", "status": "queued", "text": "Data loaders implementation", "file": "101.data-loaders-impl.md", "deps": [100]}
+{"type": "task", "id": 102, "epic": "e2", "story": "s11", "kind": "task", "wave": "wc", "layer": "Browser", "status": "queued", "text": "Navigation lifecycle — pending / committed / error", "file": "102.navigation-lifecycle.md", "deps": [101]}
+{"type": "task", "id": 103, "epic": "e2", "story": "s11", "kind": "task", "wave": "wc", "layer": "Browser", "status": "queued", "text": "Optimistic prefetch — hover/render prefetch with TTL", "file": "103.optimistic-prefetch.md", "deps": [101]}
+{"type": "task", "id": 104, "epic": "e2", "story": "s11", "kind": "task", "wave": "wc", "layer": "Browser", "status": "queued", "text": "Code splitting — lazyRoute() / createLazyMap parallel loads", "file": "104.code-splitting.md", "deps": [101]}
+{"type": "task", "id": 105, "epic": "e2", "story": "s14", "kind": "spike", "wave": "wf", "layer": "Browser", "status": "queued", "text": "Spike — TanStack Query integration", "file": "105.spike-tanstack-query.md", "deps": [101]}
+{"type": "task", "id": 106, "epic": "e2", "story": "s14", "kind": "spike", "wave": "wf", "layer": "Browser", "status": "queued", "text": "Spike — TanStack Router bridge (type compat + path syntax)", "file": "106.spike-tanstack-router-bridge.md", "deps": [95]}
+{"type": "task", "id": 107, "epic": "e2", "story": "s12", "kind": "task", "wave": "wd", "layer": "Browser", "status": "queued", "text": "useSSE() — typed SSE subscription hook & browser cleanup", "file": "107.sse-browser-lifecycle.md", "deps": [89, 97]}
+{"type": "task", "id": 108, "epic": "e2", "story": "s12", "kind": "task", "wave": "wd", "layer": "Browser", "status": "queued", "text": "useWebSocket() — typed WS hook, send queue & lifecycle", "file": "108.ws-browser-lifecycle.md", "deps": [90, 97]}
+{"type": "task", "id": 109, "epic": "e2", "story": "s13", "kind": "task", "wave": "we", "layer": "Browser", "status": "queued", "text": "useRouteHistory() — typed back/forward stack", "file": "109.navigation-history.md", "deps": [95, 97]}
+{"type": "task", "id": 110, "epic": "e2", "story": "s14", "kind": "task", "wave": "wf", "layer": "Browser", "status": "queued", "text": "@arbor/router-devtools — browser panel overlay inspector", "file": "110.devtools.md", "deps": [97, 107, 108]}
+{"type": "task", "id": 111, "epic": "e2", "story": "s13", "kind": "task", "wave": "we", "layer": "Browser", "status": "queued", "text": "Route-level meta tags — document.title + meta sync", "file": "111.route-meta-tags.md", "deps": [95]}
+{"type": "task", "id": 112, "epic": "e2", "story": "s13", "kind": "task", "wave": "we", "layer": "Browser", "status": "queued", "text": "Scroll restoration — save/restore scrollY per route", "file": "112.scroll-restoration.md", "deps": [95]}
+{"type": "task", "id": 113, "epic": "e3", "story": "s7", "kind": "spike", "wave": "wg", "layer": "TCA", "status": "queued", "text": "Spike — router as TCA Store streaming effects & teardown", "file": "113.spike-router-store.md", "deps": [95, 97]}
+{"type": "task", "id": 114, "epic": "e3", "story": "s7", "kind": "task", "wave": "wg", "layer": "TCA", "status": "queued", "text": "Deliver routerReducer, RouterState, RouterAction, RouterEnv", "file": "114.router-reducer.md", "deps": [113]}
+{"type": "task", "id": 115, "epic": "e3", "story": "s7", "kind": "task", "wave": "wg", "layer": "TCA", "status": "queued", "text": "RouterStoreProvider — TCA alternative to RouterProvider", "file": "115.react-tca-bindings.md", "deps": [114]}
+{"type": "task", "id": 116, "epic": "e3", "story": "s7", "kind": "task", "wave": "wg", "layer": "TCA", "status": "queued", "text": "Effect.stream with teardown; SSE + WS as long-lived effects", "file": "116.effect-streaming.md", "deps": [107, 108, 114]}
+{"type": "task", "id": 117, "epic": "e3", "story": "s7", "kind": "task", "wave": "wg", "layer": "TCA", "status": "queued", "text": "Loaders, meta, scroll as RouterEnv capabilities & actions", "file": "117.router-store-loaders.md", "deps": [101, 111, 112, 114]}
+{"type": "task", "id": 118, "epic": "e3", "story": "s7", "kind": "task", "wave": "wg", "layer": "TCA", "status": "queued", "text": "DevTools action log + time-travel reducer middleware", "file": "118.store-devtools-integration.md", "deps": [110, 114]}
+{"type": "task", "id": 119, "epic": "e3", "story": "s8", "kind": "spike", "wave": "wh", "layer": "SSR", "status": "queued", "text": "Spike — SSR foundations, valtio safety, React SSR API", "file": "119.spike-ssr-foundations.md", "deps": [97]}
+{"type": "task", "id": 120, "epic": "e3", "story": "s8", "kind": "task", "wave": "wh", "layer": "SSR", "status": "queued", "text": "RouterAdapter interface + StaticRouter core", "file": "120.router-adapter-static-router.md", "deps": [119]}
+{"type": "task", "id": 121, "epic": "e3", "story": "s8", "kind": "task", "wave": "wh", "layer": "SSR", "status": "queued", "text": "Loader data dehydration & HTML client rehydration", "file": "121.loader-dehydration.md", "deps": [101, 120]}
+{"type": "task", "id": 122, "epic": "e3", "story": "s8", "kind": "task", "wave": "wh", "layer": "SSR", "status": "queued", "text": "Head management — server-safe title/meta sync strategy", "file": "122.head-management.md", "deps": [111, 120]}
+{"type": "task", "id": 123, "epic": "e3", "story": "s8", "kind": "task", "wave": "wh", "layer": "SSR", "status": "queued", "text": "renderRoute() — WinterCG catch-all server subpath render", "file": "123.render-route.md", "deps": [120]}
+{"type": "task", "id": 124, "epic": "e3", "story": "s8", "kind": "task", "wave": "wh", "layer": "SSR", "status": "queued", "text": "BFF SSR wiring — Hono catch-all, Vite manifest pipeline", "file": "124.bff-ssr-integration.md", "deps": [123]}
+{"type": "task", "id": 125, "epic": "e3", "story": "s8", "kind": "task", "wave": "wh", "layer": "SSR", "status": "queued", "text": "Streaming SSR — deferred loaders, selective hydrateRoot", "file": "125.streaming-ssr.md", "deps": [121, 123]}
+{"type": "task", "id": 126, "epic": "e3", "story": "s8", "kind": "task", "wave": "wh", "layer": "SSR", "status": "queued", "text": "SSR + TCA path — staticRouterEnv and store rehydration", "file": "126.ssr-tca-path.md", "deps": [115, 121]}
+{"type": "task", "id": 127, "epic": "e1", "story": "s2", "kind": "spike", "wave": "future-machinery", "layer": "server", "status": "queued", "text": "Spike — Compile-time validation of Route/OpenAPI structural isomorphism", "file": "127.spike-route-openapi-isomorphism.md", "deps": [23]}
+{"type": "task", "id": 128, "epic": "e1", "story": "s4", "kind": "spike", "wave": "future-machinery", "layer": "server", "status": "queued", "text": "Spike — LiveRoute type construct mapping channels straight to HTTP endpoints", "file": "128.spike-live-route.md", "deps": [88]}
+{"type": "task", "id": 129, "epic": "e1", "story": "s2", "kind": "task", "wave": "future-machinery", "layer": "server", "status": "queued", "text": "RouterContract diffing utility for non-breaking API version validation", "file": "129.router-contract-diff.md", "deps": [85]}
+{"type": "task", "id": 130, "epic": "e1", "story": "s2", "kind": "task", "wave": "future-machinery", "layer": "server", "status": "queued", "text": "Type-driven cryptographic audit trail interceptor for critical state routes", "file": "130.typed-audit-trail.md", "deps": [40]}
+{"type": "task", "id": 131, "epic": "e1", "story": "s2", "kind": "task", "wave": "future-machinery", "layer": "server", "status": "queued", "text": "Supervision metrics interceptor exposing error-boundary statistics to Prometheus", "file": "131.supervision-metrics-integration.md", "deps": [37, 81]}
+{"type": "task", "id": 132, "epic": "e1", "story": "s1", "kind": "spike", "wave": "future-machinery", "layer": "server", "status": "queued", "text": "Spike — Type-level router tree depth optimizations avoiding type instantiation limits", "file": "132.spike-type-driven-dispatch.md", "deps": [43]}
+{"type": "task", "id": 133, "epic": "e1", "story": "s1", "kind": "spike", "wave": "future-machinery", "layer": "server", "status": "queued", "text": "Spike — Elimination of dependency code runtime schema steps via type-level metadata", "file": "133.spike-native-schema.md", "deps": [79]}

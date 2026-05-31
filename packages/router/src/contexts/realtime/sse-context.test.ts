@@ -1,9 +1,9 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
-import { defineRoutes } from '../core/define-routes.js';
-import type { InferSession, Send } from '../core/session.js';
-import { createSseClient, type SseFetchLike } from '../client/sse-client.js';
-import { createSseServer } from '../server/sse-dispatch.js';
+import { defineRoutes } from '../../core/define-routes.js';
+import type { InferSession, Send } from '../../core/session.js';
+import { createSseClient, type SseFetchLike } from '../../client/sse-client.js';
+import { createSseServer } from '../../server/sse-dispatch.js';
 import { sseRoute, type SseContext, type SseMeta } from './sse-context.js';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────

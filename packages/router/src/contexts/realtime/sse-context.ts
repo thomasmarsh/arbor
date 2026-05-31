@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type z from 'zod';
-import { buildable, type BuildableRouteNode } from '../core/define-routes.js';
-import type { RouteNode } from '../core/route-node.js';
-import { parseSegments } from '../core/segments.js';
-import type { Send, SessionMeta } from '../core/session.js';
-import { walkCollect } from '../core/walk.js';
+import { buildable, type BuildableRouteNode } from '../../core/define-routes.js';
+import type { RouteNode } from '../../core/route-node.js';
+import { parseSegments } from '../../core/segments.js';
+import type { Send, SessionMeta } from '../../core/session.js';
+import { walkCollect } from '../../core/walk.js';
 
 // ─── Context & meta types ─────────────────────────────────────────────────────
 

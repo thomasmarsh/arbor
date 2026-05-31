@@ -1,10 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import type z from 'zod';
-import { type BuildableRouteNode, buildable } from '../core/define-routes.js';
-import type { RouteNode } from '../core/define-routes.js';
-import { parseSegments } from '../core/segments.js';
-import type { HttpContext, HttpContextData, HttpMethod, SafeBodyOption } from './http-context.js';
+import type { RouteNode } from '../../core/define-routes.js';
+import { type BuildableRouteNode, buildable } from '../../core/define-routes.js';
+import { parseSegments } from '../../core/segments.js';
+import type {
+  HttpContext,
+  HttpContextData,
+  HttpMethod,
+  SafeBodyOption,
+} from '../http-context.js';
 
 export interface OpenApiMeta {
   summary?: string;
@@ -48,13 +53,15 @@ export function openApiRoute<
   path: string,
   options: { body?: z.ZodType<Body>; response: Res; meta?: OpenApiMeta } & SafeBodyOption<Method>,
   children?: [...C],
-): BuildableRouteNode<RouteNode<
-  z.infer<S>,
-  [...C],
-  OpenApiContext<Method, Body, InferResponseMap<Res>>,
-  never,
-  OpenApiCtxData
->> {
+): BuildableRouteNode<
+  RouteNode<
+    z.infer<S>,
+    [...C],
+    OpenApiContext<Method, Body, InferResponseMap<Res>>,
+    never,
+    OpenApiCtxData
+  >
+> {
   return buildable({
     _type: undefined as never,
     schema,

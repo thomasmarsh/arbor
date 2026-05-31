@@ -1,4 +1,7 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "mermaidChart.showGenerateDiagramCodeLens": false,
+  "python.defaultInterpreterPath": "${workspaceFolder}/tools/arbor-cli/.venv/bin/python",
+  "python.analysis.extraPaths": ["${workspaceFolder}/tools/arbor-cli/src"]
 }
