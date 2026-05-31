@@ -7,9 +7,11 @@ import {
   type WalkNode,
   buildUrl,
   forEachTaggedNode,
+  indexNodes,
   resolveQuerySchema,
   validateSchema,
   walkParse,
+  walkParseIndexed,
   walkPrint,
 } from './walk.js';
 import { routeFixtures } from '../test-utils/fixtures.js';
@@ -636,5 +638,55 @@ describe('PBT — walkParse never-throw', () => {
       const segments = path.split('/').filter(Boolean);
       expect(() => walkParse(nodes, segments, new URLSearchParams(), {})).not.toThrow();
     }), { numRuns: 500 });
+  });
+});
+
+describe('indexNodes', () => {
+  it('builds literal buckets from children first segments', () => {
+    const nodes = routeFixtures.combinedTree().children as WalkNode[];
+    const indexed = indexNodes(nodes);
+    for (const node of indexed) {
+      const { literals, nonLiterals } = node._index;
+      for (const [value, bucket] of literals) {
+        for (const child of bucket) {
+          expect(child.segments[0]).toEqual({ kind: 'lit', value });
+        }
+      }
+      for (const child of nonLiterals) {
+        expect(child.segments[0]?.kind ?? 'none').not.toBe('lit');
+      }
+    }
+  });
+});
+
+describe('walkParseIndexed', () => {
+  const nodes = routeFixtures.combinedTree().children as WalkNode[];
+  const indexed = indexNodes(nodes);
+  const q = (search = '') => new URLSearchParams(search);
+
+  it.each([
+    { segs: ['users'], expected: { tag: 'users' } },
+    { segs: ['orgs', 'acme'], expected: { tag: 'org', orgId: 'acme' } },
+    { segs: ['users', '123'], expected: { tag: 'users', child: { tag: 'user', id: '123' } } },
+    { segs: ['orgs', 'acme', '42'], expected: { tag: 'org', orgId: 'acme', child: { tag: 'project', projectId: 42 } } },
+  ])('matches $segs identically to walkParse', ({ segs, expected }) => {
+    expect(walkParseIndexed(indexed, segs, q())).toEqual(expected);
+    expect(walkParseIndexed(indexed, segs, q())).toEqual(walkParse(nodes, segs, q()));
+  });
+
+  it('returns null for unmatched path', () => {
+    expect(walkParseIndexed(indexed, ['no', 'such', 'route'], q())).toBeNull();
+  });
+
+  it('collects diagnostics for unmatched path', () => {
+    const diag: ParseDiag[] = [];
+    walkParseIndexed(indexed, ['users', '123', 'nope'], q(), {}, diag);
+    expect(diag.length).toBeGreaterThan(0);
+  });
+
+  it('parses query params identically to walkParse', () => {
+    const segs = ['orgs', 'acme', '42', '7'];
+    const search = 'status=open';
+    expect(walkParseIndexed(indexed, segs, q(search))).toEqual(walkParse(nodes, segs, q(search)));
   });
 });

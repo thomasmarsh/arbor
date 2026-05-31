@@ -91,6 +91,70 @@ function handleLeafNode(
   return data ? filterDefined(data) : null;
 }
 
+interface IndexedLevel {
+  literals: Map<string, IndexedWalkNode[]>;
+  nonLiterals: IndexedWalkNode[];
+}
+
+export type IndexedWalkNode = WalkNode & { _index: IndexedLevel };
+
+function buildLevel(nodes: IndexedWalkNode[]): IndexedLevel {
+  const literals = new Map<string, IndexedWalkNode[]>();
+  const nonLiterals: IndexedWalkNode[] = [];
+  for (const node of nodes) {
+    const first = node.segments[0];
+    if (first?.kind === 'lit') {
+      let bucket = literals.get(first.value);
+      if (!bucket) { bucket = []; literals.set(first.value, bucket); }
+      bucket.push(node);
+    } else {
+      nonLiterals.push(node);
+    }
+  }
+  return { literals, nonLiterals };
+}
+
+export function indexNodes(nodes: WalkNode[]): IndexedWalkNode[] {
+  return nodes.map((node) => {
+    const indexedChildren = indexNodes(node.children as WalkNode[]);
+    return { ...node, _index: buildLevel(indexedChildren) } as IndexedWalkNode;
+  });
+}
+
+export function walkParseIndexed(
+  nodes: IndexedWalkNode[],
+  urlSegments: string[],
+  query: URLSearchParams,
+  params: Record<string, unknown> = {},
+  diag?: ParseDiag[],
+): Record<string, unknown> | null {
+  for (const node of nodes) {
+    const match = matchSegments(node.segments, urlSegments, params);
+    if (!match) {
+      if (diag && node.schema !== null) diag.push({ kind: 'segment-mismatch', path: node.path, urlSegments });
+      continue;
+    }
+    const { params: nextParams, rest } = match;
+    if (rest.length === 0) {
+      const result = handleLeafNode(node, nextParams, query, diag);
+      if (result) return result;
+      continue;
+    }
+    if (node.children.length === 0) continue;
+    const first = rest[0];
+    const candidates = first !== undefined
+      ? [...(node._index.literals.get(first) ?? []), ...node._index.nonLiterals]
+      : node._index.nonLiterals;
+    const child = walkParseIndexed(candidates, rest, query, nextParams, diag);
+    if (!child) continue;
+    if (node.schema === null) return { child };
+    const data = validateSchema(node.schema, { ...nextParams, tag: getTag(node.schema) }, node.path, diag);
+    if (!data) continue;
+    return { ...filterDefined(data), child };
+  }
+  return null;
+}
+
 export function walkParse(
   nodes: WalkNode[],
   urlSegments: string[],

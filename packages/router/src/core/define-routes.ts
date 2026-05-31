@@ -2,7 +2,7 @@ import { Result } from '@arbor/common';
 import type z from 'zod';
 import type { ChildUnion, CtxMap, ExtractPathParams, RouteNode } from './route-node.js';
 import { parseSegments } from './segments.js';
-import { type ParseDiag, type WalkNode, buildUrl, getTag, walkParse, walkPrint } from './walk.js';
+import { type ParseDiag, type WalkNode, buildUrl, getTag, indexNodes, walkParseIndexed, walkPrint } from './walk.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- BuildableRouteNode/buildable use any for structural RouteNode variance */
 export type BuildableRouteNode<N extends RouteNode<any, any, any, any, any>> = N & {
@@ -106,6 +106,7 @@ export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] 
   type SP = AllSectionParams<[...C]>;
 
   const nodes = children as WalkNode[];
+  const indexedNodes = indexNodes(nodes);
 
   const tags = collectTags(nodes);
   const seen = new Set<string>();
@@ -126,7 +127,7 @@ export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] 
       } catch {
         return Result.err(`invalid URL encoding: ${url.pathname}`);
       }
-      const raw = walkParse(nodes, segments, url.searchParams);
+      const raw = walkParseIndexed(indexedNodes, segments, url.searchParams);
       if (!raw) return Result.err(`no route: ${url.pathname}`);
       return Result.ok(raw) as Result<Route, string>;
     },
@@ -139,7 +140,7 @@ export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] 
         return { result: Result.err(`invalid URL encoding: ${url.pathname}`), diagnostics: [] };
       }
       const diag: ParseDiag[] = [];
-      const raw = walkParse(nodes, segs, url.searchParams, {}, diag);
+      const raw = walkParseIndexed(indexedNodes, segs, url.searchParams, {}, diag);
       if (!raw) return { result: Result.err(`no route: ${url.pathname}`), diagnostics: diag };
       return { result: Result.ok(raw) as Result<Route, string>, diagnostics: diag };
     },
