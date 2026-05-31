@@ -67,7 +67,7 @@ class TaskEntry(BaseModel):
     status: TaskStatus
     text: str
     file: str
-    size: Optional[Size]
+    size: Optional[Size] = None
     deps: List[int] = Field(default_factory=list)
     rank: Optional[int] = None
 

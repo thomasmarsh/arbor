@@ -64,6 +64,7 @@ class QueueApp(App):
         self._tasks = []
 
         in_progress, ready, blocked, done, canceled = compute_display_groups(ledger)
+        satisfied_ids = {t.id for t in done} | {t.id for t in canceled}
 
         def _add(task: TaskEntry, deps: list[int], dim: bool = False) -> None:
             self._tasks.append(task)
@@ -85,7 +86,7 @@ class QueueApp(App):
             )
 
         for t in in_progress:
-            _add(t, [])
+            _add(t, [d for d in t.deps if d not in satisfied_ids])
         for t in ready:
             _add(t, [])
         for t, pending in blocked:
