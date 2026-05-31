@@ -111,7 +111,7 @@ def next_cmd():
 def set_cmd(task_id: int, status: str):
     """Set a task's status.
 
-    STATUS: queued | next | done | blocked | superseded
+    STATUS: todo | next | done | canceled
     """
     valid = {s.value for s in TaskStatus}
     if status not in valid:

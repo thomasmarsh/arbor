@@ -8,20 +8,33 @@ from arbor_cli.util import REPO_ROOT
 
 
 class TaskStatus(str, Enum):
-    TODO = "todo"
     IN_PROGRESS = "in_progress"
     DONE = "done"
-    SUPERSEDED = "superseded"
-    BLOCKED = "blocked"
+    CANCELED = "canceled"
     NEXT = "next"
-    QUEUED = "queued"
+    TODO = "todo"
+
+
+class Size(str, Enum):
+    XS = "xs"
+    S = "s"
+    M = "m"
+    L = "l"
+    XL = "xl"
+
+STATUS_ORDER = [
+    TaskStatus.IN_PROGRESS,
+    TaskStatus.NEXT,
+    TaskStatus.TODO,
+    TaskStatus.DONE,
+    TaskStatus.CANCELED,
+]
 
 
 class MetaEntry(BaseModel):
     type: Literal["meta"]
     version: str
     description: str
-
 
 class EpicEntry(BaseModel):
     type: Literal["epic"]
@@ -54,6 +67,7 @@ class TaskEntry(BaseModel):
     status: TaskStatus
     text: str
     file: str
+    size: Optional[Size]
     deps: List[int] = Field(default_factory=list)
     rank: Optional[int] = None
 
@@ -160,13 +174,13 @@ def _sort_key(wave_order: dict[str, int], t: "TaskEntry") -> tuple[int, int]:
 
 
 def compute_queue(ledger: Ledger) -> list[TaskEntry]:
-    """Ready tasks: queued with all deps done, sorted by (wave_index, rank ?? id*100)."""
+    """Ready tasks: todo with all deps done, sorted by (wave_index, rank ?? id*100)."""
     wave_order = {w.id: i for i, w in enumerate(ledger.waves)}
     done_ids = {t.id for t in _all_tasks(ledger) if t.status == TaskStatus.DONE}
 
     ready = [
         t for t in _all_tasks(ledger)
-        if t.status == TaskStatus.QUEUED
+        if t.status == TaskStatus.TODO
         and all(dep in done_ids for dep in t.deps)
     ]
     ready.sort(key=lambda t: _sort_key(wave_order, t))
@@ -176,7 +190,7 @@ def compute_queue(ledger: Ledger) -> list[TaskEntry]:
 def compute_queue_all(
     ledger: Ledger,
 ) -> tuple[list[TaskEntry], list[tuple[TaskEntry, list[int]]]]:
-    """All queued tasks split into (ready, blocked).
+    """All todo tasks split into (ready, blocked).
 
     blocked entries are (task, [blocking_dep_ids]), sorted the same way as ready.
     """
@@ -187,7 +201,7 @@ def compute_queue_all(
     blocked: list[tuple[TaskEntry, list[int]]] = []
 
     for t in _all_tasks(ledger):
-        if t.status != TaskStatus.QUEUED:
+        if t.status != TaskStatus.TODO:
             continue
         blocking = [dep for dep in t.deps if dep not in done_ids]
         if blocking:
@@ -223,6 +237,64 @@ def update_task(task_id: int, updates: dict) -> None:
     if not found:
         raise ValueError(f"Task {task_id} not found in ledger")
     path.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+
+
+def get_all_tasks(ledger: Ledger) -> list[TaskEntry]:
+    """All tasks sorted by status priority (STATUS_ORDER) then wave/rank."""
+    wave_order = {w.id: i for i, w in enumerate(ledger.waves)}
+    status_priority = {s: i for i, s in enumerate(STATUS_ORDER)}
+    tasks = _all_tasks(ledger)
+    tasks.sort(key=lambda t: (status_priority.get(t.status, 99), _sort_key(wave_order, t)))
+    return tasks
+
+
+def compute_display_groups(ledger: Ledger) -> tuple[
+    list[TaskEntry],
+    list[TaskEntry],
+    list[tuple[TaskEntry, list[int]]],
+    list[TaskEntry],
+    list[TaskEntry],
+]:
+    """Partition all tasks into display groups: (in_progress, ready, blocked, done, canceled).
+
+    in_progress: IN_PROGRESS or NEXT status.
+    ready: TODO with all deps satisfied (done or canceled).
+    blocked: TODO with at least one unsatisfied dep — paired with the blocking dep ids.
+    done / canceled: terminal statuses.
+    All groups sorted by (wave_index, rank ?? id*100).
+    """
+    wave_order = {w.id: i for i, w in enumerate(ledger.waves)}
+    tasks = _all_tasks(ledger)
+    satisfied_ids = {t.id for t in tasks if t.status in (TaskStatus.DONE, TaskStatus.CANCELED)}
+
+    in_progress: list[TaskEntry] = []
+    ready: list[TaskEntry] = []
+    blocked: list[tuple[TaskEntry, list[int]]] = []
+    done: list[TaskEntry] = []
+    canceled: list[TaskEntry] = []
+
+    for t in tasks:
+        if t.status in (TaskStatus.IN_PROGRESS, TaskStatus.NEXT):
+            in_progress.append(t)
+        elif t.status == TaskStatus.TODO:
+            pending = [dep for dep in t.deps if dep not in satisfied_ids]
+            if pending:
+                blocked.append((t, pending))
+            else:
+                ready.append(t)
+        elif t.status == TaskStatus.DONE:
+            done.append(t)
+        elif t.status == TaskStatus.CANCELED:
+            canceled.append(t)
+
+    key = lambda t: _sort_key(wave_order, t)
+    in_progress.sort(key=key)
+    ready.sort(key=key)
+    blocked.sort(key=lambda pair: key(pair[0]))
+    done.sort(key=key)
+    canceled.sort(key=key)
+
+    return in_progress, ready, blocked, done, canceled
 
 
 # ── Legacy helpers ────────────────────────────────────────────────────────────
