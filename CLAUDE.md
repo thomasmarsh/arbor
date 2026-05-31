@@ -40,7 +40,7 @@ Working directory is the workspace root (`/Users/tmarsh/git/arbor`). Source live
 - Verification chain: `pnpm --filter @arbor/router test && pnpm --filter @arbor/router typecheck && pnpm lint && pnpm --filter @arbor/router run examples`
 - Lint config: `/Users/tmarsh/git/arbor/eslint.config.js` (workspace root — no local config)
 
-NOTE: Path structure described in `plan/topology.md`. Execution order in `plan/work-order.md`.
+NOTE: Path structure described in `plan/topology.md`. Execution order in `plan/ledger.jsonl`.
 
 ## Testing
 
@@ -135,11 +135,20 @@ When planning, use the following rules:
 
 - Place a plan document in plan/ (using the next available number). Format: `plan/<sequence>.<topic>.md`
 - Open questions for user resolution → new plan file (spike if unvalidated theory)
-- Update `plan/work-order.md` to add the plan to the queue and update the plan index
+- Append a line to `plan/ledger.jsonl` to add the plan to the as a TODO. Example: `{ "type": "task", "id": 91, "epic": "e1", "story": "s4", "kind": "spike", "wave": "w16", "layer": "server", "status": "todo", "size": "m", "text": "Spike — multi-party structural session projections", "file": "91.spike-mpst.md", "deps": [ 87, 88 ] }`.
+
 - Update `plan/roadmap.md` if the plan changes scope, deferred items, or long-horizon directions
 - Every plan document must include the sections:
   - Context
   - Goal
-  - Change Surface
+  - Change Surface & T-shirt Sizing
   - Dependencies
   - Success Criteria
+
+T-shirt Sizing guide:
+
+- XS: trivial, < 1 hour, single file change
+- S: small, a few hours, 1-3 files
+- M: medium, half day to a day, several files
+- L: large, 1-3 days, multiple files, some design
+- XL: very large, 3+ days, major new system

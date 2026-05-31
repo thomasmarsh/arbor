@@ -109,53 +109,53 @@ depth-limited recursive mapped type (`FlattenChildrenImpl`).
 
 ## Planned / In-Progress Features
 
-| Plan | Topic | Status |
-| ---- | ----- | ------ |
-| 75 | `matchResponse` exhaustive combinator | ✓ |
-| 76 | `.use()` fluent builder + `pipeline()` combinator | ✓ |
-| 77 | Declarative `requires` annotation on `httpRoute` | ✓ |
-| 78 | `desc()` / `IntoResponse` — direct body return from handlers | ✓ |
-| 79 | Property-based / fuzz testing from Zod schemas | ✓ |
-| 80 | Spike — typed capability / environment system | ✓ (spike: proceed, no Effect-TS) |
-| 81 | Default handler supervision (let-it-crash safety net) | Queued |
-| 86 | Lint rules and exhaustiveness-check suppressions | Queued |
-| 87 | Spike — session types feasibility: `Dual<S>`, `Channel<S>`, depth limits | ✓ |
-| 88 | Session type foundations: `Send/Recv/Branch/Select/End`, `sessionRoute()` | ✓ |
-| 89 | `sseRoute()` — typed SSE; handler `AsyncIterable<E>`; dual client | ✓ |
-| 90 | `wsRoute()` — typed WebSocket; `{ in, out }` Zod schemas; dual client | ✓ |
-| 91 | Spike — MPST global type projection, N-participant protocols | Queued |
-| 92 | Capability system: `ServiceRegistry`, `needs` on HTTP/SSE/WS | Queued (post-80) |
-| 93 | `HttpSession` annotation — uniform `_meta` session type across all three protocols | Queued |
+| Plan | Topic                                                                              | Status                           |
+| ---- | ---------------------------------------------------------------------------------- | -------------------------------- |
+| 75   | `matchResponse` exhaustive combinator                                              | ✓                                |
+| 76   | `.use()` fluent builder + `pipeline()` combinator                                  | ✓                                |
+| 77   | Declarative `requires` annotation on `httpRoute`                                   | ✓                                |
+| 78   | `desc()` / `IntoResponse` — direct body return from handlers                       | ✓                                |
+| 79   | Property-based / fuzz testing from Zod schemas                                     | ✓                                |
+| 80   | Spike — typed capability / environment system                                      | ✓ (spike: proceed, no Effect-TS) |
+| 81   | Default handler supervision (let-it-crash safety net)                              | Queued                           |
+| 86   | Lint rules and exhaustiveness-check suppressions                                   | Queued                           |
+| 87   | Spike — session types feasibility: `Dual<S>`, `Channel<S>`, depth limits           | ✓                                |
+| 88   | Session type foundations: `Send/Recv/Branch/Select/End`, `sessionRoute()`          | ✓                                |
+| 89   | `sseRoute()` — typed SSE; handler `AsyncIterable<E>`; dual client                  | ✓                                |
+| 90   | `wsRoute()` — typed WebSocket; `{ in, out }` Zod schemas; dual client              | ✓                                |
+| 91   | Spike — MPST global type projection, N-participant protocols                       | Queued                           |
+| 92   | Capability system: `ServiceRegistry`, `needs` on HTTP/SSE/WS                       | Queued (post-80)                 |
+| 93   | `HttpSession` annotation — uniform `_meta` session type across all three protocols | Queued                           |
 
 ---
 
 ## Framework Comparison
 
-| Capability | @arbor/router | tRPC | ts-rest | Hono | Express + Zod |
-| --- | --- | --- | --- | --- | --- |
-| **Primary model** | URL tree → typed protocol dispatch | Procedure router | Contract-first REST | Web-standard middleware | Imperative routes |
-| **Type source** | Zod schemas in route tree | TypeScript functions | Shared contract object | TypeScript, Zod plugins | Manual |
-| **Codegen required** | No | No | No | No | No |
-| **URL parse + print** | Yes (bidirectional) | No | No | No | No |
-| **Nested route union** | Yes (structural parent/child) | No | No | No | No |
-| **HTTP server** | Yes | Via adapter | Via adapter | Yes (core) | Yes |
-| **Typed client** | Yes | Yes (core) | Yes (core) | Partial | No |
-| **Exhaustive response matching** | Yes (`matchResponse`) | No | No | No | No |
-| **OpenAPI output** | Yes | Via plugin | Yes (core) | Via plugin | Via plugin |
-| **Guards / middleware** | Typed HO factories + fluent `.use()` | Middleware array | Middleware array | Middleware chain | Middleware array |
-| **Rate limiting** | Built-in (`withRateLimit`) | External | External | Plugin | External |
-| **CORS / CSRF** | Built-in | External | External | Plugin | External |
-| **JWT / RBAC** | Built-in guards | External | External | External | External |
-| **Runtime** | WinterCG (any) | Node + adapters | Node + adapters | WinterCG | Node only |
-| **Query param schemas** | Yes (per-route Zod) | Yes | Yes | Partial | Manual |
-| **Body type safety (GET)** | Yes | N/A | Yes | N/A | No |
-| **Test client (in-memory)** | Yes (`createTestClient`) | Included | No | No | No |
-| **Property-based testing** | Yes | No | No | No | No |
-| **SSE with typed events** | Yes (`sseRoute`) | No | No | No | No |
-| **WebSocket typed channels** | Yes (`wsRoute`, dual) | No | No | Partial | No |
-| **Session type duality** | Yes (compile-time `Dual<S>`) | No | No | No | No |
-| **MPST (multi-party protocols)** | Spike queued (Plan 91) | No | No | No | No |
-| **Capability / effects system** | Spike done, impl queued (Plan 92) | No | No | No | No |
+| Capability                       | @arbor/router                        | tRPC                 | ts-rest                | Hono                    | Express + Zod     |
+| -------------------------------- | ------------------------------------ | -------------------- | ---------------------- | ----------------------- | ----------------- |
+| **Primary model**                | URL tree → typed protocol dispatch   | Procedure router     | Contract-first REST    | Web-standard middleware | Imperative routes |
+| **Type source**                  | Zod schemas in route tree            | TypeScript functions | Shared contract object | TypeScript, Zod plugins | Manual            |
+| **Codegen required**             | No                                   | No                   | No                     | No                      | No                |
+| **URL parse + print**            | Yes (bidirectional)                  | No                   | No                     | No                      | No                |
+| **Nested route union**           | Yes (structural parent/child)        | No                   | No                     | No                      | No                |
+| **HTTP server**                  | Yes                                  | Via adapter          | Via adapter            | Yes (core)              | Yes               |
+| **Typed client**                 | Yes                                  | Yes (core)           | Yes (core)             | Partial                 | No                |
+| **Exhaustive response matching** | Yes (`matchResponse`)                | No                   | No                     | No                      | No                |
+| **OpenAPI output**               | Yes                                  | Via plugin           | Yes (core)             | Via plugin              | Via plugin        |
+| **Guards / middleware**          | Typed HO factories + fluent `.use()` | Middleware array     | Middleware array       | Middleware chain        | Middleware array  |
+| **Rate limiting**                | Built-in (`withRateLimit`)           | External             | External               | Plugin                  | External          |
+| **CORS / CSRF**                  | Built-in                             | External             | External               | Plugin                  | External          |
+| **JWT / RBAC**                   | Built-in guards                      | External             | External               | External                | External          |
+| **Runtime**                      | WinterCG (any)                       | Node + adapters      | Node + adapters        | WinterCG                | Node only         |
+| **Query param schemas**          | Yes (per-route Zod)                  | Yes                  | Yes                    | Partial                 | Manual            |
+| **Body type safety (GET)**       | Yes                                  | N/A                  | Yes                    | N/A                     | No                |
+| **Test client (in-memory)**      | Yes (`createTestClient`)             | Included             | No                     | No                      | No                |
+| **Property-based testing**       | Yes                                  | No                   | No                     | No                      | No                |
+| **SSE with typed events**        | Yes (`sseRoute`)                     | No                   | No                     | No                      | No                |
+| **WebSocket typed channels**     | Yes (`wsRoute`, dual)                | No                   | No                     | Partial                 | No                |
+| **Session type duality**         | Yes (compile-time `Dual<S>`)         | No                   | No                     | No                      | No                |
+| **MPST (multi-party protocols)** | Spike todo (Plan 91)                 | No                   | No                     | No                      | No                |
+| **Capability / effects system**  | Spike done, impl todo(Plan 92)       | No                   | No                     | No                      | No                |
 
 ### Gap analysis vs. peers
 
@@ -193,8 +193,8 @@ HTTP/SSE/WebSocket).
   factories or guard composition. More explicit but more verbose than `app.use()` for
   teams coming from Express.
 - Radix tree dispatch not yet done (Plan 74, deferred pending benchmark).
-- Capability/effects system spiked but not yet integrated (Plan 92 queued).
-- MPST (multi-party session types) — spike queued, no implementation plan yet.
+- Capability/effects system spiked but not yet integrated (Plan 92 todo).
+- MPST (multi-party session types) — spike todo, no implementation plan yet.
 
 ---
 
@@ -266,12 +266,12 @@ the type theory across the entire framework.
 
 ### From Haskell / PureScript
 
-  **Servant-style type-level API descriptions.** Haskell's Servant library encodes the entire
-  API as a type. @arbor/router is already philosophically Servant-adjacent — but with session
-  types now live, the analogy goes deeper: `wsRoute` with `Dual<S>` is structurally identical
-  to Servant's `WebSocket` combinator. The next step is making the inferred route type truly
-  isomorphic to the OpenAPI output, so type-level changes automatically invalidate outdated
-  client code.
+**Servant-style type-level API descriptions.** Haskell's Servant library encodes the entire
+API as a type. @arbor/router is already philosophically Servant-adjacent — but with session
+types now live, the analogy goes deeper: `wsRoute` with `Dual<S>` is structurally identical
+to Servant's `WebSocket` combinator. The next step is making the inferred route type truly
+isomorphic to the OpenAPI output, so type-level changes automatically invalidate outdated
+client code.
 
 **Effect-tracked handlers.** Haskell tracks IO effects in types. In TypeScript, Plan 92's
 capability system is a working approximation: handlers declare their dependencies as part
@@ -335,8 +335,8 @@ inside-out readability problem. The next step — generator-based pipelines — 
 
 ```typescript
 const handler = pipeline(function* (ctx) {
-  const session = yield* withSession(ctx);       // 401 if missing, typed session if present
-  const user    = yield* withRbac(['admin'])(session);  // 403 if unauthorized
+  const session = yield* withSession(ctx); // 401 if missing, typed session if present
+  const user = yield* withRbac(['admin'])(session); // 403 if unauthorized
   return respond(200, { id: user.id });
 });
 ```
@@ -374,8 +374,8 @@ of the contract than OpenAPI allows.
 (`DBWrite`, `ExternalAPI`, `SendEmail`) as part of the route type. The handler's type is
 required to carry a proof that those capabilities were granted. A handler that tries to
 write to the DB on a `[DBRead]` route is a type error. This is different from dependency
-injection (it is about *permission*, not injection) and different from guards (it is about
-what the handler is allowed to *do*, not what the request is allowed to *match*). The spike
+injection (it is about _permission_, not injection) and different from guards (it is about
+what the handler is allowed to _do_, not what the request is allowed to _match_). The spike
 (Plan 80) confirmed TypeScript feasibility without Effect-TS; Plan 92 ships it.
 
 **Session type duality as a unified framework abstraction** (Plans 87–93). The current
