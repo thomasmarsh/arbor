@@ -6,6 +6,11 @@ import { getOpenApiMeta, type OpenApiCtxData, type OpenApiWalkNode } from '../co
 
 function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
   const { $schema: _, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
+  // z.toJSONSchema emits oneOf for discriminated unions but omits the OAS 3.1
+  // discriminator field. Add it so code generators can use fast-path dispatch.
+  if (schema instanceof z.ZodDiscriminatedUnion) {
+    return { ...rest, discriminator: { propertyName: schema.def.discriminator } };
+  }
   return rest;
 }
 

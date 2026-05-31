@@ -261,3 +261,63 @@ describe('generateSpec snapshot', () => {
     `);
   });
 });
+
+describe('discriminated union response', () => {
+  it('emits discriminator.propertyName in the response schema', () => {
+    const Schema = z.object({ tag: z.literal('get-event'), id: z.string() });
+    const EventBody = z.discriminatedUnion('kind', [
+      z.object({ kind: z.literal('created'), at: z.string() }),
+      z.object({ kind: z.literal('deleted'), reason: z.string() }),
+    ]);
+    const r = defineRoutes([
+      openApiRoute(Schema, 'GET', 'events/:id', { response: { 200: EventBody } }),
+    ]);
+    const spec = generateSpec(r, { title: 'T', version: '1' });
+    const schema = (
+      (spec['paths'] as Record<string, unknown>)['/events/{id}'] as Record<string, unknown>
+    )['get'] as { responses: { 200: { content: { 'application/json': { schema: unknown } } } } };
+    expect(schema.responses[200].content['application/json'].schema).toMatchInlineSnapshot(`
+      {
+        "discriminator": {
+          "propertyName": "kind",
+        },
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "at": {
+                "type": "string",
+              },
+              "kind": {
+                "const": "created",
+                "type": "string",
+              },
+            },
+            "required": [
+              "kind",
+              "at",
+            ],
+            "type": "object",
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "deleted",
+                "type": "string",
+              },
+              "reason": {
+                "type": "string",
+              },
+            },
+            "required": [
+              "kind",
+              "reason",
+            ],
+            "type": "object",
+          },
+        ],
+      }
+    `);
+  });
+});
