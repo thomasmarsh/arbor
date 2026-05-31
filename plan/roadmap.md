@@ -14,39 +14,39 @@
 
 ## In Scope
 
-Active work is tracked numerically in `plan/work-order.md`. Current target areas:
+Active work is tracked numerically in `plan/ledger.jsonl`. Current target areas:
 
-| Area | Plans | Status |
-| --- | --- | --- |
-| Segment correctness (int-only num, optional ordering, wildcard as string) | 67, 69, 68 | ✓ |
-| Feature completeness (method/body safety, Allow header, test client) | 71, 73, 72 | ✓ |
-| Client correctness (`matchResponse` combinator) | 75 | ✓ |
-| Ergonomics (`use()` builder, declarative `requires`) | 76, 77 | ✓ |
-| Handler ergonomics (`IntoResponse`) | 78 | ✓ |
-| Structural cleanup (barrel, OpenAPI decompose, rate-limit decouple) | 63, 64, 65, 66 | ✓ |
-| Testing automation (property-based, fuzz) | 79 | queued |
-| Architecture spikes (capability system spike, radix tree, handler supervision) | 80, 74, 81 | deferred/spike |
-| **Capability system implementation — `ServiceRegistry`, `needs` on HTTP/SSE/WS** | **92** | **queued (post-80)** |
-| Lint rules and suppressions | 86 | queued |
-| **Session types — feasibility spike + core foundations** | **87, 88** | **queued** |
-| **Real-time protocols — SSE + WebSocket** | **89, 90** | **queued (post-88)** |
-| **MPST — multi-party session type spike** | **91** | **spike/deferred** |
+| Area                                                                             | Plans          | Status             |
+| -------------------------------------------------------------------------------- | -------------- | ------------------ |
+| Segment correctness (int-only num, optional ordering, wildcard as string)        | 67, 69, 68     | ✓                  |
+| Feature completeness (method/body safety, Allow header, test client)             | 71, 73, 72     | ✓                  |
+| Client correctness (`matchResponse` combinator)                                  | 75             | ✓                  |
+| Ergonomics (`use()` builder, declarative `requires`)                             | 76, 77         | ✓                  |
+| Handler ergonomics (`IntoResponse`)                                              | 78             | ✓                  |
+| Structural cleanup (barrel, OpenAPI decompose, rate-limit decouple)              | 63, 64, 65, 66 | ✓                  |
+| Testing automation (property-based, fuzz)                                        | 79             | todo               |
+| Architecture spikes (capability system spike, radix tree, handler supervision)   | 80, 74, 81     | deferred/spike     |
+| **Capability system implementation — `ServiceRegistry`, `needs` on HTTP/SSE/WS** | **92**         | **todo (post-80)** |
+| Lint rules and suppressions                                                      | 86             | todo               |
+| **Session types — feasibility spike + core foundations**                         | **87, 88**     | **todo**           |
+| **Real-time protocols — SSE + WebSocket**                                        | **89, 90**     | **todo (post-88)** |
+| **MPST — multi-party session type spike**                                        | **91**         | **spike/deferred** |
 
 ---
 
-## Browser Integration (new packages — Wave 20)
+## Browser Integration (new packages — waves w19–w26)
 
 The browser integration story is now active. See `BROWSER.md` at the workspace root for
 the full master plan and wave breakdown (plans 94–112).
 
 **Package structure:**
 
-| Package | Contents |
-| --- | --- |
-| `packages/router-browser` | Framework-agnostic `BrowserRouter`, History API, search params, loaders, scroll restoration |
-| `packages/router-react` | React hooks + components: `RouterProvider`, `useRoute`, `<Link>`, `<RouteLayout>`, SSE/WS hooks |
-| `packages/router-tanstack` | TanStack Router bridge (spike 106 must go first) |
-| `packages/router-devtools` | Browser DevTools overlay (plan 110) |
+| Package                    | Contents                                                                                        |
+| -------------------------- | ----------------------------------------------------------------------------------------------- |
+| `packages/router-browser`  | Framework-agnostic `BrowserRouter`, History API, search params, loaders, scroll restoration     |
+| `packages/router-react`    | React hooks + components: `RouterProvider`, `useRoute`, `<Link>`, `<RouteLayout>`, SSE/WS hooks |
+| `packages/router-tanstack` | TanStack Router bridge (spike 106 must go first)                                                |
+| `packages/router-devtools` | Browser DevTools overlay (plan 110)                                                             |
 
 **`@arbor/router` is unchanged.** Browser packages are pure consumers. The constraint
 from wave 4–6 holds: `core/` must not import from any browser package.
@@ -75,7 +75,7 @@ These items must not be implemented in the core router package:
 ### Session Types & Real-Time Protocols
 
 Session types are a formal type theory for communication protocols. The key property is
-*duality*: the server declares its channel type; the client automatically receives the
+_duality_: the server declares its channel type; the client automatically receives the
 mathematically complementary type. Protocol compatibility is a compile-time guarantee, not
 a runtime convention.
 

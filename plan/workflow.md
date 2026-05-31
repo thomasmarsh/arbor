@@ -50,7 +50,7 @@ Evaluate scope. Choose exactly one mode:
 | **Spike**   | Unknown territory, novel type constraint, unclear feasibility | Stage 1S                      |
 | **Plan**    | Cross-layer (3+ files), or no plan exists yet                 | Write plan → **[CHECKPOINT]** |
 
-**Plan branch**: write the plan file, update `plan/work-order.md`, add `// TODO(plan/<n>): ...` stubs where needed, then **STOP — do not proceed until the user responds**.
+**Plan branch**: write the plan file, update `plan/ledger.jsonl`, add `// TODO(plan/<n>): ...` stubs where needed, then **STOP — do not proceed until the user responds**.
 
 Never drift from Deliver into Plan scope mid-session. If scope expands unexpectedly, write the stubs, write the plan, and stop.
 
@@ -165,7 +165,7 @@ arbor next
 arbor queue
 
 # Status transitions
-arbor set 86 next        # queued → next
+arbor set 86 next        # todo → next
 arbor set 86 done        # next → done
 arbor set 28 blocked     # block a task
 arbor set 44 canceled    # cancel/supersede a task
@@ -198,7 +198,7 @@ rg '"story": "s4"' plan/ledger.jsonl
 
 ## Prioritization Criteria
 
-Evaluate queued plans in this order:
+Evaluate todo plans in this order:
 
 1. **Impact** — genuinely useful to users of the library
 2. **Foundational** — hard to retrofit later, or unlocks a cluster of future work
