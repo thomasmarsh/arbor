@@ -169,6 +169,24 @@ importers:
         specifier: 'catalog:'
         version: 4.1.7(@types/node@22.19.19)(jsdom@25.0.1)(vite@6.4.2(@types/node@22.19.19)(tsx@4.22.3))
 
+  packages/router-browser:
+    devDependencies:
+      '@arbor/router':
+        specifier: workspace:*
+        version: link:../router
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.19
+      jsdom:
+        specifier: ^25.0.0
+        version: 25.0.1
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.7(@types/node@22.19.19)(jsdom@25.0.1)(vite@6.4.2(@types/node@22.19.19)(tsx@4.22.3))
+
   packages/router-test:
     dependencies:
       fast-check:

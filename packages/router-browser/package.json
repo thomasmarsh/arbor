@@ -1,0 +1,31 @@
+{
+  "name": "@arbor/router-browser",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rm -rf dist *.tsbuildinfo"
+  },
+  "peerDependencies": {
+    "@arbor/router": "workspace:*"
+  },
+  "devDependencies": {
+    "@arbor/router": "workspace:*",
+    "@types/node": "^22.0.0",
+    "jsdom": "^25.0.0",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
