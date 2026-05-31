@@ -110,14 +110,14 @@ def build_hierarchical_ledger(file_path: str) -> tuple[Ledger, list[str]]:
                 elif isinstance(parsed_row, WaveEntry):
                     view_tree.waves.append(parsed_row)
                 elif isinstance(parsed_row, EpicEntry):
-                    node = EpicNode(epic=parsed_row)
-                    epic_index[parsed_row.id] = node
-                    view_tree.epics.append(node)
+                    epic_node = EpicNode(epic=parsed_row)
+                    epic_index[parsed_row.id] = epic_node
+                    view_tree.epics.append(epic_node)
                 elif isinstance(parsed_row, StoryEntry):
-                    node = StoryNode(story=parsed_row)
+                    story_node = StoryNode(story=parsed_row)
                     if parsed_row.epic in epic_index:
-                        epic_index[parsed_row.epic].stories.append(node)
-                        story_index[parsed_row.id] = node
+                        epic_index[parsed_row.epic].stories.append(story_node)
+                        story_index[parsed_row.id] = story_node
                     else:
                         errors.append(
                             f"Line {line_idx} (story): orphaned — epic '{parsed_row.epic}' not found"
