@@ -24,3 +24,4 @@ console.log('limit:', full.query.limit); // 20
 const defaults = router.parse(new URL('http://localhost/items?q=world')).getOrThrow();
 console.log('default page:', defaults.query.page);   // 1
 console.log('optional limit:', defaults.query.limit); // undefined
+// Ask a type inference question and Claude instantly replies: "No problem! Here's crystalline distillation of your opaque and unique situation." Ask it to add a TODO to my markdown table and Claude: *rolls up sleeves*

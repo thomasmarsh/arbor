@@ -79,6 +79,45 @@ test a different hypothesis empirically instead.
 
 ---
 
+## Session Type Design Spikes
+
+Session types introduce a distinct class of type-level challenge: *recursive phantom types
+with a computed dual*. Before writing tests or implementation for any session type plan
+(87–91), spike the type-level claim first.
+
+### When to treat as a session type spike
+
+A plan involves session type machinery if it touches any of:
+
+- `Dual<S>` computation — recursive conditional type swapping `Send`↔`Recv`
+- `Channel<S>` — a type whose method set changes with each operation (dependent session)
+- `Project<G, P>` — multi-party projection from a global type
+- Adding a new `_meta` key that carries a session phantom and must not widen existing HTTP `_meta`
+
+### Scratch-file workflow (session types)
+
+1. Create `scratch/NN-session-spike.ts` (gitignored or deleted after).
+2. Write the minimum TypeScript to test the core session claim:
+   - Does `Dual<Send<A, Recv<B, End>>>` = `Recv<A, Send<B, End>>`?
+   - Does `Channel<Send<string, End>>` have `.send(v: string)` and no `.recv`?
+   - Does projection `Project<G, "Alice">` produce the correct local type?
+3. Run `tsc --noEmit --strict scratch/NN-session-spike.ts`.
+4. Run `tsc --diagnostics scratch/NN-session-spike.ts` and record the instantiation count.
+5. Iterate until the claim holds. If instantiation count exceeds ~500k, apply the
+   depth-counter technique from `FlattenChildrenImpl`.
+6. Only then write the real test file and implementation.
+
+### Hypotheses to eliminate early (session types)
+
+| Hypothesis | Quick test |
+| --- | --- |
+| `Dual<S>` distributes over union | `Dual<Send<A, End> \| End>` — should be `Recv<A, End> \| End` |
+| Recursive `Dual` hits TS depth limit | 5-deep chain; `tsc --diagnostics` |
+| `Channel<S>` contextual typing works | `(ch: Channel<Send<string, End>>) => ch.send('hello')` no cast |
+| New `_meta` key widens HTTP extractors | `type M = Extract<SseMeta<E> & HttpContextData, { __httpMethod: any }>` — must still narrow |
+
+---
+
 ## What "Complete" Means
 
 A plan is complete when:

@@ -71,26 +71,44 @@ via phantom types and a depth-limited recursive mapped type (`FlattenChildrenImp
 ## Planned / In-Progress Features
 
 | Plan | Topic | Status |
-|------|-------|--------|
-| 63 | Decompose `walkSpec()` helpers | Pending |
-| 64 | Fix OpenAPI context mutation | Pending |
-| 65 | Module barrel and export audit | Pending |
-| 66 | Rate-limit decoupling | Pending |
-| 67 | `#id` integer-only enforcement (reject `1.5`, `1e3`) | Pending |
-| 68 | Wildcard captures `string` not `string[]` | Pending |
-| 69 | Enforce optional segment ordering at definition time | Pending |
-| 70 | Pattern segment kind (`~id:[0-9a-f]{8}`) for format-based routing | Pending |
-| 71 | Method/body type safety (`GET` + `body` is a compile error) | Pending |
-| 72 | `createTestClient()` — in-memory server-backed typed client for tests | Pending |
-| 73 | `Allow` header on 405 responses (RFC 7231 §6.5.5) | Pending |
+| ---- | ----- | ------ |
+| 63 | Decompose `walkSpec()` helpers | ✓ |
+| 64 | Fix OpenAPI context mutation | ✓ |
+| 65 | Module barrel and export audit | ✓ |
+| 66 | Rate-limit decoupling | ✓ |
+| 67 | `#id` integer-only enforcement (reject `1.5`, `1e3`) | ✓ |
+| 68 | Wildcard captures `string` not `string[]` | ✓ |
+| 69 | Enforce optional segment ordering at definition time | ✓ |
+| 70 | Pattern segment kind (`~id:[0-9a-f]{8}`) for format-based routing | Deferred |
+| 71 | Method/body type safety (`GET` + `body` is a compile error) | ✓ |
+| 72 | `createTestClient()` — in-memory server-backed typed client for tests | ✓ |
+| 73 | `Allow` header on 405 responses (RFC 7231 §6.5.5) | ✓ |
 | 74 | Radix tree spike (O(N) → O(L) dispatch for large trees) | Deferred |
+| 75 | `matchResponse` exhaustive combinator — compile error for unhandled statuses | ✓ |
+| 76 | `.use()` fluent builder + `pipeline()` combinator | ✓ |
+| 77 | Declarative `requires` annotation on `httpRoute` | ✓ |
+| 78 | `IntoResponse` — direct domain object return from handlers | ✓ |
+| 79 | Property-based / fuzz testing from Zod schemas (`@arbor/router-test`) | Queued |
+| 80 | Spike — typed capability / environment system | Queued |
+| 81 | Default handler supervision (let-it-crash safety net) | Queued |
+| 86 | Lint rules and exhaustiveness-check suppressions | Queued |
+
+### Session Types & Real-Time Protocols (Wave 15–17)
+
+| Plan | Topic | Status |
+| ---- | ----- | ------ |
+| 87 | Spike — session types feasibility: `Dual<S>`, `Channel<S>`, TS depth limits | Queued |
+| 88 | Session type foundations: `Send/Recv/Branch/Select/End`, `sessionRoute()` | Queued (post-87) |
+| 89 | `sseRoute()` — typed SSE; handler `AsyncIterable<E>`; dual client | Queued (post-88) |
+| 90 | `wsRoute()` — typed WebSocket; `{ in, out }` Zod schemas; dual client | Queued (post-88) |
+| 91 | Spike — MPST global type projection, N-participant protocols | Spike/deferred |
 
 ---
 
 ## Framework Comparison
 
 | Capability | @arbor/router | tRPC | ts-rest | Hono | Express + Zod |
-|---|---|---|---|---|---|
+| --- | --- | --- | --- | --- | --- |
 | **Primary model** | URL tree → typed dispatch | Procedure router | Contract-first REST | Web-standard middleware | Imperative routes |
 | **Type source** | Zod schemas in route tree | TypeScript functions | Shared contract object | TypeScript, Zod plugins | Manual |
 | **Codegen required** | No | No | No | No | No |
@@ -105,9 +123,13 @@ via phantom types and a depth-limited recursive mapped type (`FlattenChildrenImp
 | **JWT / RBAC** | Built-in guards | External | External | External | External |
 | **Runtime** | WinterCG (any) | Node + adapters | Node + adapters | WinterCG | Node only |
 | **Query param schemas** | Yes (per-route Zod) | Yes | Yes | Partial | Manual |
-| **Body type safety (GET)** | Planned (Plan 71) | N/A | Yes | N/A | No |
+| **Body type safety (GET)** | Yes (Plan 71) | N/A | Yes | N/A | No |
 | **Mutation-safe session typing** | Yes (guard enrichment) | Yes (context) | No | No | No |
-| **Mock/test client** | Planned (Plan 72) | Included | No | No | No |
+| **Mock/test client** | Yes (Plan 72) | Included | No | No | No |
+| **SSE with typed events** | Planned (Plan 89) | No | No | No | No |
+| **WebSocket typed channels** | Planned (Plan 90) | No | No | Partial | No |
+| **Session type duality (client/server)** | Planned (Plan 88) | No | No | No | No |
+| **MPST (multi-party protocols)** | Spike (Plan 91) | No | No | No | No |
 
 ### Gap analysis vs. peers
 
@@ -135,14 +157,14 @@ ecosystem maturity, performance tooling, and familiarity. @arbor/router wins on 
 fidelity (full response union typing, session enrichment, nested route structure).
 
 **Gaps unique to @arbor/router**:
-- No streaming / SSE support.
-- No subscriptions (WebSocket, SSE).
+
+- No SSE support yet — planned via `sseRoute()` (plan 89); session type foundations (plan 87/88) come first.
+- No WebSocket support yet — planned via `wsRoute()` (plan 90) with dual-typed channels.
 - No TanStack Router / React integration (deferred spike exists).
 - No built-in body size limits on `createServer` (multipart safeguard noted as a roadmap
   item but not yet implemented).
 - No middleware arrays — intentional design; cross-cutting concerns must be higher-order
   factories or guard composition. This is more explicit but more verbose than `app.use()`.
-- `createTestClient` not yet shipped (Plan 72 pending).
 - Radix tree dispatch not yet done (Plan 74, deferred pending benchmark).
 
 ---
@@ -213,17 +235,36 @@ TanStack Query integration follows naturally: attach a `loader` to the route def
 collect all loaders in the active branch on navigation, and fire them with `Promise.all`
 before mounting. The loader's param type is inferred from the route schema.
 
-### 3. Streaming and real-time
+### 3. Session types and real-time protocols
 
-SSE is the lowest-cost addition: `sseRoute()` wraps `httpRoute()` with a response type of
-`AsyncIterable<Event>`. The server serializes the iterable to `text/event-stream`; the typed
-client returns the same `AsyncIterable<Event>` on the receiver side. The bidirectional
-typing advantage — knowing the event schema at compile time — is something no other TS
-framework provides for SSE.
+The deepest gap — and the one with the most architectural leverage — is the absence of a
+real-time story. The plan is to close it with *session types*, a formal type theory for
+communication protocols.
 
-WebSocket is harder because WinterCG lacks a standard WS API, but the type story is
-tractable: `wsRoute(schema, path, { in: z.ZodType, out: z.ZodType })` produces a typed
-socket factory. The runtime adapter is pluggable (Node's `ws`, Bun's native WS, etc.).
+The key property is *duality*: when the server declares its channel type, the client
+automatically receives the mathematically complementary type. Protocol compatibility is a
+compile-time guarantee, not a runtime convention. This is fundamentally different from
+"typed WebSocket" libraries that use the same schema for both directions — session types
+prove that the server's output type exactly matches the client's input type and vice versa.
+
+**SSE** (plan 89) — `sseRoute()` wraps the session type foundation with a handler that
+returns `AsyncIterable<Event>`. The server serializes to `text/event-stream`; the typed
+client returns the same `AsyncIterable<Event>` derived from the declared schema.
+
+**WebSocket** (plan 90) — `wsRoute(schema, path, { in: z.ZodType, out: z.ZodType })`
+produces a typed bidirectional channel. Server type is `Recv<In, Send<Out, S>>`;
+client automatically receives `Send<In, Recv<Out, S>>` — the dual. If the schemas
+don't match, it is a type error at the callsite, not a runtime message parse failure.
+The transport is pluggable (Node `ws`, Bun native WS, Cloudflare Workers WS).
+
+**MPST** (plan 91 spike) — multi-party session types extend duality to N participants.
+A global protocol type describes all interactions; each participant's local type is
+derived by projection. The spike validates TypeScript feasibility before committing to
+a full implementation plan.
+
+The feasibility spike (plan 87) and foundations plan (plan 88) come first — they
+establish that TypeScript can encode `Dual<S>`, `Channel<S>`, and session tree depth
+without hitting instantiation limits. SSE and WebSocket build on those foundations.
 
 ### 4. Exhaustive response handling on the client
 
@@ -423,6 +464,7 @@ where `withSession` provably injects a session type into downstream handler cont
 more correct-by-construction than any middleware array I've seen in a TS HTTP framework.
 
 **Where it is strong:**
+
 - Internal APIs in TypeScript monorepos where client and server share the router definition.
 - Applications where URL topology is first-class (navigation, breadcrumbs, link generation)
   not just request routing.
@@ -430,6 +472,7 @@ more correct-by-construction than any middleware array I've seen in a TS HTTP fr
 - OpenAPI generation from a single source of truth without a separate annotation pass.
 
 **Where it is not the right tool:**
+
 - Public APIs consumed by non-TypeScript clients (the type fidelity advantage disappears;
   tRPC/ts-rest/Hono are simpler choices).
 - Real-time or streaming workloads (no WebSocket, SSE, or streaming response primitives).
@@ -438,6 +481,7 @@ more correct-by-construction than any middleware array I've seen in a TS HTTP fr
 - Large existing Node/Express codebases; adoption requires rewriting the route layer.
 
 **Maturity / production readiness:**
+
 The library is pre-1.0 (`"version": "0.0.0"`) and clearly under active development with
 ~15 pending plans. The core is well-tested with both runtime and type-level assertions.
 The pending correctness fixes (Plans 67–69: integer enforcement, wildcard type, optional

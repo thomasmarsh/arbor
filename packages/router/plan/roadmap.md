@@ -17,15 +17,19 @@
 Active work is tracked numerically in `plan/work-order.md`. Current target areas:
 
 | Area | Plans | Status |
-|---|---|---|
-| Segment correctness (int-only num, optional ordering, wildcard as string) | 67, 69, 68 | queued |
-| Feature completeness (method/body safety, Allow header, test client) | 71, 73, 72 | queued |
-| Client correctness (`matchResponse` combinator) | 75 | queued |
-| Ergonomics (`use()` builder, declarative `requires`) | 76, 77 | queued |
-| Handler ergonomics (`IntoResponse`) | 78 | queued |
-| Structural cleanup (barrel, OpenAPI decompose, rate-limit decouple) | 65, 63, 64, 66 | queued |
+| --- | --- | --- |
+| Segment correctness (int-only num, optional ordering, wildcard as string) | 67, 69, 68 | ✓ |
+| Feature completeness (method/body safety, Allow header, test client) | 71, 73, 72 | ✓ |
+| Client correctness (`matchResponse` combinator) | 75 | ✓ |
+| Ergonomics (`use()` builder, declarative `requires`) | 76, 77 | ✓ |
+| Handler ergonomics (`IntoResponse`) | 78 | ✓ |
+| Structural cleanup (barrel, OpenAPI decompose, rate-limit decouple) | 63, 64, 65, 66 | ✓ |
 | Testing automation (property-based, fuzz) | 79 | queued |
 | Architecture spikes (capability system, radix tree, handler supervision) | 80, 74, 81 | deferred/spike |
+| Lint rules and suppressions | 86 | queued |
+| **Session types — feasibility spike + core foundations** | **87, 88** | **queued** |
+| **Real-time protocols — SSE + WebSocket** | **89, 90** | **queued (post-88)** |
+| **MPST — multi-party session type spike** | **91** | **spike/deferred** |
 
 ---
 
@@ -49,7 +53,48 @@ These items require a separate package and must not be implemented in `@arbor/ro
 
 ## Long-Horizon Directions
 
-These are not yet planned but have been identified as valuable:
+### Session Types & Real-Time Protocols
+
+Session types are a formal type theory for communication protocols. The key property is
+*duality*: the server declares its channel type; the client automatically receives the
+mathematically complementary type. Protocol compatibility is a compile-time guarantee, not
+a runtime convention.
+
+For @arbor/router, this unlocks everything beyond atomic REST:
+
+- **SSE** (`sseRoute()`, plan 89) — typed server→client event stream; handler returns
+  `AsyncIterable<EventType>`; client receives `AsyncIterable<EventType>` from the same
+  schema. No casting, no `any`, event shape is known at compile time.
+- **WebSocket** (`wsRoute()`, plan 90) — bidirectional typed channel; `{ in, out }` Zod
+  schemas on the server; client automatically receives the dual (server's `in` = client's
+  `out`, and vice versa). Mismatches are type errors.
+- **Structured RPC** — typed protocol sequences beyond single request/response; encoding
+  via `Send<T, Recv<U, End>>` session type primitives (plan 88 foundations).
+- **MPST** — multi-party session types (plan 91 spike); global protocol describes all
+  N-participant interactions; each participant's local type is derived by projection.
+
+**Feasibility path:**
+
+1. Plan 87 (spike) — validates that TypeScript can encode `Dual<S>`, `Channel<S>`, and
+   recursive session trees without hitting instantiation limits.
+2. Plan 88 (foundations) — ships `Send/Recv/Branch/Select/End`, `Dual<S>`, `Channel<S>`,
+   `sessionRoute()` factory; de-risks core type system before any runtime code lands.
+3. Plan 89 (SSE) — first practical implementation, unidirectional.
+4. Plan 90 (WebSocket) — bidirectional, pluggable transport adapter.
+5. Plan 91 (MPST spike) — validates multi-party projection; long-horizon.
+
+The phantom-type architecture that powers HTTP route discrimination is structurally
+well-suited for session types. `_meta` already carries typed per-route metadata;
+`createClient()` already inverts the route type. Session type duality is the same
+inversion, generalized from HTTP method/response to arbitrary protocol steps.
+
+No other TypeScript HTTP framework has a session type story. This is a genuine
+differentiator that turns @arbor/router from an HTTP-only library into a unified
+typed protocol framework.
+
+---
+
+### Other Long-Horizon Items
 
 - **Typed capability / environment system** (Plan 80 spike) — model service injection and capability proofs in TypeScript's type system without Effect-TS.
 - **`@arbor/router-test` package** — property-based testing from Zod schemas using `createTestClient`; generates arbitrary valid inputs and asserts responses match declared schemas.

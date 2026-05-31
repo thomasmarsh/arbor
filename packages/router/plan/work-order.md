@@ -5,7 +5,7 @@ Operational execution list. See `plan/workflow.md` for workflow rules and comple
 ## Current Queue
 
 ```text
-67 → 82 → 83 → 69 → 68 → 84 → 71 → 73 → 72 → 85 → 75 → 76 → 77 → 63 → 64 → 66 → 78 → 79 → 80 → 81 → 86
+79 → 80 → 81 → 86 → 87 → 88 → 89 → 90 → 91
 ```
 
 ---
@@ -114,6 +114,20 @@ See **plan 58** for the full prioritized smell inventory.
 - **80**: Spike — typed capability / environment system.
 - **81**: Default handler supervision (let-it-crash safety net).
 
+### Wave 15 — Session type feasibility
+
+- **87**: Spike — session types feasibility: `Dual<S>`, `Channel<S>`, depth limits, `_meta` integration.
+- **88**: Session type foundations — `Send/Recv/Branch/Select/End`, `Dual`, `Channel`, `sessionRoute()` factory; de-risks core types before runtime code lands.
+
+### Wave 16 — Real-time protocols
+
+- **89**: `sseRoute()` — typed server-sent events; handler returns `AsyncIterable<E>`; client receives dual. Depends on 88.
+- **90**: `wsRoute()` — typed WebSocket channel; `{ in, out }` Zod schemas; dual type on client; pluggable transport adapter. Depends on 88, informed by 89.
+
+### Wave 17 — MPST spike
+
+- **91**: Spike — multi-party session type projection; global type → local type per participant; go/no-go for implementation plan.
+
 ### Deferred / low priority
 
 - **Plan 70**: Pattern/regex segment kind. Do after wave 7 settles.
@@ -195,3 +209,8 @@ See **plan 58** for the full prioritized smell inventory.
 | 84   | Framework-internal PBT — `fast-check` for core invariants    | queued                |
 | 85   | Fix `HttpContext` arity; extract `RouterContract`; no casts  | queued                |
 | 86   | Lint: exhaustiveness-check, no-console, fix suppressions     | queued                |
+| 87   | Spike — session types feasibility (`Dual`, `Channel`, depth) | queued                |
+| 88   | Session type foundations (primitives, `sessionRoute`)        | queued                |
+| 89   | `sseRoute` — typed SSE; handler `AsyncIterable`; dual client | queued                |
+| 90   | `wsRoute` — typed WebSocket; dual `{ in, out }`; WS adapter  | queued                |
+| 91   | Spike — MPST global type projection, go/no-go                | spike/deferred        |

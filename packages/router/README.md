@@ -279,3 +279,23 @@ router.print({ tag: 'dashboard' }, { tenantId: 'acme' });
 | `HttpResponse<Status, Body>` | Generic response shape |
 | `Guard<Ctx, Extra>` | Guard function type |
 | `TypedClient<Route, Map>` | Client type for a given router |
+
+## Session types (coming)
+
+The next major capability area is **session types** — a formal type theory for
+communication protocols. The core guarantee: the server declares its channel type and the
+client automatically receives the dual. SSE, WebSocket, and structured RPC become typed
+at the protocol level, not just the message level.
+
+```typescript
+// Planned API — not yet shipped
+sseRoute(EventSchema, 'stream/events', { events: z.object({ msg: z.string() }) })
+// handler returns: AsyncIterable<{ msg: string }>
+// client receives: AsyncIterable<{ msg: string }>  ← derived automatically
+
+wsRoute(ChatSchema, 'ws/chat', { in: z.object({ text: z.string() }), out: z.object({ reply: z.string() }) })
+// server channel: recv { text } → send { reply }
+// client channel: send { text } → recv { reply }  ← dual, not a manual copy
+```
+
+See `FEATURES.md` and `plan/roadmap.md` for the full session types roadmap (plans 87–91).
