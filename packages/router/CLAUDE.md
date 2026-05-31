@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Session type plans 87–91 queued; immediate next is plan 79 (property-based testing). Check `plan/work-order.md` for full queue.
-- **Current Status**: Waves 0–12 complete (plans 18–78, 63–66, 82–85 all done). Session type waves 15–17 queued (plans 87–91). Remaining pre-session queue: 79, 80, 81, 86. See `plan/work-order.md` for ordering.
+- **Current Task**: Plans 80, 81, 86 queued before session type waves 15–17. Check `plan/work-order.md` for full queue.
+- **Current Status**: Waves 0–13 complete (plans 18–79, 63–66, 82–85 all done). Session type waves 15–17 queued (plans 87–91). Remaining pre-session queue: 80, 81, 86. See `plan/work-order.md` for ordering.
 
 ## Strict System Rules (Zero Preamble)
 

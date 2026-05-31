@@ -107,7 +107,7 @@ See **plan 58** for the full prioritized smell inventory.
 
 ### Wave 13 — Testing automation
 
-- **79**: Property-based / fuzz testing from Zod schemas (`@arbor/router-test`). Depends on 72 + 75.
+- **79** ✓ Property-based / fuzz testing from Zod schemas (`@arbor/router-test`). Depends on 72 + 75.
 
 ### Wave 14 — Architecture spikes
 
@@ -201,7 +201,7 @@ See **plan 58** for the full prioritized smell inventory.
 | 76   | `.use()` fluent builder + `pipeline()` combinator            | ✓                     |
 | 77   | Declarative `requires` annotation on `httpRoute`             | queued                |
 | 78   | `IntoResponse` — direct domain object return from handlers   | queued                |
-| 79   | Property-based / fuzz testing from Zod schemas               | queued                |
+| 79   | Property-based / fuzz testing from Zod schemas               | ✓                     |
 | 80   | Spike — typed DIY capability / environment system            | queued                |
 | 81   | Default handler supervision (let-it-crash safety net)        | queued                |
 | 82   | Test infrastructure: fixture builders + `it.each` refactor   | queued                |

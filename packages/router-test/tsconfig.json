@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "noEmit": true,
+    "paths": {
+      "@arbor/router": ["../router/src/index.ts"],
+      "@arbor/router/server": ["../router/src/server/index.ts"]
+    }
+  },
+  "include": ["src"]
+}
