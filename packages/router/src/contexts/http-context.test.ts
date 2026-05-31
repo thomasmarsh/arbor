@@ -1,7 +1,17 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import type { InferContext } from '../core/define-routes.js';
-import { httpRoute, desc, type HttpContext, type HttpMethod, type SessionCtx } from './http-context.js';
+import type { Branch, Dual, InferDual, InferSession, Recv, Select, Send, Session } from '../core/session.js';
+import {
+  httpRoute,
+  desc,
+  type HttpContext,
+  type HttpMethod,
+  type HttpResponseUnion,
+  type HttpSession,
+  type HttpResponseSelect,
+  type SessionCtx,
+} from './http-context.js';
 
 describe('HttpMethod', () => {
   it('is a union of HTTP verbs', () => {
@@ -262,5 +272,65 @@ describe('httpRoute', () => {
       const r = httpRoute(GetUser, 'GET', ':id/', { response: { 200: UserResponse } });
       expect(r._meta?.requires).toBeUndefined();
     });
+  });
+});
+
+// ─── Session annotation ───────────────────────────────────────────────────────
+
+describe('HttpSession annotation', () => {
+  // Local utility — proves BranchToUnion<Dual<HttpSession<Res>>> ≡ HttpResponseUnion<Res>
+  type BranchToUnion<S extends Session> =
+    S extends Branch<infer Cases extends Record<string, Session>>
+      ? { [K in keyof Cases]: Cases[K] extends Recv<infer T, Session> ? { status: K; body: T } : never }[keyof Cases]
+      : never;
+
+  const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
+  const UserResponse = z.object({ id: z.string(), email: z.string() });
+  const ErrorResponse = z.object({ error: z.string() });
+
+  const _route = httpRoute(GetUser, 'GET', ':id/', {
+    response: { 200: UserResponse, 404: ErrorResponse },
+  });
+
+  interface RouteRes { 200: { id: string; email: string }; 404: { error: string } }
+
+  it('HttpResponseSelect encodes response map as a Select over Send cases', () => {
+    type Sel = HttpResponseSelect<RouteRes>;
+    type Expected = Select<{
+      200: Send<{ id: string; email: string }>;
+      404: Send<{ error: string }>;
+    }>;
+    expectTypeOf<Sel>().toEqualTypeOf<Expected>();
+    expect(true).toBe(true);
+  });
+
+  it('InferSession resolves to HttpSession<Res> (not never)', () => {
+    type S = InferSession<typeof _route>;
+    type Expected = HttpSession<RouteRes>;
+    expectTypeOf<S>().toEqualTypeOf<Expected>();
+    expect(true).toBe(true);
+  });
+
+  it('InferDual resolves to Dual<HttpSession<Res>>', () => {
+    type D = InferDual<typeof _route>;
+    type Expected = Dual<HttpSession<RouteRes>>;
+    expectTypeOf<D>().toEqualTypeOf<Expected>();
+    expect(true).toBe(true);
+  });
+
+  it('BranchToUnion<Dual<HttpSession<Res>>> equals HttpResponseUnion<Res>', () => {
+    type ClientSession = InferDual<typeof _route>;
+    type ClientBranch = ClientSession extends Send<void, infer N extends Session> ? N : never;
+    type FromSession = BranchToUnion<ClientBranch>;
+    type FromUnion = HttpResponseUnion<RouteRes>;
+    expectTypeOf<FromSession>().toEqualTypeOf<FromUnion>();
+    expect(true).toBe(true);
+  });
+
+  it('InferSession result is not never', () => {
+    type S = InferSession<typeof _route>;
+    type _notNever = [S] extends [never] ? false : true;
+    const _ok: _notNever = true;
+    expect(_ok).toBe(true);
   });
 });

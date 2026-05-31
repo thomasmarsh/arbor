@@ -2,6 +2,7 @@ import type z from 'zod';
 import { type BuildableRouteNode, buildable } from '../core/define-routes.js';
 import type { RouteNode } from '../core/route-node.js';
 import { parseSegments } from '../core/segments.js';
+import type { Recv, Select, Send, Session, SessionMeta } from '../core/session.js';
 import { walkCollect } from '../core/walk.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -24,6 +25,15 @@ export interface HttpResponse<
   headers?: Record<string, string>;
   cookies?: Record<string, string>;
 }
+
+export type HttpResponseSelect<Res> = Select<{
+  [S in keyof Res & number]: Send<Res[S]>;
+}>;
+
+export type HttpSession<Res> = Recv<void, HttpResponseSelect<Res>>;
+
+export type InferHttpSession<Route> =
+  Route extends { _meta?: SessionMeta<infer S extends Session> } ? S : never;
 
 export interface HttpContextData {
   method: HttpMethod;
@@ -193,7 +203,7 @@ export function httpRoute<
   [...C],
   HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never, H extends z.ZodObject<any, any> ? z.infer<H> : never, CK extends z.ZodObject<any, any> ? z.infer<CK> : never, Req extends readonly string[] ? SessionCtx : never>,
   never,
-  HttpContextData
+  HttpContextData & SessionMeta<HttpSession<InferResponseMap<Res>>>
 >> {
   const responseSchemas: Record<number, z.ZodType> = {};
   const responseHeaderSchemas: Record<number, z.ZodObject<any, any>> = {};

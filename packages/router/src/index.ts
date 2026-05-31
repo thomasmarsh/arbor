@@ -26,6 +26,9 @@ export {
   type HttpContext,
   type HttpMethod,
   type HttpResponse,
+  type HttpResponseSelect,
+  type HttpSession,
+  type InferHttpSession,
   type InferSingleSuccessBody,
 } from './contexts/http-context.js';
 export { type AnyCtxMap, type RouterContract } from './core/router-contract.js';
