@@ -121,6 +121,7 @@ Self-contained runnable demos in `examples/`. Run them as a smoke test with `pnp
 | `rbac.ts`           | `withRbac` guard — role-based 403 check composed on top of `withSession`             |
 | `test-client.ts`    | `createTestClient` — in-memory server + typed client in one call for test suites     |
 | `use-builder.ts`    | `.use()` + `.pipe(pipeline())` — left-to-right route-node transformer composition    |
+| `sse-stream.ts`     | `sseRoute` + `createSseServer` + `createSseClient` — typed SSE stream end-to-end     |
 
 **Rules for examples**:
 

@@ -33,3 +33,24 @@ export { withCors, type CorsConfig } from './server/with-cors.js';
 // OpenAPI
 export { openApiRoute, type OpenApiContext, type OpenApiMeta } from './contexts/openapi-context.js';
 export { generateSpec } from './openapi/index.js';
+
+// Session types
+export { sessionRoute } from './core/session-route.js';
+export {
+  type Branch,
+  type Channel,
+  type Dual,
+  type End,
+  type InferDual,
+  type InferSession,
+  type Recv,
+  type Select,
+  type Send,
+  type Session,
+  type SessionMeta,
+} from './core/session.js';
+
+// SSE
+export { sseRoute, type SseContext, type SseMeta } from './contexts/sse-context.js';
+export { createSseServer, type SseHandlerMap, type SseHandlerCtx, type SseRouterContract } from './server/sse-dispatch.js';
+export { createSseClient, type SseClient, type SseFetchLike } from './client/sse-client.js';

@@ -116,12 +116,12 @@ See **plan 58** for the full prioritized smell inventory.
 
 ### Wave 15 — Session type feasibility
 
-- **87**: Spike — session types feasibility: `Dual<S>`, `Channel<S>`, depth limits, `_meta` integration.
-- **88**: Session type foundations — `Send/Recv/Branch/Select/End`, `Dual`, `Channel`, `sessionRoute()` factory; de-risks core types before runtime code lands.
+- **87** ✓ Spike — session types feasibility: `Dual<S>`, `Channel<S>`, depth limits, `_meta` integration.
+- **88** ✓ Session type foundations — `Send/Recv/Branch/Select/End`, `Dual`, `Channel`, `sessionRoute()` factory; de-risks core types before runtime code lands.
 
 ### Wave 16 — Real-time protocols
 
-- **89**: `sseRoute()` — typed server-sent events; handler returns `AsyncIterable<E>`; client receives dual. Depends on 88.
+- **89** ✓ `sseRoute()` — typed server-sent events; handler returns `AsyncIterable<E>`; client receives dual. Depends on 88.
 - **90**: `wsRoute()` — typed WebSocket channel; `{ in, out }` Zod schemas; dual type on client; pluggable transport adapter. Depends on 88, informed by 89.
 
 ### Wave 17 — MPST spike
@@ -209,8 +209,8 @@ See **plan 58** for the full prioritized smell inventory.
 | 84   | Framework-internal PBT — `fast-check` for core invariants    | queued                |
 | 85   | Fix `HttpContext` arity; extract `RouterContract`; no casts  | queued                |
 | 86   | Lint: exhaustiveness-check, no-console, fix suppressions     | queued                |
-| 87   | Spike — session types feasibility (`Dual`, `Channel`, depth) | queued                |
-| 88   | Session type foundations (primitives, `sessionRoute`)        | queued                |
-| 89   | `sseRoute` — typed SSE; handler `AsyncIterable`; dual client | queued                |
+| 87   | Spike — session types feasibility (`Dual`, `Channel`, depth) | ✓                     |
+| 88   | Session type foundations (primitives, `sessionRoute`)        | ✓                     |
+| 89   | `sseRoute` — typed SSE; handler `AsyncIterable`; dual client | ✓                     |
 | 90   | `wsRoute` — typed WebSocket; dual `{ in, out }`; WS adapter  | queued                |
 | 91   | Spike — MPST global type projection, go/no-go                | spike/deferred        |
