@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { type BuildableRouteNode, type RouteNode, defineRoutes, route, section } from './define-routes.js';
@@ -109,7 +107,7 @@ describe('defineRoutes', () => {
     const paths = ['/users', '/users/123', '/users/123/settings', '/orgs/acme', '/orgs/acme/42'];
 
     function printRoute(router: ReturnType<typeof defineRoutes>, route: unknown): string {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument -- deliberate invalid input for runtime test
       return router.print(route as any, undefined as any);
     }
 
@@ -336,12 +334,16 @@ describe('defineRoutes', () => {
 describe('buildable (.use / .pipe)', () => {
   const Tag = z.object({ tag: z.literal('root') });
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
   type WithExtra<N extends RouteNode<any, any, any, any, any>> = N & { _extra: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
   function addExtra<N extends RouteNode<any, any, any, any, any>>(node: N): WithExtra<N> {
     return Object.assign(node, { _extra: true as const });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
   type WithExtra2<N extends RouteNode<any, any, any, any, any>> = N & { _extra2: true };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
   function addExtra2<N extends RouteNode<any, any, any, any, any>>(node: N): WithExtra2<N> {
     return Object.assign(node, { _extra2: true as const });
   }

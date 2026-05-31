@@ -32,25 +32,23 @@ describe('Flatten', () => {
 
 describe('InferRoute', () => {
   it('extracts the route type from a router', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const stubRouter = {
+    const _stubRouter = {
       _type: undefined as never as { tag: 'users' } | { tag: 'user'; id: string },
     };
 
-    expectTypeOf<InferRoute<typeof stubRouter>>().toEqualTypeOf<
+    expectTypeOf<InferRoute<typeof _stubRouter>>().toEqualTypeOf<
       { tag: 'users' } | { tag: 'user'; id: string }
     >();
   });
 
   it('works with a nested route type', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const stubRouter = {
+    const _stubRouter = {
       _type: undefined as never as
         | { tag: 'users'; child?: { tag: 'user'; id: string } }
         | { tag: 'org'; orgId: string },
     };
 
-    expectTypeOf<InferRoute<typeof stubRouter>>().toEqualTypeOf<
+    expectTypeOf<InferRoute<typeof _stubRouter>>().toEqualTypeOf<
       { tag: 'users'; child?: { tag: 'user'; id: string } } | { tag: 'org'; orgId: string }
     >();
   });

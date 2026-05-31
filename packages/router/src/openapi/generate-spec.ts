@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import z from 'zod';
 import type { RouteNode } from '../core/define-routes.js';
 import type { Segment } from '../core/segments.js';
@@ -58,6 +56,7 @@ function buildQueryParams(
   return params;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
 function buildHeaderParams(headerSchema: z.ZodObject<any, any>): Record<string, unknown>[] {
   const shape = headerSchema.shape as Record<string, z.ZodType>;
   return Object.entries(shape).map(([name, fieldSchema]) => ({
@@ -121,6 +120,7 @@ function walkSpec(
     if (node.schema !== null && ctx?.method) {
       if (segments.some((s) => s.kind === 'wildcard')) {
         const rawPath = segments.map((s) => (s.kind === 'lit' ? s.value : s.name)).join('/');
+        // eslint-disable-next-line no-console -- intentional user-facing warning for unsupported route shape
         console.warn(`[openapi] skipping route with wildcard segment: ${rawPath}`);
         continue;
       }
@@ -148,6 +148,7 @@ function walkSpec(
 }
 
 export function generateSpec(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
   router: { children: RouteNode<unknown, any, any, any, any>[] },
   info: { title: string; version: string },
 ): Record<string, unknown> {

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import z from 'zod';

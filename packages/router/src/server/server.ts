@@ -192,6 +192,7 @@ export function createServer<
           if (entry.match(e)) { const mapped = entry.response(e); return { status: mapped.status, body: mapped.body, tag }; }
         }
       }
+      // eslint-disable-next-line no-console -- console.error is the default onError fallback when caller provides no handler
       (options?.onError ?? console.error)(e, tag);
       return { status: 500, body: { error: 'internal server error' }, tag };
     }

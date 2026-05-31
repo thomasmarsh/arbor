@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { Result } from '@arbor/common';
 import type z from 'zod';
 import type { HttpContext, HttpResponseUnion } from '../contexts/http-context.js';
@@ -12,6 +10,7 @@ interface NoOpts {
   headers?: never;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- HttpContext type params require any for conditional narrowing
 type RequestOpts<Ctx extends HttpContext<any, any, any, any, any, any, any>> = [Ctx['body']] extends [never]
   ? [Ctx['headers']] extends [never]
     ? NoOpts
@@ -62,6 +61,7 @@ export function createClient<
     async fetch<Tag extends keyof Map & string>(
       route: Extract<Route, { tag: Tag }>,
       opts?: RequestOpts<Map[Tag]>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- return type is an unresolved conditional; cast at call site
     ): Promise<any> {
       const tag = route.tag;
       const method = methodMap[tag] ?? 'GET';

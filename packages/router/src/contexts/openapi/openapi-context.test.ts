@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { defineRoutes, section, type InferContext } from '../../core/define-routes.js';

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { expect, expectTypeOf, it } from 'vitest';
 import type {
   ChildUnion,
@@ -51,10 +50,12 @@ it('type exports resolve', () => {
   expectTypeOf<ResponseUnion<never>>().toBeNever();
   expectTypeOf<HttpContext<'GET', unknown, Record<number, unknown>>>().not.toBeNever();
   expectTypeOf<HttpMethod>().not.toBeNever();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- HttpContext type params require any for type-level smoke test
   expectTypeOf<HandlerMap<Record<string, HttpContext<any, any, any>>, never>>().not.toBeNever();
   expectTypeOf<FetchLike>().not.toBeNever();
   expectTypeOf<OpenApiContext<'GET', unknown, Record<number, unknown>>>().not.toBeNever();
   expectTypeOf<OpenApiMeta>().not.toBeNever();
   expectTypeOf<ParseDiag>().not.toBeNever();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- HttpContext type params require any for type-level smoke test
   expectTypeOf<HandlerCtx<Record<string, HttpContext<any, any, any>>, never, never>>().not.toBeNever();
 });

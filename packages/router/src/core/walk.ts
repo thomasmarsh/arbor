@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import z from 'zod';
 import type { RouteNode } from './route-node.js';
 import { type Segment, matchSegments } from './segments.js';
@@ -8,6 +6,7 @@ export type ParseDiag =
   | { kind: 'segment-mismatch'; path: string; urlSegments: string[] }
   | { kind: 'schema-error'; path: string; issues: z.core.$ZodIssue[] };
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- WalkNode structural variance; Meta narrowed to expose querySchema */
 export type WalkNode = RouteNode<
   unknown,
   RouteNode<unknown, any, any, any, any>[],
@@ -15,23 +14,29 @@ export type WalkNode = RouteNode<
   any,
   any
 >;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
 export function getShape(schema: z.ZodObject<any, any>): Record<string, z.z.ZodType> {
   const s = schema.shape as Record<string, z.z.ZodType> | (() => Record<string, z.z.ZodType>);
   return typeof s === 'function' ? s() : s;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
 export function getTag(schema: z.ZodObject<any, any>): string | undefined {
   const tag = getShape(schema)['tag'];
   return tag instanceof z.ZodLiteral ? (tag.value as string) : undefined;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
 export function resolveQuerySchema(node: WalkNode): z.ZodObject<any, any> | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
-  return node._meta?.querySchema;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WalkNode.Meta is any; assert querySchema shape for safe access
+  const meta = node._meta as { querySchema?: z.ZodObject<any, any> } | undefined;
+  return meta?.querySchema;
 }
 
 export function validateSchema(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
   schema: z.ZodObject<any, any>,
   value: unknown,
   path: string,
@@ -49,6 +54,7 @@ function filterDefined(data: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
 function extractQueryParams(schema: z.ZodObject<any, any>, query: URLSearchParams): Record<string, unknown> {
   const raw: Record<string, unknown> = {};
   for (const key of Object.keys(getShape(schema))) {

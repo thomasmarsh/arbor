@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type z from 'zod';
 import type { Segment } from './segments.js';
 
@@ -50,6 +48,7 @@ export type InferContext<N extends { context?: unknown }> = N extends { context?
 //   _meta         — opaque plugin metadata bag (typed by context accessors in contexts/).
 export interface RouteNode<
   R,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- children tuple requires any for RouteNode covariance
   C extends RouteNode<unknown, any, any, any, any>[] = [],
   Context = never,
   SectionParams extends string = never,
@@ -57,6 +56,7 @@ export interface RouteNode<
 > {
   _type: R;
   _sectionParams?: SectionParams;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
   schema: z.ZodObject<any, any> | null;
   path: string;
   segments: Segment[];
@@ -118,6 +118,7 @@ type IsAny<T> = 0 extends 1 & T ? true : false;
 // Using `[]` brackets on both sides of `extends` (e.g. `[R] extends [never]`)
 // suppresses distributivity over unions, giving exact equality checks.
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- FlattenChildrenImpl uses any for structural RouteNode variance */
 type FlattenChildrenImpl<
   C extends RouteNode<unknown, any, any, any, any>[],
   D extends ValidDepth = 14,
@@ -149,14 +150,17 @@ type FlattenChildrenImpl<
               Flatten<R & { child?: FlattenChildrenImpl<GC, PrevD<D>>[number] }>
     : never;
 };
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Derives the route-shape type for a single RouteNode.
 // Replaces the old two-alias mutual recursion (Derive ↔ ChildUnion) that
 // triggered TS2589 even on 3-level trees once _child was removed.
 export type Derive<N> =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
   N extends RouteNode<unknown, any, any, any, any> ? FlattenChildrenImpl<[N]>[0] : never;
 
 // Union of derived shapes for all nodes in a children tuple.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
 export type ChildUnion<C extends RouteNode<unknown, any, any, any, any>[]> =
   FlattenChildrenImpl<C>[number];
 
@@ -167,8 +171,10 @@ export type ResponseUnion<Resp> = {
 
 // Builds a map of route tag → Context type for all tagged nodes in C.
 // Used by createServer to index handler DI contexts by route tag.
+/* eslint-disable @typescript-eslint/no-explicit-any -- CtxMap uses any for structural RouteNode variance */
 export type CtxMap<C extends RouteNode<unknown, any, any, any, any>[]> = {
   [N in C[number] as N extends RouteNode<{ tag: infer T extends string }, any, any, any, any>
     ? T
     : never]: N extends RouteNode<any, any, infer Ctx, any, any> ? Ctx : never;
 };
+/* eslint-enable @typescript-eslint/no-explicit-any */

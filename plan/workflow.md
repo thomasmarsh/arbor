@@ -1,20 +1,168 @@
 # Development Workflow
 
-## Ledger
+## Session Opening
 
-`plan/ledger.jsonl` is the single source of truth for task status and sequencing.
-Every task is one line of JSON — `rg` and `sed` operate directly on it.
+Start every session with one of these signals:
 
-### Reading the ledger
+| Signal              | Meaning                                               |
+| ------------------- | ----------------------------------------------------- |
+| `next`              | Proceed with whatever is `status: next` in the ledger |
+| `plan <N>`          | Jump to a specific plan ID regardless of ledger state |
+| `plan <N>, deliver` | Explicit Deliver mode — skip the mode-selection stop  |
+
+On receiving any of the above, Claude must complete Stage 0, then **stop and state**:
+
+1. The task goal (one sentence)
+2. The change surface (files to be touched)
+3. The chosen mode
+
+Then wait for user confirmation before touching any code — including in Deliver mode.
+
+---
+
+## Protocol
+
+Every session follows these stages in strict order. Do not skip or reorder.
+Each stage lists its **Entry**, **Actions**, and **Gate** (exit condition).
+Stages marked **[CHECKPOINT]** require you to stop and await user input before continuing.
+
+---
+
+### Stage 0 — Orient
+
+**Entry**: new session or new task.
+
+1. `rg '"status": "next"' plan/ledger.jsonl` — identify the current task.
+2. Read the linked plan file.
+3. State the task goal and the files in its change surface.
+
+**Gate**: you can articulate the task goal and enumerate the files it touches.
+
+---
+
+### Stage 1 — Mode Selection
+
+Evaluate scope. Choose exactly one mode:
+
+| Mode        | Condition                                                     | Next stage                    |
+| ----------- | ------------------------------------------------------------- | ----------------------------- |
+| **Deliver** | Bounded to 1–2 files, risk clear, no novel type design        | Stage 2                       |
+| **Spike**   | Unknown territory, novel type constraint, unclear feasibility | Stage 1S                      |
+| **Plan**    | Cross-layer (3+ files), or no plan exists yet                 | Write plan → **[CHECKPOINT]** |
+
+**Plan branch**: write the plan file, update `plan/work-order.md`, add `// TODO(plan/<n>): ...` stubs where needed, then **STOP — do not proceed until the user responds**.
+
+Never drift from Deliver into Plan scope mid-session. If scope expands unexpectedly, write the stubs, write the plan, and stop.
+
+**Gate**: mode is chosen. If Plan → plan written and session ended.
+
+---
+
+### Stage 1S — Spike _(branch from Spike mode)_
+
+1. Create `scratch/<topic>-spike.ts`.
+2. Write the minimum code to test the core claim (10–20 lines).
+3. Run `tsc --noEmit --strict scratch/<topic>-spike.ts`.
+4. Iterate until the claim holds **or** is falsified.
+
+**If spike falsifies the plan → [CHECKPOINT]: report findings, propose a plan revision, STOP — do not proceed until the user responds.**
+
+If spike confirms the approach → delete or gitignore the scratch file, return to Stage 1 with mode = Deliver.
+
+**Gate**: core claim confirmed in the scratch file.
+
+See **Appendix A** (TypeScript design spikes) and **Appendix B** (session type spikes) for hypotheses to eliminate first.
+
+---
+
+### Stage 2 — Pre-flight
+
+1. If the plan touches `any`, type utilities, or generics: read `eslint.config.js` at workspace root (there is no local package-level config).
+2. `rg` the exact symbol definitions in the change surface — do not open entire files to scan for signatures.
+3. Confirm the change surface matches the plan. If the surface is larger than expected → **[CHECKPOINT]**: flag the discrepancy and await user.
+
+**Gate**: change surface is fully mapped and consistent with the plan.
+
+---
+
+### Stage 3 — Red (Failing Test)
+
+1. Write the failing test:
+   - `expectTypeOf` — type-level contracts.
+   - `expect` / `it.each` — runtime behavior (use `it.each` when ≥ 3 tests share the same assertion shape).
+   - `toMatchInlineSnapshot` — structured or diagnostic output.
+   - `createTestClient` — full-pipeline integration.
+2. Run `pnpm --filter @arbor/router test` — confirm the test fails **for the right reason**.
+3. If the test passes immediately or fails for a wrong reason, revise it before proceeding.
+
+**Gate**: the test fails with the expected error or type error.
+
+---
+
+### Stage 4 — Green (Implement)
+
+1. Write the minimum change that makes Stage 3's test pass.
+2. Do not add features, refactoring, or cleanup beyond what the failing test requires.
+3. Run `pnpm --filter @arbor/router test` — confirm the new test passes and no prior tests regress.
+
+**Gate**: Stage 3's test now passes; no regressions.
+
+---
+
+### Stage 5 — Verify
+
+Run the full verification chain:
 
 ```bash
-# Current focus task (status = next)
+pnpm --filter @arbor/router test && pnpm --filter @arbor/router typecheck && pnpm lint && pnpm --filter @arbor/router run examples
+```
+
+Fix any failure before moving to Stage 6. Do not advance with a red chain.
+
+**Gate**: verification chain exits clean in a single run.
+
+---
+
+### Stage 6 — Close Out
+
+1. If the plan changed the public API, update all affected `examples/` files. Run examples to confirm they produce output.
+2. Mark the task done in the ledger:
+
+   ```bash
+   sed -i '' '/"id": N,/s/"status": "next"/"status": "done"/' plan/ledger.jsonl
+   ```
+
+3. Update `CLAUDE.md` §Examples table if a new example file was added.
+4. Provide recommended commit message for the changes made during the session.
+
+**Gate**: ledger updated; examples run clean.
+
+---
+
+### Stage 7 — Post-mortem _(conditional)_
+
+**Trigger**: the verification chain in Stage 5 ran ≥ 2 times before passing.
+
+1. Append `## Post-mortem` to the current plan file.
+2. State the root cause of each failure and what pre-flight step would have caught it. ≤ 10 lines.
+3. **[CHECKPOINT if systemic]**: if the post-mortem identifies a recurring pattern or a missing pre-flight check that affects the workflow itself, flag it explicitly and await user before closing the session.
+
+**Gate**: post-mortem appended; systemic issues flagged.
+
+---
+
+## Ledger Reference
+
+`plan/ledger.jsonl` is the single source of truth. Every task is one line of JSON.
+
+```bash
+# Current focus task
 rg '"status": "next"' plan/ledger.jsonl
 
 # Next queued task
 rg '"status": "queued"' plan/ledger.jsonl | head -1
 
-# Look up a specific task by id
+# Look up by id
 rg '"id": 86,' plan/ledger.jsonl
 
 # All tasks in a wave
@@ -29,19 +177,17 @@ rg '"story": "s4"' plan/ledger.jsonl | rg '"status": "queued"'
 
 ### Updating status
 
-Each task lives on one line. Target by id and update only the status field:
-
 ```bash
-# Start work on a task (queued → next)
+# queued → next
 sed -i '' '/"id": 86,/s/"status": "queued"/"status": "next"/' plan/ledger.jsonl
 
-# Mark the current task done
+# next → done
 sed -i '' '/"id": 86,/s/"status": "next"/"status": "done"/' plan/ledger.jsonl
 
-# Block a task
+# block
 sed -i '' '/"id": 28,/s/"status": "[^"]*"/"status": "blocked"/' plan/ledger.jsonl
 
-# Supersede a task
+# supersede
 sed -i '' '/"id": 44,/s/"status": "[^"]*"/"status": "superseded"/' plan/ledger.jsonl
 ```
 
@@ -59,123 +205,51 @@ Novel features with large dependencies or non-obvious ergonomics must be **opt-i
 
 ---
 
-## TDD Workflow Per Plan
+## Appendix A — TypeScript Type-Level Design Spikes
 
-0. **Pre-flight** (do this before writing a single line of code):
-   - If the plan touches `any`, type utilities, or generics: read `/arbor/eslint.config.js`
-     (workspace root) to know which strict rules apply. The package root has no local
-     eslint config — the workspace config is the one that fires.
-   - If the plan involves a novel type design (see §TypeScript Type-Level Design Spikes):
-     create a scratch file now, not after writing the implementation.
-
-1. Read the plan. Understand the problem and the proposed change.
-2. Write the failing test first (`expectTypeOf` for type-level, `expect` for runtime).
-3. Run `pnpm test` — confirm it fails for the right reason.
-4. Implement the minimum change to make it pass.
-5. Run `pnpm test && pnpm typecheck && pnpm lint`.
-6. Run `pnpm run examples`.
-7. Fix any failures before moving to the next plan.
-8. **Post-mortem (conditional):** If the verification chain ran ≥ 2 times before
-   passing, append a `## Post-mortem` section to the current plan file: state the root
-   cause of each failure and what pre-flight step would have caught it. Keep it to
-   ≤ 10 lines. This is the signal to consider a process improvement.
-
----
-
-## TypeScript Type-Level Design Spikes
-
-When a plan's type design involves any of the following, treat the type design
-itself as a **spike** before writing tests or implementation:
+When the plan involves any of the following, the type design is itself a spike (Stage 1S):
 
 - Union types as generic constraints where lambdas need contextual typing
 - Overloaded functions called with union-typed arguments
-- Index signatures (e.g. `Record<number, ...>`) intersected with mapped types
-- Novel use of conditional types to infer return/parameter types from generics
-
-**The rule:** validate the type-level invariant in the smallest possible isolated
-file _before_ writing tests or implementation. A 10–20 line scratch file that
-confirms "TypeScript can infer `body` correctly here" costs one iteration.
-Finding out it doesn't — after writing a full test suite — costs fifteen.
-
-### Scratch-file workflow
-
-1. Create `scratch/_type-test.ts` (gitignored, or deleted after).
-2. Write the minimum TypeScript to test the core type-level claim:
-   - Can TypeScript contextually type a lambda parameter from this constraint?
-   - Does passing a union-typed variable to this generic function preserve the union?
-   - Does the object literal trigger excess-property checking here?
-3. Run `tsc --noEmit --strict scratch/_type-test.ts` directly.
-4. Iterate on the type design in the scratch file until the invariant holds.
-5. Only then write the real test file and implementation.
+- Index signatures (`Record<number, ...>`) intersected with mapped types
+- Novel conditional types inferring return or parameter types from generics
 
 ### Hypotheses to eliminate early
 
-When you encounter unexpected `body: any`, `body: unknown`, or `body: never`,
-check these in order — each can be tested in 3–5 lines:
+| Hypothesis                                         | Quick test                                                    |
+| -------------------------------------------------- | ------------------------------------------------------------- |
+| TypeScript is narrowing the response variable      | `declare const ok: Res` vs. `const ok: Res = literal`         |
+| Index signature widens/narrows body type           | Inline the intersection; check `keyof` and `Extract`          |
+| Overload 1 poisons contextual types for overload 2 | Remove overload 1; see if body infers correctly               |
+| Union argument distributed over overload checks    | Replace union variable with `declare const` of the full union |
 
-| Hypothesis                                               | Quick test                                                     |
-| -------------------------------------------------------- | -------------------------------------------------------------- |
-| TypeScript is narrowing the response variable            | Try `declare const ok: Res` vs. `const ok: Res = literal`      |
-| Index signature intersects and widens/narrows body type  | Inline the intersection manually; check `keyof` and `Extract`  |
-| Overload 1 is poisoning contextual types for overload 2  | Temporarily remove overload 1 and see if body infers correctly |
-| Union argument is being distributed over overload checks | Replace union variable with `declare const` of the full union  |
-
-**Do not spend more than one full iteration theorising in prose.** If a mental
-model predicts the error but the fix doesn't work, the mental model is wrong —
-test a different hypothesis empirically instead.
+Do not spend more than one iteration theorising. If the mental model predicts the error but the fix does not work, the model is wrong — test a different hypothesis empirically.
 
 ---
 
-## Session Type Design Spikes
+## Appendix B — Session Type Design Spikes
 
-Session types introduce a distinct class of type-level challenge: _recursive phantom types
-with a computed dual_. Before writing tests or implementation for any session type plan
-(87–91), spike the type-level claim first.
+Treat as a session type spike (Stage 1S) when the plan touches any of:
 
-### When to treat as a session type spike
-
-A plan involves session type machinery if it touches any of:
-
-- `Dual<S>` computation — recursive conditional type swapping `Send`↔`Recv`
-- `Channel<S>` — a type whose method set changes with each operation (dependent session)
+- `Dual<S>` — recursive conditional swapping `Send`↔`Recv`
+- `Channel<S>` — method set changes per operation (dependent session)
 - `Project<G, P>` — multi-party projection from a global type
-- Adding a new `_meta` key that carries a session phantom and must not widen existing HTTP `_meta`
+- A new `_meta` key that carries a session phantom and must not widen existing HTTP `_meta`
 
 ### Scratch-file workflow (session types)
 
-1. Create `scratch/NN-session-spike.ts` (gitignored or deleted after).
-2. Write the minimum TypeScript to test the core session claim:
-   - Does `Dual<Send<A, Recv<B, End>>>` = `Recv<A, Send<B, End>>`?
-   - Does `Channel<Send<string, End>>` have `.send(v: string)` and no `.recv`?
-   - Does projection `Project<G, "Alice">` produce the correct local type?
+1. Create `scratch/NN-session-spike.ts`.
+2. Write the minimum TypeScript to test the core session claim.
 3. Run `tsc --noEmit --strict scratch/NN-session-spike.ts`.
-4. Run `tsc --diagnostics scratch/NN-session-spike.ts` and record the instantiation count.
-5. Iterate until the claim holds. If instantiation count exceeds ~500k, apply the
-   depth-counter technique from `FlattenChildrenImpl`.
-6. Only then write the real test file and implementation.
+4. Run `tsc --diagnostics scratch/NN-session-spike.ts` and record instantiation count.
+5. If instantiation count exceeds ~500k, apply the depth-counter technique from `FlattenChildrenImpl`.
+6. Only then proceed to Stage 2.
 
 ### Hypotheses to eliminate early (session types)
 
-| Hypothesis                             | Quick test                                                                                  |
-| -------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `Dual<S>` distributes over union       | `Dual<Send<A, End> \| End>` — should be `Recv<A, End> \| End`                               |
-| Recursive `Dual` hits TS depth limit   | 5-deep chain; `tsc --diagnostics`                                                           |
-| `Channel<S>` contextual typing works   | `(ch: Channel<Send<string, End>>) => ch.send('hello')` no cast                              |
-| New `_meta` key widens HTTP extractors | `type M = Extract<SseMeta<E> & HttpContextData, { __httpMethod: any }>` — must still narrow |
-
----
-
-## What "Complete" Means
-
-A plan is complete when:
-
-- All new behavior is tested
-- No existing tests are broken
-- All examples in `examples/` are brought up to date with code changes
-- `pnpm test && pnpm typecheck && pnpm lint` passes clean
-- `pnpm run examples` runs cleanly
-- The task status is set to `"done"` in `plan/ledger.jsonl`:
-
-  ```bash
-  sed -i '' '/"id": N,/s/"status": "next"/"status": "done"/' plan/ledger.jsonl
-  ```
+| Hypothesis                             | Quick test                                                                       |
+| -------------------------------------- | -------------------------------------------------------------------------------- |
+| `Dual<S>` distributes over union       | `Dual<Send<A, End> \| End>` should be `Recv<A, End> \| End`                      |
+| Recursive `Dual` hits TS depth limit   | 5-deep chain; `tsc --diagnostics`                                                |
+| `Channel<S>` contextual typing works   | `(ch: Channel<Send<string, End>>) => ch.send('hello')` no cast                   |
+| New `_meta` key widens HTTP extractors | `Extract<SseMeta<E> & HttpContextData, { __httpMethod: any }>` must still narrow |

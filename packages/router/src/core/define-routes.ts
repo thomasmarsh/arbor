@@ -1,11 +1,10 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { Result } from '@arbor/common';
 import type z from 'zod';
 import type { ChildUnion, CtxMap, ExtractPathParams, RouteNode } from './route-node.js';
 import { parseSegments } from './segments.js';
 import { type ParseDiag, type WalkNode, buildUrl, getTag, walkParse, walkPrint } from './walk.js';
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- BuildableRouteNode/buildable use any for structural RouteNode variance */
 export type BuildableRouteNode<N extends RouteNode<any, any, any, any, any>> = N & {
   use<R extends RouteNode<any, any, any, any, any>>(
     guard: (node: N) => R,
@@ -14,23 +13,29 @@ export type BuildableRouteNode<N extends RouteNode<any, any, any, any, any>> = N
     combinator: (node: N) => R,
   ): BuildableRouteNode<R>;
 };
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
 export function buildable<N extends RouteNode<any, any, any, any, any>>(
   node: N,
 ): BuildableRouteNode<N> {
   return Object.assign(node, {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any -- return type unknown; caller provides the type
     use: (guard: (n: N) => any) => buildable(guard(node)),
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any -- return type unknown; caller provides the type
     pipe: (fn: (n: N) => any) => buildable(fn(node)),
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
 type CollectChildSectionParams<C extends RouteNode<unknown, any, any, any, any>[]> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
   [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP, any> ? SP : never;
 }[number];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
 type AllSectionParams<C extends RouteNode<unknown, any, any, any, any>[]> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
   [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP, any> ? SP : never;
 }[number];
 
@@ -49,7 +54,9 @@ export {
 export type { ParseDiag } from './walk.js';
 
 export function route<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject/RouteNode require any for Zod/variance
   S extends z.ZodObject<any, any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
   C extends RouteNode<unknown, any, any, any, any>[] = [],
 >(schema: S, path: string, children?: [...C]): BuildableRouteNode<RouteNode<z.infer<S>, [...C]>> {
   return buildable({
@@ -62,6 +69,7 @@ export function route<
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
 export function section<Path extends string, C extends RouteNode<unknown, any, any, any, any>[]>(
   path: Path,
   children: [...C],
@@ -90,6 +98,7 @@ function collectTags(nodes: WalkNode[]): string[] {
   return tags;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
 export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] = []>(
   children: [...C],
 ) {

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import type z from 'zod';
 import { type BuildableRouteNode, buildable } from '../core/define-routes.js';
 import type { RouteNode } from '../core/route-node.js';
@@ -32,15 +30,18 @@ export interface HttpContextData {
   requires?: readonly string[];
   bodySchema?: z.ZodType;
   responseSchemas?: Record<number, z.ZodType>;
+  /* eslint-disable @typescript-eslint/no-explicit-any -- Zod schema fields require any for z.ZodObject shape param */
   responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
   responseCookieSchemas?: Record<number, z.ZodObject<any, any>>;
   querySchema?: z.ZodObject<any, any>;
   headerSchema?: z.ZodObject<any, any>;
   cookieSchema?: z.ZodObject<any, any>;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
   rateLimit?: { windowMs: number; maxRequests: number };
   cors?: CorsConfig;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
 export type HttpWalkNode = RouteNode<unknown, any, any, any, HttpContextData>;
 
 export function getHttpMeta(node: HttpWalkNode): HttpContextData | undefined {
@@ -78,6 +79,7 @@ export function collectHttpMaps(nodes: HttpWalkNode[]): {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- distributive conditional requires U extends any to distribute over union
 type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (x: infer I) => void ? I : never;
 type SuccessStatuses = 200 | 201 | 202 | 203 | 204;
 
@@ -109,10 +111,12 @@ export interface HttpContext<
 }
 
 // A response descriptor object with an explicit _desc discriminant.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
 interface ResponseDescriptorObj { _desc: true; body: z.ZodType; headers?: z.ZodObject<any, any>; cookies?: z.ZodObject<any, any> }
 // A response for a single status code: either a bare Zod body schema or an explicit descriptor.
 type ResponseDescriptor = z.ZodType | ResponseDescriptorObj;
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- InferResponseDescriptor infers from z.ZodObject which requires any */
 type InferResponseDescriptor<D> =
   D extends z.ZodType
     ? z.infer<D>
@@ -125,6 +129,7 @@ type InferResponseDescriptor<D> =
           : D extends { _desc: true; body: infer B extends z.ZodType }
             ? z.infer<B>
             : never;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 type InferResponseMap<R extends Record<number, ResponseDescriptor>> = {
   [K in keyof R]: InferResponseDescriptor<R[K]>;
@@ -153,6 +158,7 @@ export function respond(status: number, body: unknown, opts?: Record<string, unk
 }
 
 export function desc<B extends z.ZodType>(body: B): { _desc: true; body: B };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
 export function desc<B extends z.ZodType, O extends { headers?: z.ZodObject<any, any>; cookies?: z.ZodObject<any, any> }>(
   body: B, opts: O,
 ): { _desc: true; body: B } & O;
@@ -165,6 +171,7 @@ export type SafeBodyOption<M extends HttpMethod> =
 
 export interface SessionCtx { userId: string; roles: string[] }
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- httpRoute uses any for Zod/RouteNode structural type params */
 export function httpRoute<
   S extends z.ZodObject<any, any>,
   Method extends HttpMethod,
@@ -191,6 +198,7 @@ export function httpRoute<
   const responseSchemas: Record<number, z.ZodType> = {};
   const responseHeaderSchemas: Record<number, z.ZodObject<any, any>> = {};
   const responseCookieSchemas: Record<number, z.ZodObject<any, any>> = {};
+  /* eslint-enable @typescript-eslint/no-explicit-any */
   let hasHeaderSchemas = false;
   let hasCookieSchemas = false;
 

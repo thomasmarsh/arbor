@@ -2,7 +2,9 @@
 
 ## Active Focus
 
-`plan/ledger.jsonl` is the source of truth. Find the current task with:
+**At the start of every session, read `plan/workflow.md`.** It is the canonical execution protocol — stages, gates, mode selection, and all `[CHECKPOINT]` stops live there.
+
+`plan/ledger.jsonl` is the source of truth for task state. Find the current task with:
 
 ```bash
 rg '"status": "next"' plan/ledger.jsonl
@@ -26,9 +28,7 @@ export type Derive<N> = N extends RouteNode<unknown, any, any, any, infer Query>
 >>>>>>> REPLACE
 ```
 
-- **Minimize reads**: Do not read entire source files to discover structure except when required for whole file analysis. Prefer targeted rg (ripgrep) lookups first to locate exact line ranges, then read only those ranges.
-
-- **EXPERIMENT, DON'T SPECULATE**: avoid blind and endless speculation. Just write a simple test or experiment in `scratch/` and validate understanding. Start with the basics of the problem and layer complexity as you have resolved your understanding. Only then commit to larger implementation in the source tree. If you get stuck: backtrack and go back to basics.
+- **Minimize reads**: Do not read entire source files to discover structure. Prefer targeted `rg` (ripgrep) lookups first to locate exact line ranges, then read only those ranges.
 
 ## Working Commands
 
@@ -86,29 +86,14 @@ type Derive<N> =
 
 ## Non-Negotiable Working Style
 
-0. **Session mode — choose before touching code:**
+**Invariants** (apply at all times, no exceptions):
 
-   | Mode        | When to use                                                      | Output                             |
-   | ----------- | ---------------------------------------------------------------- | ---------------------------------- |
-   | **Deliver** | Bounded to 1–2 files, risk clear, no novel type design           | Code + tests, done                 |
-   | **Spike**   | Unknown territory, novel type constraint, or unclear feasibility | Scratch file or isolated prototype |
-   | **Plan**    | Cross-layer, cross-file (3+), or the plan doesn't exist yet      | `plan/<n>.md` + TODO stubs, stop   |
-
-   Pick the mode first. Do not drift from Deliver into Plan-scope mid-session; if scope expands, stop, write the plan, add `// TODO(plan/<n>): ...` stubs, and end the session cleanly.
-
-   Big changes are allowed only when: a plan exists, it explicitly says "deliver in one session," and the scope is fully bounded in that plan. Otherwise, write the plan now.
-
-   Before editing blind, use `rg` (ripgrep) to find exact symbol definitions. Do not read entire files just to scan for code signatures.
-
-1. **Smallest possible change**: One localized thing at a time. Prefer a 1-line change with a test.
-2. **TDD Workflow**: Write failing tests/stubs first to verify ergonomics before updating runtime code. **Exception — novel type designs**: if the plan introduces a type design involving union constraints + contextual typing, generic overloads, or index signatures intersected with mapped types, validate the type-level invariant in a minimal scratch file _before_ writing tests. See `plan/workflow.md` §TypeScript Type-Level Design Spikes for the scratch-file workflow and a table of quick-hypothesis checks. Do not iterate on the full implementation more than once without empirical confirmation of the root cause.
-3. **Test alongside**: Changes require tests (`expectTypeOf` for type-level, `expect` for runtime). Base cases first.
-4. **Always verify**: Run verification chain after every single change. Fix failures before moving forward. If the chain runs ≥ 2 times before passing, append a `## Post-mortem` to the plan file (≤ 10 lines: root cause + what pre-flight step would have caught it) — see `plan/workflow.md` §TDD Workflow Per Plan step 8.
-5. **Correct by construction**: Parse, don't validate. Use types over runtime checks to make illegal states unrepresentable.
-6. **No Debt**: Fix bad type casts immediately. Do not use `as any` without a documented comment reason.
-7. **Phantom types**: `_type` is strictly `undefined as never` at runtime. Used for inference only. (`_child` was removed in plan 47; child union is now derived via `FlattenChildrenImpl`.)
-8. **Preserve tests**: Never delete or break past tests. Fix the refactor to match.
-9. **One phase at a time**: Complete the current phase in `plan/` fully before starting the next.
+1. **Smallest possible change** — one localized thing at a time. Prefer a 1-line change with a test over a multi-line refactor.
+2. **Correct by construction** — parse, don't validate. Make illegal states unrepresentable with types, not runtime guards.
+3. **No debt** — fix bad type casts immediately. Do not use `as any` without a documented comment explaining why.
+4. **Preserve tests** — never delete or break past tests. Fix the refactor to match.
+5. **Phantom types** — `_type` is strictly `undefined as never` at runtime. Never assign a real value. (`_child` removed in plan 47; child union is now derived via `FlattenChildrenImpl`.)
+6. **One phase at a time** — complete the current phase in `plan/` fully before starting the next.
 
 ## `expectTypeOf` Post-mortem Notes
 

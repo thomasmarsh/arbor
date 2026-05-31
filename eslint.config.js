@@ -3,6 +3,7 @@ import { defineConfig } from 'eslint/config';
 import { configs } from 'typescript-eslint';
 
 export default defineConfig([
+  { linterOptions: { reportUnusedDisableDirectives: 'error' } },
   {
     ignores: ['**/dist/**', '**/node_modules/**', '**/*.tsbuildinfo'],
   },
@@ -27,6 +28,29 @@ export default defineConfig([
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+      '@typescript-eslint/switch-exhaustiveness-check': [
+        'error',
+        { considerDefaultExhaustiveForUnions: true },
+      ],
+    },
+  },
+  {
+    files: ['packages/router/src/**/*.ts'],
+    rules: {
+      'no-console': 'error',
+    },
+  },
+  {
+    files: ['packages/**/*.test.ts'],
+    rules: {
+      'no-console': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
+  {
+    files: ['packages/**/examples/**/*.ts'],
+    rules: {
+      'no-console': 'off',
     },
   },
 ]);
