@@ -5,7 +5,7 @@ Operational execution list. See `plan/workflow.md` for workflow rules and comple
 ## Current Queue
 
 ```text
-79 → 80 → 81 → 86 → 87 → 88 → 89 → 90 → 91
+81 → 86 → 91 → 92 → 93
 ```
 
 ---
@@ -111,7 +111,7 @@ See **plan 58** for the full prioritized smell inventory.
 
 ### Wave 14 — Architecture spikes
 
-- **80**: Spike — typed capability / environment system.
+- **80** ✓ Spike — typed capability / environment system (PROCEED: no Effect-TS needed).
 - **81**: Default handler supervision (let-it-crash safety net).
 
 ### Wave 15 — Session type feasibility
@@ -127,6 +127,14 @@ See **plan 58** for the full prioritized smell inventory.
 ### Wave 17 — MPST spike
 
 - **91**: Spike — multi-party session type projection; global type → local type per participant; go/no-go for implementation plan.
+
+### Wave 18 — Capability system implementation
+
+- **92**: Capability system integration — `ServiceRegistry`, `needs` on all three protocol layers (HTTP/SSE/WS), handler context narrowing, server-side provision enforcement. Depends on Plan 80.
+
+### Wave 19 — HTTP session annotation
+
+- **93**: Add `SessionMeta<HttpSession<Res>>` phantom annotation to `HttpContextData` so all three protocol families (HTTP/SSE/WS) expose a uniform session type in `_meta`. Prove `BranchToUnion<Dual<S>> ≡ HttpResponseUnion<Res>`. Export `HttpSession`, `InferHttpSession`. Purely additive; no API changes. Depends on Plan 88.
 
 ### Deferred / low priority
 
@@ -214,3 +222,5 @@ See **plan 58** for the full prioritized smell inventory.
 | 89   | `sseRoute` — typed SSE; handler `AsyncIterable`; dual client | ✓                     |
 | 90   | `wsRoute` — typed WebSocket; dual `{ in, out }`; WS adapter  | queued                |
 | 91   | Spike — MPST global type projection, go/no-go                | spike/deferred        |
+| 92   | Capability system: `ServiceRegistry`, `needs` on HTTP/SSE/WS | queued                |
+| 93   | `HttpSession` type; `SessionMeta` phantom on `httpRoute`    | queued                |

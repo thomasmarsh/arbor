@@ -25,7 +25,8 @@ Active work is tracked numerically in `plan/work-order.md`. Current target areas
 | Handler ergonomics (`IntoResponse`) | 78 | ✓ |
 | Structural cleanup (barrel, OpenAPI decompose, rate-limit decouple) | 63, 64, 65, 66 | ✓ |
 | Testing automation (property-based, fuzz) | 79 | queued |
-| Architecture spikes (capability system, radix tree, handler supervision) | 80, 74, 81 | deferred/spike |
+| Architecture spikes (capability system spike, radix tree, handler supervision) | 80, 74, 81 | deferred/spike |
+| **Capability system implementation — `ServiceRegistry`, `needs` on HTTP/SSE/WS** | **92** | **queued (post-80)** |
 | Lint rules and suppressions | 86 | queued |
 | **Session types — feasibility spike + core foundations** | **87, 88** | **queued** |
 | **Real-time protocols — SSE + WebSocket** | **89, 90** | **queued (post-88)** |
@@ -81,6 +82,10 @@ For @arbor/router, this unlocks everything beyond atomic REST:
    `sessionRoute()` factory; de-risks core type system before any runtime code lands.
 3. Plan 89 (SSE) — first practical implementation, unidirectional.
 4. Plan 90 (WebSocket) — bidirectional, pluggable transport adapter.
+5. Plan 93 (HTTP annotation) — closes the loop: adds `SessionMeta<HttpSession<Res>>` phantom
+   to `httpRoute` so all three protocol families expose a uniform session type in `_meta`.
+   Proves `BranchToUnion<Dual<HttpSession<Res>>> ≡ HttpResponseUnion<Res>` and documents
+   that `matchResponse` is the `Branch` combinator for HTTP sessions.
 5. Plan 91 (MPST spike) — validates multi-party projection; long-horizon.
 
 The phantom-type architecture that powers HTTP route discrimination is structurally
