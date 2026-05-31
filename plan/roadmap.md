@@ -65,7 +65,7 @@ These items must not be implemented in the core router package:
 ## Deferred (benchmark- or dependency-gated)
 
 - **Plan 70** — Pattern/regex segment kind (`~name:regex`). Do after segment correctness wave (67–69) settles.
-- **Plan 74** — Radix tree router. Benchmark O(N) against real workloads first; implement only if measurable.
+- **Plan 74** — Radix tree router. Canceled; superseded by plan 134 (compiled Map-indexed dispatch achieves better results without an external library).
 - **Plan 24** — TanStack bridge. Superseded by plan 106 (spike); will decide go/no-go there.
 
 ---
@@ -104,7 +104,7 @@ For @arbor/router, this unlocks everything beyond atomic REST:
    to `httpRoute` so all three protocol families expose a uniform session type in `_meta`.
    Proves `BranchToUnion<Dual<HttpSession<Res>>> ≡ HttpResponseUnion<Res>` and documents
    that `matchResponse` is the `Branch` combinator for HTTP sessions.
-5. Plan 91 (MPST spike) — validates multi-party projection; long-horizon.
+6. Plan 91 (MPST spike) — validates multi-party projection; long-horizon.
 
 The phantom-type architecture that powers HTTP route discrimination is structurally
 well-suited for session types. `_meta` already carries typed per-route metadata;

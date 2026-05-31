@@ -168,7 +168,7 @@ arbor queue
 arbor set 86 next        # queued → next
 arbor set 86 done        # next → done
 arbor set 28 blocked     # block a task
-arbor set 44 superseded  # supersede a task
+arbor set 44 canceled    # cancel/supersede a task
 
 # Reorder within a wave
 arbor bump 86            # move to front of its wave
