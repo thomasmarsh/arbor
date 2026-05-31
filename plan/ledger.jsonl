@@ -83,7 +83,7 @@
 {"type": "task", "id": 55, "epic": "e1", "story": "s2", "kind": "task", "wave": "w4", "layer": "server", "status": "done", "text": "Rename _ctx/Ctx to _meta/Meta bag", "file": "55.rename-ctx-to-meta.md"}
 {"type": "task", "id": 56, "epic": "e1", "story": "s2", "kind": "task", "wave": "w4", "layer": "server", "status": "done", "text": "Tech debt core framework context decoupling", "file": "56.tech-debt.core-context-coupling.md"}
 {"type": "task", "id": 57, "epic": "e1", "story": "s2", "kind": "task", "wave": "w5", "layer": "server", "status": "done", "text": "Rename Enricher to Guard and resolve Result overlap", "file": "57.guard-rename-and-result-overlap.md"}
-{"type": "task", "id": 58, "epic": "e1", "story": "s2", "kind": "task", "wave": "w5", "layer": "general", "status": "queued", "text": "Architectural smells and technical debt assessment", "file": "58.smells-assessment.md"}
+{"type": "task", "id": 58, "epic": "e1", "story": "s2", "kind": "task", "wave": "w5", "layer": "general", "status": "done", "text": "Architectural smells and technical debt assessment", "file": "58.smells-assessment.md"}
 {"type": "task", "id": 59, "epic": "e1", "story": "s2", "kind": "task", "wave": "w5", "layer": "server", "status": "done", "text": "Decompose walkParse god function; unify boilerplate", "file": "59.walk-decompose.md"}
 {"type": "task", "id": 60, "epic": "e1", "story": "s2", "kind": "task", "wave": "w5", "layer": "server", "status": "done", "text": "Decompose createServer god function block", "file": "60.server-decompose.md"}
 {"type": "task", "id": 61, "epic": "e1", "story": "s2", "kind": "task", "wave": "w5", "layer": "server", "status": "done", "text": "Type the internal _meta bag; eliminate casts", "file": "61.meta-bag-typing.md"}

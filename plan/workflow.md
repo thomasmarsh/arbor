@@ -155,12 +155,34 @@ Fix any failure before moving to Stage 6. Do not advance with a red chain.
 
 `plan/ledger.jsonl` is the single source of truth. Every task is one line of JSON.
 
+### CLI (preferred)
+
+```bash
+# What to work on next
+arbor next
+
+# Full ready queue (deps satisfied, sorted by wave + rank)
+arbor queue
+
+# Status transitions
+arbor set 86 next        # queued → next
+arbor set 86 done        # next → done
+arbor set 28 blocked     # block a task
+arbor set 44 superseded  # supersede a task
+
+# Reorder within a wave
+arbor bump 86            # move to front of its wave
+arbor defer 86           # push to back of its wave
+
+# Interactive TUI
+arbor tui                # table view; n=next d=done b=bump D=defer r=refresh q=quit
+```
+
+### Ripgrep lookups
+
 ```bash
 # Current focus task
 rg '"status": "next"' plan/ledger.jsonl
-
-# Next queued task
-rg '"status": "queued"' plan/ledger.jsonl | head -1
 
 # Look up by id
 rg '"id": 86,' plan/ledger.jsonl
@@ -170,25 +192,6 @@ rg '"wave": "w14"' plan/ledger.jsonl
 
 # All tasks in a story
 rg '"story": "s4"' plan/ledger.jsonl
-
-# All queued tasks in a story
-rg '"story": "s4"' plan/ledger.jsonl | rg '"status": "queued"'
-```
-
-### Updating status
-
-```bash
-# queued → next
-sed -i '' '/"id": 86,/s/"status": "queued"/"status": "next"/' plan/ledger.jsonl
-
-# next → done
-sed -i '' '/"id": 86,/s/"status": "next"/"status": "done"/' plan/ledger.jsonl
-
-# block
-sed -i '' '/"id": 28,/s/"status": "[^"]*"/"status": "blocked"/' plan/ledger.jsonl
-
-# supersede
-sed -i '' '/"id": 44,/s/"status": "[^"]*"/"status": "superseded"/' plan/ledger.jsonl
 ```
 
 ---
