@@ -8,3 +8,4 @@ dist/
 certs/
 packages/api/src/**/generated/
 .DS_store
+packages/router/scratch/

@@ -2,8 +2,8 @@
 
 ## Active Focus
 
-- **Current Task**: Plans 80, 81, 86 queued before session type waves 15–17. Check `plan/work-order.md` for full queue.
-- **Current Status**: Waves 0–13 complete (plans 18–79, 63–66, 82–85 all done). Session type waves 15–17 queued (plans 87–91). Remaining pre-session queue: 80, 81, 86. See `plan/work-order.md` for ordering.
+- **Current Task**: Plans 80, 81, 86, 91 remain. Check `plan/work-order.md` for full queue.
+- **Current Status**: Waves 0–13 complete (plans 18–79, 63–66, 82–85 all done). Session type waves 15–17: plans 87–90 done, 91 queued. Remaining pre-session queue: 80, 81, 86. See `plan/work-order.md` for ordering.
 
 ## Strict System Rules (Zero Preamble)
 
@@ -24,6 +24,8 @@
       ```
 
 - **Minimize reads**: Do not read entire source files to discover structure except when required for whole file analysis. Prefer targeted rg (ripgrep) lookups first to locate exact line ranges, then read only those ranges.
+
+- **EXPERIMENT, DON'T SPECULATE**: avoid blind and endless speculation. Just write a simple test or experiment in `scratch/` and validate understanding. Start with the basics of the problem and layer complexity as you have resolved your understanding. Only then commit to larger implementation in the source tree. If you get stuck: backtrack and go back to basics.
 
 ## Working Commands
 
@@ -101,6 +103,11 @@ type Derive<N> =
 7. **Phantom types**: `_type` is strictly `undefined as never` at runtime. Used for inference only. (`_child` was removed in plan 47; child union is now derived via `FlattenChildrenImpl`.)
 8. **Preserve tests**: Never delete or break past tests. Fix the refactor to match.
 9. **One phase at a time**: Complete the current phase in `plan/` fully before starting the next.
+
+## `expectTypeOf` Post-mortem Notes
+
+- `IteratorResult<T>.value` is `T | any = any; toEqualTypeOf<T>()` fails on `any`. Test channel message types via `expectTypeOf(ch.messages)`, not `result.value`.
+- Write a scratch file first for novel `expectTypeOf` assertions.
 
 ## Examples (`examples/`)
 

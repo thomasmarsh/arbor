@@ -54,3 +54,8 @@ export {
 export { sseRoute, type SseContext, type SseMeta } from './contexts/sse-context.js';
 export { createSseServer, type SseHandlerMap, type SseHandlerCtx, type SseRouterContract } from './server/sse-dispatch.js';
 export { createSseClient, type SseClient, type SseFetchLike } from './client/sse-client.js';
+
+// WebSocket
+export { wsRoute, createWsAdapterPair, type WsAdapter, type WsChannel, type WsContext, type WsMeta } from './contexts/ws-context.js';
+export { createWsServer, type WsHandlerMap, type WsHandlerCtx, type WsRouterContract } from './server/ws-dispatch.js';
+export { createWsClient, type WsClient, type WsConnectFn } from './client/ws-client.js';
