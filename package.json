@@ -23,7 +23,8 @@
     "db:migrate": "dotenv -e packages/api/.env.local -- turbo db:migrate",
     "db:generate": "dotenv -e packages/api/.env.local -- turbo db:generate",
     "db:status": "scripts/db.sh status",
-    "arbor": "uv --directory tools/arbor-cli run arbor"
+    "arbor": "./arbor",
+    "plan": "./arbor tui"
   },
   "packageManager": "pnpm@11.3.0",
   "devDependencies": {
