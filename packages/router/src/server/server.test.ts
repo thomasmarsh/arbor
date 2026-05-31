@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import z from 'zod';
 import { httpRoute, desc, respond } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
@@ -435,9 +435,46 @@ describe('createServer', () => {
         'create-user': (ctx) =>
           Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
         'search-items': () => Promise.resolve(respond(200, { count: 0 })),
-      });
+      }, { onError: vi.fn() });
       const result = await rejectingServer.handle(new URL('https://example.com/users/1'), 'GET');
       expect(result.status).toBe(500);
+    });
+
+    it('calls onError with the thrown error and route tag', async () => {
+      const onError = vi.fn();
+      const err = new Error('boom');
+      const s = createServer(router, {
+        'get-user': () => { throw err; },
+        'create-user': (ctx) => Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
+        'search-items': () => Promise.resolve(respond(200, { count: 0 })),
+      }, { onError });
+      await s.handle(new URL('https://example.com/users/1'), 'GET');
+      expect(onError).toHaveBeenCalledWith(err, 'get-user');
+    });
+
+    it('consults errorMap before calling onError', async () => {
+      const onError = vi.fn();
+      class AppError extends Error {}
+      const s = createServer(router, {
+        'get-user': () => { throw new AppError('mapped'); },
+        'create-user': (ctx) => Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
+        'search-items': () => Promise.resolve(respond(200, { count: 0 })),
+      }, {
+        onError,
+        errorMap: [{ match: (e) => e instanceof AppError, response: () => respond(409, { error: 'conflict' }) }],
+      });
+      const result = await s.handle(new URL('https://example.com/users/1'), 'GET');
+      expect(result.status).toBe(409);
+      expect(onError).not.toHaveBeenCalled();
+    });
+
+    it('propagates exception when supervise is false', async () => {
+      const s = createServer(router, {
+        'get-user': () => { throw new Error('unguarded'); },
+        'create-user': (ctx) => Promise.resolve(respond(201, { id: '1', email: ctx.body.email })),
+        'search-items': () => Promise.resolve(respond(200, { count: 0 })),
+      }, { supervise: false });
+      await expect(s.handle(new URL('https://example.com/users/1'), 'GET')).rejects.toThrow('unguarded');
     });
 
     it('returns 404 for path with invalid percent-encoding', async () => {

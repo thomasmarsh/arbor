@@ -19,6 +19,10 @@ const server = createServer(router, {
         : respond(404, { error: 'user not found' }),
     );
   },
+}, {
+  onError: (err, tag) => {
+    console.error(`[${tag}] unhandled error:`, err);
+  },
 });
 
 console.log(await server.handle(new URL('http://localhost/users/42'), 'GET'));

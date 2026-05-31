@@ -119,6 +119,8 @@ export function createServer<
     rateLimitStore?: RateLimitStore;
     rateLimitKeyResolver?: RateLimitKeyResolver;
     resolveSession?: (headers: Record<string, string>) => Promise<SessionCtx | null>;
+    onError?: (err: unknown, tag: string) => void;
+    supervise?: boolean;
   },
 ) {
   const { methodMap, bodySchemaMap, headerSchemaMap, cookieSchemaMap, responseHeaderSchemaMap, responseCookieSchemaMap, rateLimitMap, requiresMap, wrapStatusMap } =
@@ -184,11 +186,13 @@ export function createServer<
       if (handlerResult.cookies) response.cookies = handlerResult.cookies;
       return response;
     } catch (e) {
+      if (options?.supervise === false) throw e;
       if (options?.errorMap) {
         for (const entry of options.errorMap) {
           if (entry.match(e)) { const mapped = entry.response(e); return { status: mapped.status, body: mapped.body, tag }; }
         }
       }
+      (options?.onError ?? console.error)(e, tag);
       return { status: 500, body: { error: 'internal server error' }, tag };
     }
   }
