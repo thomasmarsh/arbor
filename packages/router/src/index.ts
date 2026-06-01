@@ -24,6 +24,7 @@ export {
   httpRoute,
   respond,
   type HttpContext,
+  type HttpContextData,
   type HttpMethod,
   type HttpResponse,
   type HttpResponseSelect,
