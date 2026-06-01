@@ -87,15 +87,16 @@ See **Appendix A** (TypeScript design spikes) and **Appendix B** (session type s
 
 ### Stage 3 — Red (Failing Test)
 
-1. Write the failing test:
-   - `expectTypeOf` — type-level contracts.
-   - `expect` / `it.each` — runtime behavior (use `it.each` when ≥ 3 tests share the same assertion shape).
+1. Use TDD try to reason about properties first; write the failing test:
+   - `it.each` — **Mandatory** when ≥ 2 tests share the same assertion shape to eliminate duplication.
+   - `fast-check` PBT: **Mandatory** for round-trip proofs, algebraic invariants, and wherever preferable.
+   - `expectTypeOf` — type-level contracts and API surface contracts.
    - `toMatchInlineSnapshot` — structured or diagnostic output.
-   - `createTestClient` — full-pipeline integration.
+   - `createTestClient` / `expect` — full-pipeline integration and standard runtime behavior
 2. Run `pnpm --filter @arbor/router test` — confirm the test fails **for the right reason**.
 3. If the test passes immediately or fails for a wrong reason, revise it before proceeding.
 
-**Gate**: the test fails with the expected error or type error.
+**Gate**: the test fails with the expected error, type error, or property violation.
 
 ---
 
