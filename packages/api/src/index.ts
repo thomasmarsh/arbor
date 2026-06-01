@@ -4,8 +4,12 @@ import { logger } from 'hono/logger';
 import { makePool } from './db/pg.js';
 import type { ApiEnv } from './env.js';
 import { liveEnv, parseProcessEnv } from './env.js';
+import { ledgerServer, ledgerRouter } from './ledger/routes.js';
 import { hello } from './routes/hello.js';
 import { users } from './routes/users.js';
+
+export { ledgerRouter };
+export type LedgerRouter = typeof ledgerRouter;
 
 const app = new Hono<{ Variables: { env: ApiEnv } }>();
 
@@ -22,6 +26,12 @@ app.use('*', (c, next) => {
 // Mount routes
 app.route('/api/hello', hello);
 app.route('/api/users', users);
+
+app.all('/api/ledger/*', async (c) => {
+  const result = await ledgerServer.handleRequest(c.req.raw);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Hono ContentfulStatusCode is narrower than number
+  return c.json(result.body, result.status as any);
+});
 
 // Health check (useful for OpenShift liveness/readiness probes)
 app.get('/healthz', (c) => c.json({ status: 'ok' }));
