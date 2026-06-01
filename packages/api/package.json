@@ -3,6 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./ledger": "./src/ledger/router.js"
+  },
   "scripts": {
     "build": "tsc -b",
     "dev": "dotenv -e .env.local tsx watch src/index.ts",

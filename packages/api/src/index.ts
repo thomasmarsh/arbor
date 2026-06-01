@@ -4,12 +4,12 @@ import { logger } from 'hono/logger';
 import { makePool } from './db/pg.js';
 import type { ApiEnv } from './env.js';
 import { liveEnv, parseProcessEnv } from './env.js';
-import { ledgerServer, ledgerRouter } from './ledger/routes.js';
+import { ledgerServer } from './ledger/routes.js';
 import { hello } from './routes/hello.js';
 import { users } from './routes/users.js';
 
-export { ledgerRouter };
-export type LedgerRouter = typeof ledgerRouter;
+export { ledgerRouter } from './ledger/router.js';
+export type { LedgerRouter } from './ledger/router.js';
 
 const app = new Hono<{ Variables: { env: ApiEnv } }>();
 
