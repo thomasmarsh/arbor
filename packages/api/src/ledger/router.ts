@@ -14,7 +14,6 @@ const DisplayGroupsResponse = z.object({
   done: z.array(TaskEntry),
   canceled: z.array(TaskEntry),
 });
-
 const ErrorResponse = z.object({ error: z.string() });
 
 const GetTasks = z.object({ tag: z.literal('ledger-get-tasks') });

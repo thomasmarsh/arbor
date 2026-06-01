@@ -19,7 +19,7 @@ export interface AuthEnv {
 export const mockAuthEnv: AuthEnv = {
   getUser: Effect.of((send) => {
     send(
-      Result.success<User, HttpError>({
+      Result.ok<User, HttpError>({
         sub: 'dev-user',
         name: 'Dev User',
         email: 'dev@localhost',
@@ -44,8 +44,8 @@ export const liveAuthEnv: AuthEnv = {
   getUser: httpClient.get(
     '/auth/me',
     UserSchema,
-    (user) => Result.success<User, HttpError>(user),
-    (err) => Result.failure<User, HttpError>(err),
+    (user) => Result.ok<User, HttpError>(user),
+    (err) => Result.err<User, HttpError>(err),
   ),
   logout: Effect.of((_send) => {
     window.location.href = '/auth/logout';

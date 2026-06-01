@@ -58,7 +58,7 @@ describe('Result type', () => {
         () => 0,
       );
       const errVal = Result.err<number, string>('fail').fold(
-        () => 0,
+        (n) => String(n),
         (e) => e + 'ed',
       );
       expect(okVal).toBe(20);
@@ -102,7 +102,7 @@ describe('Result type', () => {
     });
 
     it('should chain error fallbacks with flatMapError', () => {
-      const res = Result.err('original').flatMapError((_e) => Result.ok('recovered'));
+      const res = Result.err<string, string>('original').flatMapError((_e) => Result.ok('recovered'));
       expect(res.getOrThrow()).toBe('recovered');
     });
   });

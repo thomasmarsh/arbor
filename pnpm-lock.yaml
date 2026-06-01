@@ -214,6 +214,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@arbor/api':
+        specifier: workspace:*
+        version: link:../api
       '@arbor/common':
         specifier: workspace:*
         version: link:../common

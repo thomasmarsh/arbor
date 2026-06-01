@@ -11,7 +11,7 @@ export const liveCounterEnv: CounterEnv = {
   fetchHello: fetchHello(
     (hello) => Result.ok(hello),
     (err) =>
-      Result.failure<HelloResponse, string>(
+      Result.err<HelloResponse, string>(
         err instanceof NetworkError ? err.message : String(err),
       ),
   ),
