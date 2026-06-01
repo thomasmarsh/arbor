@@ -126,13 +126,28 @@ class QueueApp(App):
         task = self._selected_task()
         if task is not None:
             update_task(task.id, updates)
-            self.action_refresh_queue()
+            #self.action_refresh_queue()
+
+    def toggle_set(self, value: TaskStatus):
+        task = self._selected_task()
+        if task is None:
+            return
+        if task.status is value:
+            self._apply({"status": TaskStatus.TODO.value})
+        else:
+            self._apply({"status": value})
 
     def action_set_next(self) -> None:
-        self._apply({"status": TaskStatus.NEXT.value})
+        self.toggle_set(TaskStatus.NEXT)
 
     def action_set_done(self) -> None:
-        self._apply({"status": TaskStatus.DONE.value})
+        task = self._selected_task()
+        if task is None:
+            return
+        if task.status is TaskStatus.DONE:
+            self._apply({"status": TaskStatus.TODO.value})
+        else:
+            self._apply({"status": TaskStatus.DONE.value})
 
     def action_bump_task(self) -> None:
         task = self._selected_task()

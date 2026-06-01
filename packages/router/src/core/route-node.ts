@@ -8,13 +8,15 @@ export type Flatten<T> = { [K in keyof T]: T[K] };
 // Extracts colon-param names from a path string at the type level.
 // `:id/` → `"id"`, `:org/:repo/` → `"org" | "repo"`.
 // Section params use `#` instead of `:` — both are captured here.
+// TODO: incomplete Edge Case Handling: The type correctly identifies segments
+// starting with : or #, but it expects them to always end with a / slash. If
+// a route terminates on a parameter (e.g., "/user/:id"), it returns never.
 export type ExtractPathParams<Path extends string> =
   Path extends `${string}:${infer Param}/${infer Rest}`
     ? Param | ExtractPathParams<Rest>
     : Path extends `${string}#${infer Param}/${infer Rest}`
       ? Param | ExtractPathParams<Rest>
       : never;
-
 
 export type InferRoute<R extends { _type: unknown }> = R['_type'];
 
@@ -52,10 +54,15 @@ export interface RouteNode<
   C extends RouteNode<unknown, any, any, any, any>[] = [],
   Context = never,
   SectionParams extends string = never,
+  // TODO: consider an arbitrary object layout restriction to prevent structural
+  // collisions with primitives: `Meta extends object = Record<string, unknown>`.
   Meta = Record<string, unknown>,
 > {
   _type: R;
   _sectionParams?: SectionParams;
+  // TODO: we should decouple from Zod here - task 133 explores a custom schema
+  // system that is compatible or interops with zod, but which gives us  a bit
+  // more power.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
   schema: z.ZodObject<any, any> | null;
   path: string;
@@ -136,6 +143,11 @@ type FlattenChildrenImpl<
         ? Flatten<{ child?: unknown }>
         : Flatten<R & { child?: unknown }>
       : // Depth limit reached — treat node as a leaf.
+        // TODO: If a tree hits exactly 15 levels of depth, PrevD<0> returns never.
+        // The check captures it accurately, but ensures any elements deeper than the
+        // ceiling are entirely omitted rather than gracefully degraded. Given the
+        // benchmark memo indicating a maximum operational depth of 4, this structural
+        // floor will not be breached under expected parameters.
         [PrevD<D>] extends [never]
         ? [R] extends [never]
           ? never
@@ -165,6 +177,7 @@ export type ChildUnion<C extends RouteNode<unknown, any, any, any, any>[]> =
   FlattenChildrenImpl<C>[number];
 
 // Maps a status-code record to a discriminated union of `{ status, body }` pairs.
+// TODO: this is deprecated and shouldn't be here. Replace with HttpResponse?
 export type ResponseUnion<Resp> = {
   [S in keyof Resp]: { status: S; body: Resp[S] };
 }[keyof Resp];
@@ -177,4 +190,3 @@ export type CtxMap<C extends RouteNode<unknown, any, any, any, any>[]> = {
     ? T
     : never]: N extends RouteNode<any, any, infer Ctx, any, any> ? Ctx : never;
 };
-/* eslint-enable @typescript-eslint/no-explicit-any */

@@ -1,3 +1,10 @@
+// TODO: this system only permits scalars. Consider more structured
+// options. See Matrix Parameters (RFC 3986).
+// Ideas:
+// | { kind: 'array-str'; name: string; separator: string }
+// | { kind: 'date'; name: string }
+// | { kind: 'custom'; name: string; parse: (val: string) => unknown };
+
 /**
  * A single segment of a URL path.
  * - `lit` — a literal string segment e.g. `users`
@@ -39,7 +46,7 @@ function validateOptionalOrdering(segments: Segment[], path: string): void {
     if (sawOptional && !isWildcard) {
       throw new Error(
         `Invalid path "${path}": optional segment must be last (only a wildcard may follow). ` +
-        `Use nested routes to model optional prefixes.`,
+          `Use nested routes to model optional prefixes.`,
       );
     }
     if (isOptional) sawOptional = true;
