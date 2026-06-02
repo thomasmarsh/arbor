@@ -4,7 +4,7 @@ import { fetchHello } from './api/hello';
 
 export interface CounterEnv {
   fetchHello: Effect<Result<HelloResponse, string>>;
-  sleep: Effect<void>;
+  sleep: Effect<undefined>;
 }
 
 export const liveCounterEnv: CounterEnv = {

@@ -84,6 +84,13 @@ type Derive<N> =
 
 - The core types like RouteNode should be as domain independent as much as possible. We use the `Context` type parameter in preference to baking in understanding of different schemes or protocols
 
+## Effect Type Conventions
+
+- **`Effect<undefined>`** is the canonical type for effects that produce no meaningful value (e.g., `sleep`, `pollTick`, mutation side-effects). Never use `Effect<void>` in interface or env types.
+- **Why**: `void` is a function-return convention; `undefined` is a concrete value. `Effect.sleep` literally calls `send(undefined)` internally. Using `void` also triggers `@typescript-eslint/no-invalid-void-type` when written as an explicit generic arg in call expressions (e.g., `Effect.of<void>(...)`).
+- **`Effect<never>`** is what `Effect.none()` returns and is assignable to any `Effect<T>` — use it for no-op effects in tests.
+- **Contextual typing**: never write `Effect.of<void>(...)` or `Effect.none<void>()`. Rely on the binding-site annotation (`const env: LedgerEnv = { pollTick: Effect.of((send) => ...) }`) to drive inference. No explicit `void` type arg in any call expression.
+
 ## Non-Negotiable Working Style
 
 **Invariants** (apply at all times, no exceptions):
@@ -152,3 +159,11 @@ T-shirt Sizing guide:
 - M: medium, half day to a day, several files
 - L: large, 1-3 days, multiple files, some design
 - XL: very large, 3+ days, major new system
+
+## Testing Conventions section near existing test guidance.\n\n## Testing Conventions
+- Use a single base mock with spread overrides; do NOT use per-test vi.fn() factories or vi.mock for env. Follow the TCA-style static object / dependency-injection idiom.
+- Use valtio's snapshot() (not structuredClone) for state snapshots.
+- Use effect-ts TestClock for time-based tests.
+- Always include component and keyboard tests when applicable.
+
+k

@@ -7,7 +7,7 @@ export interface LedgerEnv {
   fetchQueue: Effect<Result<DisplayGroupsResponse, string>>;
   setStatus: (id: number, status: TaskStatus) => Effect<undefined>;
   setRank: (id: number, rank: number) => Effect<undefined>;
-  pollTick: Effect<void>;
+  pollTick: Effect<undefined>;
 }
 
 // TODO: base URL should come from env config rather than being hardcoded here.

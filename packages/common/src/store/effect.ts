@@ -107,7 +107,7 @@ export class Effect<A> {
     );
   }
 
-  public static sleep(ms: number): Effect<void> {
+  public static sleep(ms: number): Effect<undefined> {
     return new Effect((send) =>
       Eff.sleep(ms).pipe(
         Eff.andThen(
