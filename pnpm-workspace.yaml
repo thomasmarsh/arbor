@@ -4,7 +4,7 @@ catalog:
   zod: ^4.4.3
   vitest: ^4.1.7
   typescript: ^5.5.0
-  fast-check: ^3.0.0
+  fast-check: ^3.23.2
 allowBuilds:
   '@scarf/scarf': false
   esbuild: true

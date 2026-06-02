@@ -31,6 +31,12 @@ export class Effect<A> {
     Runtime.runFork(runtime, eff);
   }
 
+  /** Runs synchronously. Throws if the effect requires async (use in tests only). */
+  public unsafeRunSync(send: Send<A>): void {
+    const eff = this.runner(send);
+    Runtime.runSync(runtime, eff);
+  }
+
   public static none<A>(): Effect<A> {
     return new Effect(() => Eff.void);
   }
