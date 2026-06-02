@@ -62,7 +62,7 @@ export interface WsMeta<In, Out> extends SessionMeta<Recv<In, Send<Out>>> {
 
 export type WsWalkNode = RouteNode<unknown, any, any, any, WsMeta<any, any>>;
 
-export function getWsMeta(node: RouteNode<unknown, any, any, any, any>): WsMeta<unknown, unknown> | undefined {
+export function getWsMeta(node: RouteNode<unknown, any, any, any, any, any>): WsMeta<unknown, unknown> | undefined {
   const meta = node._meta as WsMeta<unknown, unknown> | undefined;
   return meta && 'inSchema' in meta && 'outSchema' in meta ? meta : undefined;
 }

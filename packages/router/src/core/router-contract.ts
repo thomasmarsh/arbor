@@ -6,13 +6,13 @@ import type { RouteNode } from './route-node.js';
 export type AnyCtxMap = Record<string, HttpContext<any, any, any, any, any, any, any>>;
 
 export interface RouterContract<
-  Route extends { tag: string },
+  Route,
   Map extends AnyCtxMap,
 > {
   _type: Route;
   _ctxMap: Map;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for covariant children
-  children: RouteNode<unknown, any, any, any, any>[];
+  children: RouteNode<unknown, any, any, any, any, any>[];
   parse(url: URL): Result<Route, string>;
   print(route: Route): string;
 }

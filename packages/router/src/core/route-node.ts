@@ -51,15 +51,21 @@ export type InferContext<N extends { context?: unknown }> = N extends { context?
 export interface RouteNode<
   R,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- children tuple requires any for RouteNode covariance
-  C extends RouteNode<unknown, any, any, any, any>[] = [],
+  C extends RouteNode<unknown, any, any, any, any, any>[] = [],
   Context = never,
   SectionParams extends string = never,
   // TODO: consider an arbitrary object layout restriction to prevent structural
   // collisions with primitives: `Meta extends object = Record<string, unknown>`.
   Meta = Record<string, unknown>,
+  // Phantom — carries the precise CtxMap of a RouterContract embedded via
+  // section(path, router). `never` for all inline-children section nodes and
+  // for route nodes.  The walk algorithm uses children at runtime regardless;
+  // this parameter exists solely to give CtxMap precise type information.
+  EmbeddedMap = never,
 > {
   _type: R;
   _sectionParams?: SectionParams;
+  _embeddedMap?: EmbeddedMap; // phantom — undefined as never at runtime
   // TODO: we should decouple from Zod here - task 133 explores a custom schema
   // system that is compatible or interops with zod, but which gives us  a bit
   // more power.
@@ -127,12 +133,13 @@ type IsAny<T> = 0 extends 1 & T ? true : false;
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- FlattenChildrenImpl uses any for structural RouteNode variance */
 type FlattenChildrenImpl<
-  C extends RouteNode<unknown, any, any, any, any>[],
+  C extends RouteNode<unknown, any, any, any, any, any>[],
   D extends ValidDepth = 14,
 > = {
   [K in keyof C]: C[K] extends RouteNode<
     infer R,
-    infer GC extends RouteNode<unknown, any, any, any, any>[],
+    infer GC extends RouteNode<unknown, any, any, any, any, any>[],
+    any,
     any,
     any,
     any
@@ -169,11 +176,11 @@ type FlattenChildrenImpl<
 // triggered TS2589 even on 3-level trees once _child was removed.
 export type Derive<N> =
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
-  N extends RouteNode<unknown, any, any, any, any> ? FlattenChildrenImpl<[N]>[0] : never;
+  N extends RouteNode<unknown, any, any, any, any, any> ? FlattenChildrenImpl<[N]>[0] : never;
 
 // Union of derived shapes for all nodes in a children tuple.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
-export type ChildUnion<C extends RouteNode<unknown, any, any, any, any>[]> =
+export type ChildUnion<C extends RouteNode<unknown, any, any, any, any, any>[]> =
   FlattenChildrenImpl<C>[number];
 
 // Maps a status-code record to a discriminated union of `{ status, body }` pairs.
@@ -182,39 +189,57 @@ export type ResponseUnion<Resp> = {
   [S in keyof Resp]: { status: S; body: Resp[S] };
 }[keyof Resp];
 
-// Flattens all tagged (non-section) RouteNodes from an arbitrarily-deep tree
-// into a union type.  Section nodes (R = never, schema = null) are transparent:
-// their children are visited recursively using the same depth-counter machinery
-// as FlattenChildrenImpl.  This is the foundation for recursive CtxMap.
-/* eslint-disable @typescript-eslint/no-explicit-any -- FlattenRouteNodes uses any for structural RouteNode variance */
-type FlattenRouteNodes<
-  C extends RouteNode<unknown, any, any, any, any>[],
-  D extends ValidDepth = 14,
-> = {
-  [K in keyof C]: C[K] extends RouteNode<
-    infer R,
-    infer GC extends RouteNode<unknown, any, any, any, any>[],
-    any,
-    any,
-    any
-  >
-    ? IsAny<GC> extends true
-      ? C[K]
-      : [PrevD<D>] extends [never]
-        ? C[K]
-        : [R] extends [never]
-          ? FlattenRouteNodes<GC, PrevD<D>>
-          : C[K]
-    : never;
-}[number];
+// Standard contravariant trick for converting a union to an intersection.
+// UnionToIntersection<A | B> = A & B.
+// UnionToIntersection<never> = never (used defensively — CtxMap always seeds {} via Record<never, never>).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- distributive conditional requires any
+type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (x: infer I) => void ? I : never;
+
+// Reads the EmbeddedMap phantom field from a (possibly BuildableRouteNode-wrapped) node
+// via direct field access, which works on intersection types. Returns `never` when the
+// field is absent or `undefined` (i.e. the node was created with inline children, not a
+// RouterContract).  The IsAny guard avoids spurious `any` propagation from generic nodes.
+/* eslint-disable @typescript-eslint/no-explicit-any -- CtxMap types use any for structural RouteNode variance */
+type GetEmbeddedMap<N extends RouteNode<unknown, any, any, any, any, any>> =
+  IsAny<N['_embeddedMap']> extends true
+    ? never
+    : [Exclude<N['_embeddedMap'], undefined>] extends [never]
+      ? never
+      : Exclude<N['_embeddedMap'], undefined>;
+
+// Builds a map of route tag → Context type for a single RouteNode, recursing
+// through section nodes.  Three cases:
+//   - section with EmbeddedMap (from section(path, router)): return EmbeddedMap directly.
+//   - section with inline children (EmbeddedMap = never): recurse into children via CtxMapDeep.
+//   - tagged route node: return Record<tag, Context>.
+type CtxMapEntry<N extends RouteNode<unknown, any, any, any, any, any>, D extends ValidDepth> =
+  [PrevD<D>] extends [never] ? Record<never, never> :
+  [GetEmbeddedMap<N>] extends [never]
+    ? N extends RouteNode<infer R, infer GC extends RouteNode<unknown, any, any, any, any, any>[], infer Ctx, any, any, any>
+      ? [R] extends [never]
+        ? IsAny<GC> extends true ? Record<never, never> : CtxMapDeep<GC, PrevD<D>>
+        : [R] extends [{ tag: infer T extends string }]
+          ? Record<T, Ctx>
+          : Record<never, never>
+      : Record<never, never>
+    : GetEmbeddedMap<N>;
+
+// Recursively builds the merged tag → Context map for a children array.
+// Seeds the union with Record<never, never> (i.e. {}) so the result is never
+// `never` even for an empty route tree.
+type CtxMapDeep<C extends RouteNode<unknown, any, any, any, any, any>[], D extends ValidDepth> =
+  UnionToIntersection<
+    | Record<never, never>
+    | {
+        [K in keyof C]: C[K] extends RouteNode<unknown, any, any, any, any, any>
+          ? CtxMapEntry<C[K], D>
+          : Record<never, never>;
+      }[number]
+  >;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Builds a map of route tag → Context type for all tagged nodes in C,
 // recursing through section nodes so that deeply-nested routes are visible
 // to createServer's handler map.
-/* eslint-disable @typescript-eslint/no-explicit-any -- CtxMap uses any for structural RouteNode variance */
-export type CtxMap<C extends RouteNode<unknown, any, any, any, any>[]> = {
-  [N in FlattenRouteNodes<C> as N extends RouteNode<{ tag: infer T extends string }, any, any, any, any>
-    ? T
-    : never]: N extends RouteNode<any, any, infer Ctx, any, any> ? Ctx : never;
-};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
+export type CtxMap<C extends RouteNode<unknown, any, any, any, any, any>[]> = CtxMapDeep<C, 14>;

@@ -22,7 +22,7 @@ export interface SseMeta<E> extends SessionMeta<Send<E>> {
 
 export type SseWalkNode = RouteNode<unknown, any, any, any, SseMeta<any>>;
 
-export function getSseMeta(node: RouteNode<unknown, any, any, any, any>): SseMeta<unknown> | undefined {
+export function getSseMeta(node: RouteNode<unknown, any, any, any, any, any>): SseMeta<unknown> | undefined {
   const meta = node._meta as SseMeta<unknown> | undefined;
   return meta && 'eventSchema' in meta ? meta : undefined;
 }

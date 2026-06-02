@@ -9,7 +9,8 @@ export type ParseDiag =
 /* eslint-disable @typescript-eslint/no-explicit-any -- WalkNode structural variance; Meta narrowed to expose querySchema */
 export type WalkNode = RouteNode<
   unknown,
-  RouteNode<unknown, any, any, any, any>[],
+  RouteNode<unknown, any, any, any, any, any>[],
+  any,
   any,
   any,
   any

@@ -27,13 +27,19 @@ export type FetchLike = (
   json(): Promise<unknown>;
 }>;
 
+// Recursively unwraps section-wrapper `{ child: ... }` shapes to the tagged
+// leaf — mirrors FlattenRouteLeaf in server.ts.
+type FlattenRouteLeaf<R> =
+  R extends { tag: string } ? R :
+  R extends { child: infer C } ? FlattenRouteLeaf<C> : never;
+
 export interface TypedClient<
-  Route extends { tag: string },
+  Route,
   Map extends AnyCtxMap,
   Validate extends boolean = false,
 > {
   fetch<Tag extends keyof Map & string>(
-    route: Extract<Route, { tag: Tag }>,
+    route: Extract<FlattenRouteLeaf<Route>, { tag: Tag }>,
     opts?: RequestOpts<Map[Tag]>,
   ): Promise<
     Validate extends true
@@ -43,7 +49,7 @@ export interface TypedClient<
 }
 
 export function createClient<
-  Route extends { tag: string },
+  Route,
   Map extends AnyCtxMap,
   Validate extends boolean = false,
 >(
@@ -59,12 +65,15 @@ export function createClient<
   // Cast needed: TypeScript cannot assign a concrete union to an unresolved conditional type.
   return {
     async fetch<Tag extends keyof Map & string>(
-      route: Extract<Route, { tag: Tag }>,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- FlattenRouteLeaf is not directly assignable without cast; overload call site resolves correctly
+      route: Extract<FlattenRouteLeaf<any>, { tag: Tag }>,
       opts?: RequestOpts<Map[Tag]>,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- return type is an unresolved conditional; cast at call site
     ): Promise<any> {
-      const tag = route.tag;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- route is any (FlattenRouteLeaf<any>)
+      const tag = route.tag as string;
       const method = methodMap[tag] ?? 'GET';
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- route is any; print accepts Route which any satisfies
       const path = router.print(route);
       const url = `${baseUrl.replace(/\/$/, '')}${path}`;
 

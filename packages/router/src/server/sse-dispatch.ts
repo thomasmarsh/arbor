@@ -28,7 +28,7 @@ export interface SseRouterContract<
 > {
   _type: Route;
   _ctxMap: Map;
-  children: RouteNode<unknown, any, any, any, any>[];
+  children: RouteNode<unknown, any, any, any, any, any>[];
   parse(url: URL): Result<Route, string>;
   print(route: Route): string;
 }

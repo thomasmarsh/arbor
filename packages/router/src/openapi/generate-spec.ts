@@ -154,7 +154,7 @@ function walkSpec(
 
 export function generateSpec(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
-  router: { children: RouteNode<unknown, any, any, any, any>[] },
+  router: { children: RouteNode<unknown, any, any, any, any, any>[] },
   info: { title: string; version: string },
 ): Record<string, unknown> {
   const paths: Record<string, Record<string, unknown>> = {};

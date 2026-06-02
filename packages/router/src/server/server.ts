@@ -11,12 +11,19 @@ export interface ErrorMapEntry {
   response: (e: unknown) => { status: number; body: unknown };
 }
 
+// Recursively unwraps section-wrapper `{ child: ... }` objects to reach the
+// tagged leaf route shape.  Distributes over unions so that a union of section
+// wrappers produces a union of leaves.
+type FlattenRouteLeaf<R> =
+  R extends { tag: string } ? R :
+  R extends { child: infer C } ? FlattenRouteLeaf<C> : never;
+
 export type HandlerCtx<
   CtxMap extends Record<string, HttpContext<HttpMethod, unknown, Record<number, unknown>, unknown, unknown, unknown, unknown>>,
   Routes,
   Tag extends keyof CtxMap & string,
 > = {
-  params: Omit<Extract<Routes, { tag: Tag }>, 'tag' | 'child' | 'query'>;
+  params: Omit<Extract<FlattenRouteLeaf<Routes>, { tag: Tag }>, 'tag' | 'child' | 'query'>;
   body: CtxMap[Tag]['body'];
   query: CtxMap[Tag]['query'];
   headers: CtxMap[Tag]['headers'];
@@ -61,7 +68,18 @@ function parseCookies(header: string): Record<string, string> {
   return cookies;
 }
 
-function extractParams(route: { tag: string }): Record<string, unknown> {
+// Descends through section-wrapper `{ child: ... }` objects produced by
+// walkParseIndexed for section nodes (schema === null) to find the tagged leaf.
+function extractLeafRoute(route: unknown): Record<string, unknown> {
+  if (typeof route === 'object' && route !== null) {
+    const r = route as Record<string, unknown>;
+    if (typeof r['tag'] === 'string') return r;
+    if (r['child'] !== null && typeof r['child'] === 'object') return extractLeafRoute(r['child']);
+  }
+  return {};
+}
+
+function extractParams(route: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(route).filter(([k]) => k !== 'tag' && k !== 'child' && k !== 'query'),
   );
@@ -108,7 +126,7 @@ export function validateResponse(
 }
 
 export function createServer<
-  Route extends { tag: string },
+  Route,
   Map extends AnyCtxMap,
 >(
   router: RouterContract<Route, Map>,
@@ -150,7 +168,8 @@ export function createServer<
     body: unknown,
     headers: Record<string, string>,
   ): Promise<DispatchResult> {
-    const { tag } = route;
+    const leaf = extractLeafRoute(route);
+    const tag = leaf['tag'] as string;
     const rateLimitResult = await applyRateLimit(tag, url, headers);
     if (rateLimitResult) return rateLimitResult;
     const requiredRoles = requiresMap[tag];
@@ -172,8 +191,8 @@ export function createServer<
     const cookieResult = validateInput(cookieSchemaMap[tag], parseCookies(headers['cookie'] ?? ''), 'invalid request cookies');
     if (!cookieResult.ok) return { ...cookieResult, tag };
     try {
-      const params = extractParams(route);
-      const query = (route as { query?: unknown }).query;
+      const params = extractParams(leaf);
+      const query = leaf['query'];
       const rawResult = await resolved.handler({ params, body: bodyResult.data, query, headers: headerResult.data, cookies: cookieResult.data, ...(session ? { session } : {}) });
       const handlerResult: { status: number; body: unknown; headers?: Record<string, string>; cookies?: Record<string, string> } =
         rawResult !== null && typeof rawResult === 'object' && typeof (rawResult as { status?: unknown }).status === 'number' && 'body' in rawResult

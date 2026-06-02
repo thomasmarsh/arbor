@@ -44,7 +44,7 @@ type InferResponseMap<R extends Record<number, z.ZodType>> = {
 export function openApiRoute<
   S extends z.ZodObject<any, any>,
   Method extends HttpMethod,
-  C extends RouteNode<unknown, any, any, any, any>[] = [],
+  C extends RouteNode<unknown, any, any, any, any, any>[] = [],
   Body = never,
   Res extends Record<number, z.ZodType> = Record<number, z.ZodType>,
 >(

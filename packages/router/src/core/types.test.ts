@@ -1,6 +1,7 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { httpRoute, respond } from '../contexts/http-context.js';
+import { createClient } from '../client/fetch-client.js';
 import { createServer } from '../server/server.js';
 import { defineRoutes, route, section, type InferRoute, type ResponseUnion } from './define-routes.js';
 
@@ -198,5 +199,46 @@ describe('CtxMap section recursion', () => {
       'get-task': async (ctx) => respond(200, { id: ctx.params.id, title: 'task' }),
     });
     expectTypeOf(server).not.toBeNever();
+  });
+});
+
+describe('section(path, router) — Plan 153', () => {
+  const Hello = z.object({ tag: z.literal('hello') });
+  const HelloResp = z.object({ message: z.string() });
+  const GetTask = z.object({ tag: z.literal('get-task'), id: z.coerce.number() });
+  const TaskResp = z.object({ id: z.number(), title: z.string() });
+
+  const helloSubRouter = defineRoutes([
+    httpRoute(Hello, 'GET', 'hello', { response: { 200: HelloResp } }),
+  ]);
+  const tasksSubRouter = defineRoutes([
+    httpRoute(GetTask, 'GET', ':id', { response: { 200: TaskResp } }),
+  ]);
+
+  const apiRouter = defineRoutes([
+    section('api', [
+      section('greet', helloSubRouter),
+      section('tasks', tasksSubRouter),
+    ]),
+  ]);
+
+  it('_ctxMap carries sub-router tags without any leakage', () => {
+    type Map = typeof apiRouter._ctxMap;
+    expectTypeOf<Map['hello']['response']>().toEqualTypeOf<{ 200: { message: string } }>();
+    expectTypeOf<Map['get-task']['response']>().toEqualTypeOf<{ 200: { id: number; title: string } }>();
+  });
+
+  it('createServer infers handler keys from embedded sub-router maps', () => {
+    // Use literals — params extraction from section(path,router) requires non-widened _type (Plan 154)
+    const server = createServer(apiRouter, {
+      hello: (_ctx) => ({ message: 'hi' as const }),
+      'get-task': (_ctx) => ({ id: 42, title: 'task' as const }),
+    });
+    expectTypeOf(server).not.toBeNever();
+  });
+
+  it('createClient accepts router with embedded sub-router maps', () => {
+    const client = createClient('http://localhost', apiRouter);
+    expectTypeOf(client).not.toBeNever();
   });
 });

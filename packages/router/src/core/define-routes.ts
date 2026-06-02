@@ -1,22 +1,23 @@
 import { Result } from '@arbor/common';
 import type z from 'zod';
 import type { ChildUnion, CtxMap, ExtractPathParams, RouteNode } from './route-node.js';
+import type { AnyCtxMap, RouterContract } from './router-contract.js';
 import { parseSegments } from './segments.js';
 import { type ParseDiag, type WalkNode, buildUrl, getTag, indexNodes, walkParseIndexed, walkPrint } from './walk.js';
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- BuildableRouteNode/buildable use any for structural RouteNode variance */
-export type BuildableRouteNode<N extends RouteNode<any, any, any, any, any>> = N & {
-  use<R extends RouteNode<any, any, any, any, any>>(
+export type BuildableRouteNode<N extends RouteNode<any, any, any, any, any, any>> = N & {
+  use<R extends RouteNode<any, any, any, any, any, any>>(
     guard: (node: N) => R,
   ): BuildableRouteNode<R>;
-  pipe<R extends RouteNode<any, any, any, any, any>>(
+  pipe<R extends RouteNode<any, any, any, any, any, any>>(
     combinator: (node: N) => R,
   ): BuildableRouteNode<R>;
 };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
-export function buildable<N extends RouteNode<any, any, any, any, any>>(
+export function buildable<N extends RouteNode<any, any, any, any, any, any>>(
   node: N,
 ): BuildableRouteNode<N> {
   return Object.assign(node, {
@@ -28,15 +29,15 @@ export function buildable<N extends RouteNode<any, any, any, any, any>>(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
-type CollectChildSectionParams<C extends RouteNode<unknown, any, any, any, any>[]> = {
+type CollectChildSectionParams<C extends RouteNode<unknown, any, any, any, any, any>[]> = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
-  [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP, any> ? SP : never;
+  [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP, any, any> ? SP : never;
 }[number];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
-type AllSectionParams<C extends RouteNode<unknown, any, any, any, any>[]> = {
+type AllSectionParams<C extends RouteNode<unknown, any, any, any, any, any>[]> = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
-  [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP, any> ? SP : never;
+  [K in keyof C]: C[K] extends RouteNode<any, any, any, infer SP, any, any> ? SP : never;
 }[number];
 
 export {
@@ -57,7 +58,7 @@ export function route<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject/RouteNode require any for Zod/variance
   S extends z.ZodObject<any, any>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
-  C extends RouteNode<unknown, any, any, any, any>[] = [],
+  C extends RouteNode<unknown, any, any, any, any, any>[] = [],
 >(schema: S, path: string, children?: [...C]): BuildableRouteNode<RouteNode<z.infer<S>, [...C]>> {
   return buildable({
     _type: undefined as never,
@@ -70,10 +71,21 @@ export function route<
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
-export function section<Path extends string, C extends RouteNode<unknown, any, any, any, any>[]>(
+export function section<Path extends string, C extends RouteNode<unknown, any, any, any, any, any>[]>(
   path: Path,
   children: [...C],
-): BuildableRouteNode<RouteNode<never, [...C], never, ExtractPathParams<Path> | CollectChildSectionParams<C>>> {
+): BuildableRouteNode<RouteNode<never, [...C], never, ExtractPathParams<Path> | CollectChildSectionParams<C>>>;
+/* eslint-disable @typescript-eslint/no-explicit-any -- RouterContract/RouteNode type params require any for covariant children */
+export function section<Path extends string, R extends { tag: string }, Map extends AnyCtxMap>(
+  path: Path,
+  router: RouterContract<R, Map>,
+): BuildableRouteNode<
+  RouteNode<never, RouteNode<unknown, any, any, any, any, any>[], never, ExtractPathParams<Path>, Record<string, unknown>, Map>
+>;
+/* eslint-enable @typescript-eslint/no-explicit-any */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- implementation signature uses any for overload resolution
+export function section(path: string, childrenOrRouter: RouteNode<unknown, any, any, any, any, any>[] | RouterContract<any, any>): BuildableRouteNode<RouteNode<any, any, any, any, any, any>> {
+  const children = Array.isArray(childrenOrRouter) ? childrenOrRouter : childrenOrRouter.children;
   return buildable({
     _type: undefined as never,
 
@@ -99,7 +111,7 @@ function collectTags(nodes: WalkNode[]): string[] {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
-export function defineRoutes<C extends RouteNode<unknown, any, any, any, any>[] = []>(
+export function defineRoutes<C extends RouteNode<unknown, any, any, any, any, any>[] = []>(
   children: [...C],
 ) {
   type Route = ChildUnion<C>;
