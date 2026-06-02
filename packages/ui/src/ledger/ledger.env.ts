@@ -1,12 +1,13 @@
+import type { DisplayGroupsResponse, TaskStatus } from '@arbor/api/ledger';
+import { ledgerRouter } from '@arbor/api/ledger';
 import { Effect, type Result } from '@arbor/common';
 import { createClient } from '@arbor/router';
-import { ledgerRouter } from '@arbor/api/ledger';
-import type { DisplayGroupsResponse, TaskStatus } from '@arbor/api/ledger';
 
 export interface LedgerEnv {
   fetchQueue: Effect<Result<DisplayGroupsResponse, string>>;
   setStatus: (id: number, status: TaskStatus) => Effect<undefined>;
   setRank: (id: number, rank: number) => Effect<undefined>;
+  pollTick: Effect<void>;
 }
 
 // TODO: base URL should come from env config rather than being hardcoded here.
@@ -32,4 +33,5 @@ export const liveLedgerEnv: LedgerEnv = {
       () => undefined,
       () => undefined,
     ),
+  pollTick: Effect.sleep(5000),
 };

@@ -1,9 +1,10 @@
-import { describe, it } from 'vitest';
+import { describe, it, vi, beforeEach, afterEach } from 'vitest';
+import { Effect, Result } from '@arbor/common';
 import { TestStore } from '@arbor/common';
 import type { TaskEntry, DisplayGroupsResponse } from '@arbor/api/ledger';
 import { ledgerReducer, initialLedgerState } from './ledger.store.js';
 import type { LedgerState } from './ledger.store.js';
-import { emptyGroups, mockLedgerEnv, mockLedgerEnvError, mockLedgerEnvWithMutations } from './ledger.env.mock.js';
+import { emptyGroups, groupsWithTasks, mockLedgerEnv } from './ledger.env.mock.js';
 
 const task133: TaskEntry = {
   type: 'task', kind: 'task', id: 133, epic: 'e4', story: 's14',
@@ -12,9 +13,19 @@ const task133: TaskEntry = {
 };
 
 const groupsWithTask: DisplayGroupsResponse = { ...emptyGroups, ready: [task133] };
-const loadedState: LedgerState = { loadState: { tag: 'loaded', groups: groupsWithTask }, selectedIndex: 0, showAll: false };
+const loadedState: LedgerState = {
+  loadState: { tag: 'loaded', groups: groupsWithTask },
+  selectedIndex: 0,
+  showAll: false,
+  lastUpdated: null,
+};
+
+const NOW = new Date('2025-01-01T12:00:00.000Z');
 
 describe('ledgerReducer', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(NOW); });
+  afterEach(() => { vi.useRealTimers(); });
+
   it('fetch transitions to loading then dispatches loaded on success', () => {
     const store = new TestStore(ledgerReducer, mockLedgerEnv, initialLedgerState);
     store
@@ -23,12 +34,14 @@ describe('ledgerReducer', () => {
       })
       .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
+        s.lastUpdated = NOW;
       });
     store.assertDrained();
   });
 
   it('fetch transitions to loading then dispatches error on failure', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnvError, initialLedgerState);
+    const errEnv = { ...mockLedgerEnv, fetchQueue: Effect.send(Result.err<DisplayGroupsResponse, string>('network error')) };
+    const store = new TestStore(ledgerReducer, errEnv, initialLedgerState);
     store
       .send({ tag: 'fetch' }, (s) => {
         s.loadState = { tag: 'loading' };
@@ -39,10 +52,34 @@ describe('ledgerReducer', () => {
     store.assertDrained();
   });
 
-  it('loaded action stores groups', () => {
+  it('fetch schedules a repoll via pollTick', () => {
+    let remaining = 1;
+    // fires once, then silent — drives exactly one extra poll cycle in sync test
+    // Type annotation on oncePollEnv drives contextual inference: A = void, send() with no arg
+    const oncePollEnv: typeof mockLedgerEnv = {
+      ...mockLedgerEnv,
+      pollTick: Effect.of((send) => { if (remaining-- > 0) send(); }),
+    };
+    const store = new TestStore(ledgerReducer, oncePollEnv, initialLedgerState);
+    store
+      .send({ tag: 'fetch' }, (s) => { s.loadState = { tag: 'loading' }; })
+      .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
+        s.loadState = { tag: 'loaded', groups: emptyGroups };
+        s.lastUpdated = NOW;
+      })
+      .receive({ tag: 'fetch' }, (s) => { s.loadState = { tag: 'loading' }; })
+      .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
+        s.loadState = { tag: 'loaded', groups: emptyGroups };
+        s.lastUpdated = NOW;
+      });
+    store.assertDrained();
+  });
+
+  it('loaded action stores groups and sets lastUpdated', () => {
     const store = new TestStore(ledgerReducer, mockLedgerEnv, initialLedgerState);
     store.send({ tag: 'loaded', groups: emptyGroups }, (s) => {
       s.loadState = { tag: 'loaded', groups: emptyGroups };
+      s.lastUpdated = NOW;
     });
     store.assertDrained();
   });
@@ -56,7 +93,7 @@ describe('ledgerReducer', () => {
   });
 
   it('setStatus optimistically updates task and triggers fetch', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnvWithMutations, loadedState);
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, loadedState);
     store
       .send({ tag: 'setStatus', taskId: 133, status: 'done' }, (s) => {
         if (s.loadState.tag === 'loaded') {
@@ -64,17 +101,16 @@ describe('ledgerReducer', () => {
           if (t) t.status = 'done';
         }
       })
-      .receive({ tag: 'fetch' }, (s) => {
-        s.loadState = { tag: 'loading' };
-      })
+      .receive({ tag: 'fetch' }, (s) => { s.loadState = { tag: 'loading' }; })
       .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
+        s.lastUpdated = NOW;
       });
     store.assertDrained();
   });
 
   it('bump optimistically sets rank to min(waveRanks)-10 and triggers fetch', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnvWithMutations, loadedState);
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, loadedState);
     store
       .send({ tag: 'bump', taskId: 133, waveRanks: [100, 200, 300] }, (s) => {
         if (s.loadState.tag === 'loaded') {
@@ -82,17 +118,16 @@ describe('ledgerReducer', () => {
           if (t) t.rank = 90;
         }
       })
-      .receive({ tag: 'fetch' }, (s) => {
-        s.loadState = { tag: 'loading' };
-      })
+      .receive({ tag: 'fetch' }, (s) => { s.loadState = { tag: 'loading' }; })
       .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
+        s.lastUpdated = NOW;
       });
     store.assertDrained();
   });
 
   it('defer optimistically sets rank to max(waveRanks)+10 and triggers fetch', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnvWithMutations, loadedState);
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, loadedState);
     store
       .send({ tag: 'defer', taskId: 133, waveRanks: [100, 200, 300] }, (s) => {
         if (s.loadState.tag === 'loaded') {
@@ -100,11 +135,10 @@ describe('ledgerReducer', () => {
           if (t) t.rank = 310;
         }
       })
-      .receive({ tag: 'fetch' }, (s) => {
-        s.loadState = { tag: 'loading' };
-      })
+      .receive({ tag: 'fetch' }, (s) => { s.loadState = { tag: 'loading' }; })
       .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
+        s.lastUpdated = NOW;
       });
     store.assertDrained();
   });
@@ -141,7 +175,11 @@ describe('ledgerReducer', () => {
       .send({ tag: 'refresh' }, (s) => { s.loadState = { tag: 'loading' }; })
       .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
+        s.lastUpdated = NOW;
       });
     store.assertDrained();
   });
 });
+
+// groupsWithTasks is exported for component tests that need tasks in view
+export { groupsWithTasks };

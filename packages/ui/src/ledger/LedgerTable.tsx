@@ -13,7 +13,7 @@ function toggleDone(status: TaskStatus): TaskStatus {
   return status === 'done' ? 'todo' : 'done';
 }
 
-function waveRanksFor(wave: string, tasks: ReadonlyArray<{ wave: string; rank?: number | undefined }>): number[] {
+function waveRanksFor(wave: string, tasks: readonly { wave: string; rank?: number }[]): number[] {
   return tasks.flatMap((t) => (t.wave === wave && t.rank !== undefined ? [t.rank] : []));
 }
 
@@ -60,7 +60,7 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
       }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => { window.removeEventListener('keydown', onKey); };
   }, [send, selected, visibleRows]);
 
   if ($.state.loadState.tag === 'idle' || $.state.loadState.tag === 'loading') {
@@ -71,34 +71,41 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
   }
 
   return (
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th><th>Wave</th><th>Status</th><th>Size</th><th>Task</th>
-        </tr>
-      </thead>
-      <tbody>
-        {visibleRows.map((task, i) => {
-          const isSelected = i === $.state.selectedIndex;
-          const isDim = task.status === 'done' || task.status === 'canceled';
-          return (
-            <tr
-              key={task.id}
-              ref={isSelected ? selectedRowRef : null}
-              style={{
-                background: isSelected ? '#264f78' : undefined,
-                opacity: isDim ? 0.5 : undefined,
-              }}
-            >
-              <td>{task.id}</td>
-              <td>{task.wave}</td>
-              <td>{task.status}</td>
-              <td>{task.size ?? '—'}</td>
-              <td>{task.text}</td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <>
+      {$.state.lastUpdated !== null && (
+        <p style={{ color: '#888', fontSize: '0.85em', margin: '0 0 4px', textAlign: 'right' }}>
+          Last updated: {$.state.lastUpdated.toLocaleTimeString()}
+        </p>
+      )}
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Wave</th><th>Status</th><th>Size</th><th>Task</th>
+          </tr>
+        </thead>
+        <tbody>
+          {visibleRows.map((task, i) => {
+            const isSelected = i === $.state.selectedIndex;
+            const isDim = task.status === 'done' || task.status === 'canceled';
+            return (
+              <tr
+                key={task.id}
+                ref={isSelected ? selectedRowRef : null}
+                style={{
+                  background: isSelected ? '#264f78' : undefined,
+                  opacity: isDim ? 0.5 : undefined,
+                }}
+              >
+                <td>{task.id}</td>
+                <td>{task.wave}</td>
+                <td>{task.status}</td>
+                <td>{task.size ?? '—'}</td>
+                <td>{task.text}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </>
   );
 }

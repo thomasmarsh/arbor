@@ -1,4 +1,4 @@
-import type { Reducer } from '@arbor/common';
+import { Effect, type Reducer } from '@arbor/common';
 import type { DisplayGroupsResponse, TaskEntry, TaskStatus } from '@arbor/api/ledger';
 import type { LedgerEnv } from './ledger.env.js';
 
@@ -14,6 +14,7 @@ export interface LedgerState {
   loadState: LedgerLoadState;
   selectedIndex: number;
   showAll: boolean;
+  lastUpdated: Date | null;
 }
 
 export type LedgerAction =
@@ -32,6 +33,7 @@ export const initialLedgerState: LedgerState = {
   loadState: { tag: 'idle' },
   selectedIndex: 0,
   showAll: false,
+  lastUpdated: null,
 };
 
 function spliceTask(arr: TaskEntry[], taskId: number, updater: (t: TaskEntry) => TaskEntry): boolean {
@@ -61,15 +63,19 @@ export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, 
   switch (action.tag) {
     case 'fetch': {
       $.state.loadState = { tag: 'loading' };
-      return env.fetchQueue.map((result) =>
-        result.fold<LedgerAction>(
-          (groups) => ({ tag: 'loaded', groups }),
-          (err) => ({ tag: 'error', message: err }),
+      return Effect.merge<LedgerAction>(
+        env.fetchQueue.map((result) =>
+          result.fold<LedgerAction>(
+            (groups) => ({ tag: 'loaded', groups }),
+            (err) => ({ tag: 'error', message: err }),
+          ),
         ),
+        env.pollTick.map(() => ({ tag: 'fetch' })),
       );
     }
     case 'loaded': {
       $.state.loadState = { tag: 'loaded', groups: action.groups };
+      $.state.lastUpdated = new Date();
       return null;
     }
     case 'error': {
