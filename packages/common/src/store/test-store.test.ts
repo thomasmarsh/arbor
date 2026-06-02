@@ -1,14 +1,16 @@
 import * as fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { Effect } from './effect.js';
-import { type Reducer } from './store.js';
+import type { Reducer } from './store.js';
 import { TestStore, createTestStore } from './test-store.js';
 
 // ---------------------------------------------------------------------------
 // Fixture A: pure (no effects) — used for mutation-only tests and PBT
 // ---------------------------------------------------------------------------
 
-interface CountA { n: number }
+interface CountA {
+  n: number;
+}
 type ActionA = 'inc' | 'dec' | 'reset';
 
 const reducerA: Reducer<CountA, ActionA, null> = ($, action) => {
@@ -204,7 +206,9 @@ describe('TestStore — drain enforcement', () => {
     store.send({ type: 'increment' }, (s) => {
       s.count = 1;
     });
-    expect(() => { store.assertDrained(); }).toThrow(/unhandled action/);
+    expect(() => {
+      store.assertDrained();
+    }).toThrow(/unhandled action/);
     // drain so we can cleanly end this test
     store.receive({ type: 'logged', msg: '+1@T' }, (s) => {
       s.log = ['+1@T'];
@@ -240,8 +244,7 @@ describe('TestStore — PBT', () => {
           const store = new TestStore(reducerA, null, { n: start });
           let cur = start;
           for (const action of actions) {
-            const next =
-              action === 'inc' ? cur + 1 : action === 'dec' ? cur - 1 : 0;
+            const next = action === 'inc' ? cur + 1 : action === 'dec' ? cur - 1 : 0;
             if (next !== cur) {
               store.send(action, (s) => {
                 s.n = next;
@@ -308,22 +311,19 @@ describe('TestStore — PBT', () => {
 
   it('send never throws for well-described mutations (never-throw)', () => {
     fc.assert(
-      fc.property(
-        fc.constantFrom<ActionA>('inc', 'dec', 'reset'),
-        (action) => {
-          const store = new TestStore(reducerA, null, { n: 0 });
-          const delta = action === 'inc' ? 1 : action === 'dec' ? -1 : 0;
-          const next = delta === 0 ? 0 : delta;
-          if (next !== 0) {
-            store.send(action, (s) => {
-              s.n = next;
-            });
-          } else {
-            store.send(action);
-          }
-          store.assertDrained();
-        },
-      ),
+      fc.property(fc.constantFrom<ActionA>('inc', 'dec', 'reset'), (action) => {
+        const store = new TestStore(reducerA, null, { n: 0 });
+        const delta = action === 'inc' ? 1 : action === 'dec' ? -1 : 0;
+        const next = delta === 0 ? 0 : delta;
+        if (next !== 0) {
+          store.send(action, (s) => {
+            s.n = next;
+          });
+        } else {
+          store.send(action);
+        }
+        store.assertDrained();
+      }),
     );
   });
 });
