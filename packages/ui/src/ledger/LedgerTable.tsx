@@ -1,11 +1,11 @@
 import { withLogging } from '@arbor/common';
 import { useStore } from '@arbor/common/react';
 import { useEffect } from 'react';
-import { liveLedgerEnv } from './ledger.env.js';
+import { liveLedgerEnv, type LedgerEnv } from './ledger.env.js';
 import { ledgerReducer, initialLedgerState } from './ledger.store.js';
 
-export function LedgerTable() {
-  const [$, send] = useStore(withLogging('ledger', ledgerReducer), liveLedgerEnv, initialLedgerState);
+export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
+  const [$, send] = useStore(withLogging('ledger', ledgerReducer), env, initialLedgerState);
 
   useEffect(() => { send({ tag: 'fetch' }); }, []);
 
