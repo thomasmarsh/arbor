@@ -166,3 +166,37 @@ describe('CtxMap body types', () => {
     expectTypeOf<CreateUserBody>().toEqualTypeOf<{ name: string; email: string }>();
   });
 });
+
+describe('CtxMap section recursion', () => {
+  const Hello = z.object({ tag: z.literal('hello') });
+  const HelloResp = z.object({ message: z.string() });
+  const GetTask = z.object({ tag: z.literal('get-task'), id: z.coerce.number() });
+  const TaskResp = z.object({ id: z.number(), title: z.string() });
+
+  const helloRouter = defineRoutes([
+    httpRoute(Hello, 'GET', 'hello', { response: { 200: HelloResp } }),
+  ]);
+
+  const nestedRouter = defineRoutes([
+    section('api', [
+      ...helloRouter.children,
+      section('tasks', [
+        httpRoute(GetTask, 'GET', ':id', { response: { 200: TaskResp } }),
+      ]),
+    ]),
+  ]);
+
+  it('routes nested under sections appear in _ctxMap', () => {
+    type Map = typeof nestedRouter._ctxMap;
+    expectTypeOf<Map['hello']['response']>().toEqualTypeOf<{ 200: { message: string } }>();
+    expectTypeOf<Map['get-task']['response']>().toEqualTypeOf<{ 200: { id: number; title: string } }>();
+  });
+
+  it('createServer handler map keys are fully inferred from section-nested routes', () => {
+    const server = createServer(nestedRouter, {
+      hello: async (_ctx) => respond(200, { message: 'hi' }),
+      'get-task': async (ctx) => respond(200, { id: ctx.params.id, title: 'task' }),
+    });
+    expectTypeOf(server).not.toBeNever();
+  });
+});

@@ -182,11 +182,39 @@ export type ResponseUnion<Resp> = {
   [S in keyof Resp]: { status: S; body: Resp[S] };
 }[keyof Resp];
 
-// Builds a map of route tag → Context type for all tagged nodes in C.
-// Used by createServer to index handler DI contexts by route tag.
+// Flattens all tagged (non-section) RouteNodes from an arbitrarily-deep tree
+// into a union type.  Section nodes (R = never, schema = null) are transparent:
+// their children are visited recursively using the same depth-counter machinery
+// as FlattenChildrenImpl.  This is the foundation for recursive CtxMap.
+/* eslint-disable @typescript-eslint/no-explicit-any -- FlattenRouteNodes uses any for structural RouteNode variance */
+type FlattenRouteNodes<
+  C extends RouteNode<unknown, any, any, any, any>[],
+  D extends ValidDepth = 14,
+> = {
+  [K in keyof C]: C[K] extends RouteNode<
+    infer R,
+    infer GC extends RouteNode<unknown, any, any, any, any>[],
+    any,
+    any,
+    any
+  >
+    ? IsAny<GC> extends true
+      ? C[K]
+      : [PrevD<D>] extends [never]
+        ? C[K]
+        : [R] extends [never]
+          ? FlattenRouteNodes<GC, PrevD<D>>
+          : C[K]
+    : never;
+}[number];
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+// Builds a map of route tag → Context type for all tagged nodes in C,
+// recursing through section nodes so that deeply-nested routes are visible
+// to createServer's handler map.
 /* eslint-disable @typescript-eslint/no-explicit-any -- CtxMap uses any for structural RouteNode variance */
 export type CtxMap<C extends RouteNode<unknown, any, any, any, any>[]> = {
-  [N in C[number] as N extends RouteNode<{ tag: infer T extends string }, any, any, any, any>
+  [N in FlattenRouteNodes<C> as N extends RouteNode<{ tag: infer T extends string }, any, any, any, any>
     ? T
     : never]: N extends RouteNode<any, any, infer Ctx, any, any> ? Ctx : never;
 };
