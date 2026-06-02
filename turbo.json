@@ -41,7 +41,8 @@
       "cache": false
     },
     "db:migrate": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": ["ARBOR_PG_URL"]
     },
     "db:generate": {
       "inputs": ["src/**/*.sql"],
