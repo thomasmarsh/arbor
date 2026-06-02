@@ -1,0 +1,11 @@
+import { useSnapshot } from 'valtio';
+import type { Send } from '@arbor/common';
+import { authStore, type AuthAction, type AuthState } from './auth.store.js';
+
+export function useAuth(): { state: AuthState; send: Send<AuthAction> } {
+  const snapshot = useSnapshot(authStore.getProxyState());
+  return {
+    state: snapshot.state,
+    send: authStore.send,
+  };
+}

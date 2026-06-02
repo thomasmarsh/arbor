@@ -1,5 +1,7 @@
 packages:
   - 'packages/*'
+  - 'framework/*'
+  - 'apps/*'
 catalog:
   zod: ^4.4.3
   vitest: ^4.1.7

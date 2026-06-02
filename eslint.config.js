@@ -9,7 +9,7 @@ export default defineConfig([
   },
   {
     extends: [...configs.strictTypeChecked, ...configs.stylisticTypeChecked],
-    files: ['packages/**/*.ts', 'packages/**/*.tsx'],
+    files: ['framework/**/*.ts', 'framework/**/*.tsx', 'apps/**/*.ts', 'apps/**/*.tsx'],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -35,20 +35,20 @@ export default defineConfig([
     },
   },
   {
-    files: ['packages/router/src/**/*.ts'],
+    files: ['framework/router/src/**/*.ts'],
     rules: {
       'no-console': 'error',
     },
   },
   {
-    files: ['packages/**/*.test.ts'],
+    files: ['framework/**/*.test.ts', 'apps/**/*.test.ts'],
     rules: {
       'no-console': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
     },
   },
   {
-    files: ['packages/**/examples/**/*.ts'],
+    files: ['framework/**/examples/**/*.ts'],
     rules: {
       'no-console': 'off',
     },

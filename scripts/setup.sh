@@ -16,14 +16,14 @@ create_env() {
 
 SESSION_SECRET=$(node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))")
 
-create_env packages/api/.env.local "\
+create_env apps/api/.env.local "\
 ARBOR_PG_URL=postgresql://arbor:arbor@localhost:5433/arbor_dev
 ARBOR_ORACLE_USER=user
 ARBOR_ORACLE_PASSWORD=password
 ARBOR_ORACLE_CONNECT_STRING=localhost:1521/XEPDB1
 API_PORT=3001"
 
-create_env packages/bff/.env.local "\
+create_env apps/bff/.env.local "\
 # OIDC credentials — only needed for dev:bff, not dev:mock
 ARBOR_OIDC_ISSUER=http://localhost:8080/realms/arbor
 ARBOR_OIDC_CLIENT_ID=arbor-bff
@@ -34,7 +34,7 @@ ARBOR_API_URL=http://localhost:3001
 NODE_ENV=development
 BFF_PORT=3000"
 
-create_env packages/bff/.env.staging.local "\
+create_env apps/bff/.env.staging.local "\
 # Fill in real staging credentials before using dev:staging
 ARBOR_OIDC_ISSUER=https://your-idp.example.com/realms/arbor
 ARBOR_OIDC_CLIENT_ID=arbor-bff-staging

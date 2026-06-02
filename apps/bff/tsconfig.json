@@ -1,0 +1,21 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "outDir": "dist",
+    "rootDir": "src",
+    "tsBuildInfoFile": "tsconfig.tsbuildinfo",
+    // openid-client references DOM globals (fetch, Request, Response) in its
+    // type signatures which forces DOM lib to load and conflicts with @types/node.
+    // Explicitly setting lib and types mirrors openid-client's own tsconfig
+    // and keeps this package in a pure Node context.
+    "lib": ["ES2022", "ES2022.Error"],
+    "types": ["node"]
+  },
+  "references": [{ "path": "../../framework/common/tsconfig.build.json" }],
+  "include": ["src"],
+  "exclude": ["vitest.config.ts"]
+}
