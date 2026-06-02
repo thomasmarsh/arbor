@@ -13,6 +13,7 @@ export type LedgerLoadState =
 export interface LedgerState {
   loadState: LedgerLoadState;
   selectedIndex: number;
+  showAll: boolean;
 }
 
 export type LedgerAction =
@@ -21,11 +22,16 @@ export type LedgerAction =
   | { tag: 'error'; message: string }
   | { tag: 'setStatus'; taskId: number; status: TaskStatus }
   | { tag: 'bump'; taskId: number; waveRanks: number[] }
-  | { tag: 'defer'; taskId: number; waveRanks: number[] };
+  | { tag: 'defer'; taskId: number; waveRanks: number[] }
+  | { tag: 'selectUp' }
+  | { tag: 'selectDown'; rowCount: number }
+  | { tag: 'toggleShowAll' }
+  | { tag: 'refresh' };
 
 export const initialLedgerState: LedgerState = {
   loadState: { tag: 'idle' },
   selectedIndex: 0,
+  showAll: false,
 };
 
 function spliceTask(arr: TaskEntry[], taskId: number, updater: (t: TaskEntry) => TaskEntry): boolean {
@@ -83,6 +89,27 @@ export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, 
       const newRank = Math.max(...action.waveRanks) + 10;
       mutateTaskInGroups($.state, action.taskId, (t) => ({ ...t, rank: newRank }));
       return env.setRank(action.taskId, newRank).map(() => ({ tag: 'fetch' }));
+    }
+    case 'selectUp': {
+      $.state.selectedIndex = Math.max(0, $.state.selectedIndex - 1);
+      return null;
+    }
+    case 'selectDown': {
+      $.state.selectedIndex = Math.min(action.rowCount - 1, $.state.selectedIndex + 1);
+      return null;
+    }
+    case 'toggleShowAll': {
+      $.state.showAll = !$.state.showAll;
+      return null;
+    }
+    case 'refresh': {
+      $.state.loadState = { tag: 'loading' };
+      return env.fetchQueue.map((result) =>
+        result.fold<LedgerAction>(
+          (groups) => ({ tag: 'loaded', groups }),
+          (err) => ({ tag: 'error', message: err }),
+        ),
+      );
     }
   }
 };

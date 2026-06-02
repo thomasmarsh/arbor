@@ -12,7 +12,7 @@ const task133: TaskEntry = {
 };
 
 const groupsWithTask: DisplayGroupsResponse = { ...emptyGroups, ready: [task133] };
-const loadedState: LedgerState = { loadState: { tag: 'loaded', groups: groupsWithTask }, selectedIndex: 0 };
+const loadedState: LedgerState = { loadState: { tag: 'loaded', groups: groupsWithTask }, selectedIndex: 0, showAll: false };
 
 describe('ledgerReducer', () => {
   it('fetch transitions to loading then dispatches loaded on success', () => {
@@ -103,6 +103,42 @@ describe('ledgerReducer', () => {
       .receive({ tag: 'fetch' }, (s) => {
         s.loadState = { tag: 'loading' };
       })
+      .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
+        s.loadState = { tag: 'loaded', groups: emptyGroups };
+      });
+    store.assertDrained();
+  });
+
+  it('selectUp decrements selectedIndex (min 0)', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 1 });
+    store.send({ tag: 'selectUp' }, (s) => { s.selectedIndex = 0; });
+    store.assertDrained();
+
+    const store2 = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 0 });
+    store2.send({ tag: 'selectUp' }, (s) => { s.selectedIndex = 0; });
+    store2.assertDrained();
+  });
+
+  it('selectDown increments selectedIndex (clamped to rowCount-1)', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 0 });
+    store.send({ tag: 'selectDown', rowCount: 5 }, (s) => { s.selectedIndex = 1; });
+    store.assertDrained();
+
+    const store2 = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 4 });
+    store2.send({ tag: 'selectDown', rowCount: 5 }, (s) => { s.selectedIndex = 4; });
+    store2.assertDrained();
+  });
+
+  it('toggleShowAll flips the showAll flag', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, loadedState);
+    store.send({ tag: 'toggleShowAll' }, (s) => { s.showAll = true; });
+    store.assertDrained();
+  });
+
+  it('refresh transitions to loading then dispatches loaded on success', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, loadedState);
+    store
+      .send({ tag: 'refresh' }, (s) => { s.loadState = { tag: 'loading' }; })
       .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
       });
