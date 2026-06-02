@@ -31,5 +31,8 @@ export type StoryEntry = z.infer<typeof StoryEntry>;
 export type WaveEntry = z.infer<typeof WaveEntry>;
 export type MetaEntry = z.infer<typeof MetaEntry>;
 
+export const PatchTaskStatusBody = z.object({ status: TaskStatus });
+export const PatchTaskRankBody = z.object({ rank: z.number() });
+
 export const LedgerRow = z.discriminatedUnion('type', [MetaEntry, EpicEntry, StoryEntry, WaveEntry, TaskEntry]);
 export type LedgerRow = z.infer<typeof LedgerRow>;

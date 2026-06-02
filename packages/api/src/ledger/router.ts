@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { defineRoutes, httpRoute } from '@arbor/router';
-import { TaskEntry, WaveEntry } from './schemas.js';
+import { TaskEntry, WaveEntry, PatchTaskStatusBody, PatchTaskRankBody } from './schemas.js';
 
 const TasksResponse = z.object({
   tasks: z.array(TaskEntry),
@@ -17,9 +17,11 @@ const DisplayGroupsResponse = z.object({
 export type DisplayGroupsResponse = z.infer<typeof DisplayGroupsResponse>;
 const ErrorResponse = z.object({ error: z.string() });
 
-const GetTasks = z.object({ tag: z.literal('ledger-get-tasks') });
-const GetQueue = z.object({ tag: z.literal('ledger-get-queue') });
-const GetTask  = z.object({ tag: z.literal('ledger-get-task'), id: z.coerce.number() });
+const GetTasks        = z.object({ tag: z.literal('ledger-get-tasks') });
+const GetQueue        = z.object({ tag: z.literal('ledger-get-queue') });
+const GetTask         = z.object({ tag: z.literal('ledger-get-task'), id: z.coerce.number() });
+const PatchTaskStatus = z.object({ tag: z.literal('ledger-patch-task-status'), id: z.coerce.number() });
+const PatchTaskRank   = z.object({ tag: z.literal('ledger-patch-task-rank'), id: z.coerce.number() });
 
 export const ledgerRouter = defineRoutes([
   httpRoute(GetTasks, 'GET', 'api/ledger/tasks', {
@@ -29,6 +31,14 @@ export const ledgerRouter = defineRoutes([
     response: { 200: DisplayGroupsResponse },
   }),
   httpRoute(GetTask, 'GET', 'api/ledger/tasks/:id', {
+    response: { 200: TaskEntry, 404: ErrorResponse },
+  }),
+  httpRoute(PatchTaskStatus, 'PATCH', 'api/ledger/tasks/:id', {
+    body: PatchTaskStatusBody,
+    response: { 200: TaskEntry, 404: ErrorResponse },
+  }),
+  httpRoute(PatchTaskRank, 'PATCH', 'api/ledger/tasks/:id/rank', {
+    body: PatchTaskRankBody,
     response: { 200: TaskEntry, 404: ErrorResponse },
   }),
 ]);
