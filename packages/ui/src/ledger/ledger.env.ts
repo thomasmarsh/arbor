@@ -1,4 +1,4 @@
-import { Effect, Result } from '@arbor/common';
+import { Effect, type Result } from '@arbor/common';
 import { createClient } from '@arbor/router';
 import { ledgerRouter } from '@arbor/api/ledger';
 import type { DisplayGroupsResponse } from './ledger.store.js';
@@ -13,8 +13,7 @@ export const liveLedgerEnv: LedgerEnv = {
     async () => {
       const client = createClient('http://localhost:3001', ledgerRouter);
       const resp = await client.fetch({ tag: 'ledger-get-queue' });
-      if (resp.status === 200) return resp.body;
-      throw new Error('fetch failed');
+      return resp.body;
     },
     (err) => (err instanceof Error ? err.message : 'fetch failed'),
   ),

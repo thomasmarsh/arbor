@@ -5,6 +5,7 @@ import { ledgerRouter } from './router.js';
 
 export { ledgerRouter };
 
+/* eslint-disable @typescript-eslint/require-await */
 export const ledgerServer = createServer(ledgerRouter, {
   'ledger-get-tasks': async (_ctx) => {
     const { tasks, waves } = parseLedger(ledgerPath());
@@ -17,6 +18,6 @@ export const ledgerServer = createServer(ledgerRouter, {
   'ledger-get-task': async (ctx) => {
     const { tasks } = parseLedger(ledgerPath());
     const task = tasks.find((t) => t.id === ctx.params.id);
-    return task ? respond(200, task) : respond(404, { error: `Task ${ctx.params.id} not found` });
+    return task ? respond(200, task) : respond(404, { error: `Task ${String(ctx.params.id)} not found` });
   },
 });

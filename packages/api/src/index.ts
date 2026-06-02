@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { makePool } from './db/pg.js';
 import type { ApiEnv } from './env.js';
@@ -14,6 +15,7 @@ export type { LedgerRouter } from './ledger/router.js';
 const app = new Hono<{ Variables: { env: ApiEnv } }>();
 
 app.use('*', logger());
+app.use('*', cors({ origin: 'http://localhost:5173' }));
 
 const config = parseProcessEnv();
 const env = liveEnv(makePool(config.ARBOR_PG_URL));

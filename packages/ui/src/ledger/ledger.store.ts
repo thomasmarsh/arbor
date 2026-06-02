@@ -1,4 +1,4 @@
-import { type Reducer } from '@arbor/common';
+import type { Reducer } from '@arbor/common';
 import type { DisplayGroupsResponse } from '@arbor/api/ledger';
 import type { LedgerEnv } from './ledger.env.js';
 

@@ -6,6 +6,7 @@ import { ReauthModal } from './auth/ReauthModal.js';
 import { useAuth } from './auth/useAuth.js';
 import { Counter } from './Counter.js';
 import { uiEnv } from './env.js';
+import { LedgerTable } from './ledger/LedgerTable.js';
 
 const oidcConfig = {
   authority: uiEnv.VITE_OIDC_ISSUER,
@@ -48,6 +49,7 @@ function App() {
           <Counter />
         </Providers>
       )}
+      <LedgerTable />
     </main>
   );
 }

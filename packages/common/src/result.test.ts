@@ -110,7 +110,7 @@ describe('Result type', () => {
   describe('Asynchronous Factories & Chaining', () => {
     it('should capture resolving promises via fromPromise and fromAsync', async () => {
       const resPromise = await Result.fromPromise(Promise.resolve('data'));
-      const resAsync = await Result.fromAsync(async () => 'lazy-data');
+      const resAsync = await Result.fromAsync(() => Promise.resolve('lazy-data'));
       expect(resPromise.getOrThrow()).toBe('data');
       expect(resAsync.getOrThrow()).toBe('lazy-data');
     });
@@ -124,20 +124,18 @@ describe('Result type', () => {
 
     it('should safely map values asynchronously using mapAsync', async () => {
       const original = Result.ok(5);
-      const asyncMapped = await original.mapAsync(async (n) => n * 2);
+      const asyncMapped = await original.mapAsync((n) => Promise.resolve(n * 2));
       expect(asyncMapped.getOrThrow()).toBe(10);
 
       const errorChain = Result.err<number, string>('bad_state');
-      const shortCircuited = await errorChain.mapAsync(async (n) => n * 2);
+      const shortCircuited = await errorChain.mapAsync((n) => Promise.resolve(n * 2));
       expect(shortCircuited.error).toBe('bad_state');
     });
 
     it('should catch inner execution errors inside mapAsync fallback', async () => {
       const original = Result.ok('payload');
       const failedAsync = await original.mapAsync(
-        async () => {
-          throw new Error('inner');
-        },
+        () => Promise.reject(new Error('inner')),
         (err) => (err as Error).message + '_caught',
       );
       expect(failedAsync.error).toBe('inner_caught');
@@ -145,7 +143,7 @@ describe('Result type', () => {
 
     it('should chain asynchronous processes cleanly via flatMapAsync', async () => {
       const original = Result.ok('token_id');
-      const asyncFlatMapped = await original.flatMapAsync(async (id) => Result.ok(id + '_valid'));
+      const asyncFlatMapped = await original.flatMapAsync((id) => Promise.resolve(Result.ok(id + '_valid')));
       expect(asyncFlatMapped.getOrThrow()).toBe('token_id_valid');
     });
   });
