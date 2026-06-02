@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { defineRoutes, httpRoute } from '@arbor/router';
 import { TaskEntry, WaveEntry, PatchTaskStatusBody, PatchTaskRankBody } from './schemas.js';
 
+export type { TaskEntry, TaskStatus } from './schemas.js';
+
 const TasksResponse = z.object({
   tasks: z.array(TaskEntry),
   waves: z.array(WaveEntry),

@@ -1,7 +1,18 @@
 import { describe, it } from 'vitest';
 import { TestStore } from '@arbor/common';
+import type { TaskEntry, DisplayGroupsResponse } from '@arbor/api/ledger';
 import { ledgerReducer, initialLedgerState } from './ledger.store.js';
-import { emptyGroups, mockLedgerEnv, mockLedgerEnvError } from './ledger.env.mock.js';
+import type { LedgerState } from './ledger.store.js';
+import { emptyGroups, mockLedgerEnv, mockLedgerEnvError, mockLedgerEnvWithMutations } from './ledger.env.mock.js';
+
+const task133: TaskEntry = {
+  type: 'task', kind: 'task', id: 133, epic: 'e4', story: 's14',
+  wave: 'w28', layer: 'ui', status: 'next', text: 'task', file: '133.md',
+  deps: [], rank: 100,
+};
+
+const groupsWithTask: DisplayGroupsResponse = { ...emptyGroups, ready: [task133] };
+const loadedState: LedgerState = { loadState: { tag: 'loaded', groups: groupsWithTask }, selectedIndex: 0 };
 
 describe('ledgerReducer', () => {
   it('fetch transitions to loading then dispatches loaded on success', () => {
@@ -41,6 +52,60 @@ describe('ledgerReducer', () => {
     store.send({ tag: 'error', message: 'oops' }, (s) => {
       s.loadState = { tag: 'error', message: 'oops' };
     });
+    store.assertDrained();
+  });
+
+  it('setStatus optimistically updates task and triggers fetch', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnvWithMutations, loadedState);
+    store
+      .send({ tag: 'setStatus', taskId: 133, status: 'done' }, (s) => {
+        if (s.loadState.tag === 'loaded') {
+          const t = s.loadState.groups.ready.find((x) => x.id === 133);
+          if (t) t.status = 'done';
+        }
+      })
+      .receive({ tag: 'fetch' }, (s) => {
+        s.loadState = { tag: 'loading' };
+      })
+      .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
+        s.loadState = { tag: 'loaded', groups: emptyGroups };
+      });
+    store.assertDrained();
+  });
+
+  it('bump optimistically sets rank to min(waveRanks)-10 and triggers fetch', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnvWithMutations, loadedState);
+    store
+      .send({ tag: 'bump', taskId: 133, waveRanks: [100, 200, 300] }, (s) => {
+        if (s.loadState.tag === 'loaded') {
+          const t = s.loadState.groups.ready.find((x) => x.id === 133);
+          if (t) t.rank = 90;
+        }
+      })
+      .receive({ tag: 'fetch' }, (s) => {
+        s.loadState = { tag: 'loading' };
+      })
+      .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
+        s.loadState = { tag: 'loaded', groups: emptyGroups };
+      });
+    store.assertDrained();
+  });
+
+  it('defer optimistically sets rank to max(waveRanks)+10 and triggers fetch', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnvWithMutations, loadedState);
+    store
+      .send({ tag: 'defer', taskId: 133, waveRanks: [100, 200, 300] }, (s) => {
+        if (s.loadState.tag === 'loaded') {
+          const t = s.loadState.groups.ready.find((x) => x.id === 133);
+          if (t) t.rank = 310;
+        }
+      })
+      .receive({ tag: 'fetch' }, (s) => {
+        s.loadState = { tag: 'loading' };
+      })
+      .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
+        s.loadState = { tag: 'loaded', groups: emptyGroups };
+      });
     store.assertDrained();
   });
 });
