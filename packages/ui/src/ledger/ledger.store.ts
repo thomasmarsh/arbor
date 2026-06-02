@@ -1,12 +1,8 @@
 import { type Reducer } from '@arbor/common';
-import { type InferSingleSuccessBody } from '@arbor/router';
-import type { LedgerRouter } from '@arbor/api/ledger';
+import type { DisplayGroupsResponse } from '@arbor/api/ledger';
 import type { LedgerEnv } from './ledger.env.js';
 
-// TODO: ergonomic pain — per-route body extraction drills through _ctxMap. A
-// helper like `InferRouteBody<Router, Tag>` would make this a one-liner.
-type QueueCtx = LedgerRouter['_ctxMap']['ledger-get-queue'];
-export type DisplayGroupsResponse = InferSingleSuccessBody<QueueCtx['response']>;
+export type { DisplayGroupsResponse };
 
 export type LedgerLoadState =
   | { tag: 'idle' }
