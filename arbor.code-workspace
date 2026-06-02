@@ -1,11 +1,14 @@
 {
   "folders": [
     { "name": "root", "path": "." },
-    { "name": "common", "path": "packages/common" },
-    { "name": "ui", "path": "packages/ui" },
-    { "name": "api", "path": "packages/api" },
-    { "name": "bff", "path": "packages/bff" },
-    { "name": "router", "path": "packages/router" },
+    { "name": "framework/common", "path": "framework/common" },
+    { "name": "framework/router", "path": "framework/router" },
+    { "name": "framework/router-browser", "path": "framework/router-browser" },
+    { "name": "framework/router-test", "path": "framework/router-test" },
+    { "name": "apps/common", "path": "apps/common" },
+    { "name": "apps/api", "path": "apps/api" },
+    { "name": "apps/bff", "path": "apps/bff" },
+    { "name": "apps/ui", "path": "apps/ui" },
     { "name": "third_party", "path": "third_party" },
   ],
   "settings": {
@@ -16,7 +19,7 @@
       },
     ],
     "vitest.rootConfig": "vitest.workspace.ts",
-    "eslint.workingDirectories": [{ "pattern": "packages/*" }],
+    "eslint.workingDirectories": [{ "pattern": "framework/*" }, { "pattern": "apps/*" }],
     "eslint.useFlatConfig": true,
     "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
     "[typescriptreact]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
