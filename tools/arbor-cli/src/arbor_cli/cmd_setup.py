@@ -1,3 +1,4 @@
+import re
 import secrets
 import shutil
 import subprocess
@@ -8,38 +9,12 @@ import typer
 
 def setup():
     """Scaffold .env.local files for each app (skips existing files)."""
-    session_secret = secrets.token_hex(32)
+    secret = secrets.token_hex(32)
 
-    _create_env(
-        Path("apps/api/.env.local"),
-        "ARBOR_PG_URL=postgresql://arbor:arbor@localhost:5433/arbor_dev\n"
-        "ARBOR_ORACLE_USER=user\n"
-        "ARBOR_ORACLE_PASSWORD=password\n"
-        "ARBOR_ORACLE_CONNECT_STRING=localhost:1521/XEPDB1\n"
-        "API_PORT=3001\n",
-    )
-    _create_env(
-        Path("apps/bff/.env.local"),
-        "# OIDC credentials — only needed for dev:bff, not dev:mock\n"
-        "ARBOR_OIDC_ISSUER=http://localhost:8080/realms/arbor\n"
-        "ARBOR_OIDC_CLIENT_ID=arbor-bff\n"
-        "ARBOR_OIDC_CLIENT_SECRET=\n"
-        "ARBOR_OIDC_REDIRECT_URI=http://localhost:3000/auth/callback\n"
-        f"ARBOR_SESSION_SECRET={session_secret}\n"
-        "ARBOR_API_URL=http://localhost:3001\n"
-        "NODE_ENV=development\n"
-        "BFF_PORT=3000\n",
-    )
-    _create_env(
-        Path("apps/bff/.env.staging.local"),
-        "# Fill in real staging credentials before using dev:staging\n"
-        "ARBOR_OIDC_ISSUER=https://your-idp.example.com/realms/arbor\n"
-        "ARBOR_OIDC_CLIENT_ID=arbor-bff-staging\n"
-        "ARBOR_OIDC_CLIENT_SECRET=\n"
-        "ARBOR_OIDC_REDIRECT_URI=https://localhost:3000/auth/callback\n"
-        f"ARBOR_SESSION_SECRET={session_secret}\n"
-        "ARBOR_API_URL=http://localhost:3001\n",
-    )
+    _copy_env(Path("apps/api/.env.example"), Path("apps/api/.env.local"))
+    _copy_env(Path("apps/bff/.env.example"), Path("apps/bff/.env.local"), secret)
+    _copy_env(Path("apps/bff/.env.example"), Path("apps/bff/.env.staging.local"), secret)
+
     typer.echo("\nDone.\n")
     typer.echo("To get started:\n")
     typer.echo("  pnpm install")
@@ -68,10 +43,17 @@ def certs():
     typer.echo("✓ Certs generated in certs/")
 
 
-def _create_env(path: Path, contents: str) -> None:
-    if path.exists():
-        typer.echo(f"skipped  {path} (already exists)")
+def _copy_env(src: Path, dst: Path, session_secret: str | None = None) -> None:
+    if dst.exists():
+        typer.echo(f"skipped  {dst} (already exists)")
         return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(contents)
-    typer.echo(f"created  {path}")
+    content = src.read_text()
+    if session_secret:
+        content = re.sub(
+            r"^ARBOR_SESSION_SECRET=.*$",
+            f"ARBOR_SESSION_SECRET={session_secret}",
+            content,
+            flags=re.MULTILINE,
+        )
+    dst.write_text(content)
+    typer.echo(f"created  {dst}")
