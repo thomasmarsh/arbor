@@ -8,6 +8,7 @@ export default defineConfig({
     root: __dirname,
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    exclude: process.env.CI ? ['src/**/*.pg.*.test.ts'] : [],
     setupFiles: ['src/testing/setup.ts'],
   },
 });

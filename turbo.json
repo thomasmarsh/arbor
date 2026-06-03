@@ -53,7 +53,7 @@
       "persistent": true
     },
     "@arbor/api#build": {
-      "dependsOn": ["^build", "db:generate"],
+      "dependsOn": ["^build"],
       "outputs": ["dist/**", "*.tsbuildinfo"]
     }
   }
