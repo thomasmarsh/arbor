@@ -1,7 +1,7 @@
 import basicSsl from '@vitejs/plugin-basic-ssl';
 import react from '@vitejs/plugin-react';
 import type { PluginOption } from 'vite';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 const ARBOR_BFF_URL = process.env['ARBOR_BFF_URL'] ?? 'http://localhost:3000';
 

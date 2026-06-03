@@ -13,7 +13,7 @@ function toggleDone(status: TaskStatus): TaskStatus {
   return status === 'done' ? 'todo' : 'done';
 }
 
-function waveRanksFor(wave: string, tasks: readonly { wave: string; rank?: number }[]): number[] {
+function waveRanksFor(wave: string, tasks: readonly { wave: string; rank?: number | undefined }[]): number[] {
   return tasks.flatMap((t) => (t.wave === wave && t.rank !== undefined ? [t.rank] : []));
 }
 

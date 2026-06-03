@@ -58,7 +58,7 @@ describe('ledgerReducer', () => {
     // Type annotation on oncePollEnv drives contextual inference: A = void, send() with no arg
     const oncePollEnv: typeof mockLedgerEnv = {
       ...mockLedgerEnv,
-      pollTick: Effect.of((send) => { if (remaining-- > 0) send(); }),
+      pollTick: Effect.of((send) => { if (remaining-- > 0) send(undefined); }),
     };
     const store = new TestStore(ledgerReducer, oncePollEnv, initialLedgerState);
     store

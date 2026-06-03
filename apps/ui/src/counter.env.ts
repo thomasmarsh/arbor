@@ -1,4 +1,5 @@
-import { Effect, type HelloResponse, Result } from '@arbor/common';
+import { Effect, Result } from '@arbor/common';
+import type { HelloResponse } from '@arbor/app-common';
 import { NetworkError } from '@arbor/common/http';
 import { fetchHello } from './api/hello';
 
