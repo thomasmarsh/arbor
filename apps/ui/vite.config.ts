@@ -27,4 +27,8 @@ export default defineConfig({
     // Sourcemaps in prod so BFF-side error reporting is useful
     sourcemap: true,
   },
+  test: {
+    name: '@arbor/ui',
+    environment: 'jsdom',
+  },
 });
