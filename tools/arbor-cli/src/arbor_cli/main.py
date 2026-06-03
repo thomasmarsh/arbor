@@ -3,7 +3,9 @@ import typer
 from arbor_cli import commands, cmd_setup
 from arbor_cli.cmd_db import db_app
 
-app = typer.Typer(help="Arbor monorepo tooling CLI.")
+app = typer.Typer(
+    help="Arbor monorepo tooling CLI.",
+    no_args_is_help=True)
 
 app.add_typer(db_app, name="db")
 

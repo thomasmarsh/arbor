@@ -9,7 +9,9 @@ _CONTAINER = "arbor-postgres"
 _VOLUME = "arbor-postgres-data"
 _IMAGE = "postgres:16-alpine"
 
-db_app = typer.Typer(help="Manage the Postgres dev container.")
+db_app = typer.Typer(
+    help="Manage the Postgres dev container.",
+    no_args_is_help=True)
 
 
 def _config() -> tuple[str, str, str, str]:
