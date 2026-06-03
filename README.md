@@ -120,8 +120,9 @@ Port forwarding is pre-configured in `arbor.code-workspace` (ports 5173, 3000, 3
 
 ## Further reading
 
-| Document                   | Contents                                                             |
-| -------------------------- | -------------------------------------------------------------------- |
-| [FEATURES.md](FEATURES.md) | `@arbor/router` features, framework comparison, roadmap              |
-| [BROWSER.md](BROWSER.md)   | Browser integration plan — `@arbor/router-browser`, React hooks, SSR |
-| [DEPLOY.md](DEPLOY.md)     | OpenShift deployment, secrets management, image builds               |
+| Document                                                   | Contents                                                             |
+| ---------------------------------------------------------- | -------------------------------------------------------------------- |
+| [FEATURES.md](FEATURES.md)                                 | `@arbor/router` features, framework comparison, roadmap              |
+| [framework/router/README.md](framework/router/README.md)   | `@arbor/router` API reference with code examples                     |
+| [BROWSER.md](BROWSER.md)                                   | Browser integration plan — `@arbor/router-browser`, React hooks, SSR |
+| [DEPLOY.md](DEPLOY.md)                                     | OpenShift deployment, secrets management, image builds               |
