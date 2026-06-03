@@ -2,14 +2,15 @@ import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { defineRoutes, createServer, respond } from '@arbor/router';
+import { defineRoutes, createServer, respond, generateSpec } from '@arbor/router';
 import { makePool } from './db/pg.js';
 import { liveEnv, parseProcessEnv } from './env.js';
 import { ledgerServer } from './ledger/routes.js';
 import { helloRouter } from '@arbor/app-common';
 import { usersRouter } from './routes/users.router.js';
 
-export { ledgerRouter } from './ledger/router.js';
+import { ledgerRouter } from './ledger/router.js';
+export { ledgerRouter };
 export type { LedgerRouter } from './ledger/router.js';
 
 const config = parseProcessEnv();
@@ -19,6 +20,11 @@ const apiRouter = defineRoutes([
   ...helloRouter.children,
   ...usersRouter.children,
 ]);
+
+const spec = generateSpec(
+  { children: [...apiRouter.children, ...ledgerRouter.children] },
+  { title: 'Arbor API', version: '0.0.0' },
+);
 
 const apiServer = createServer(apiRouter, {
   hello: (ctx) => {
@@ -76,6 +82,21 @@ app.all('/api/*', async (c) => {
 
 // Health check (useful for OpenShift liveness/readiness probes)
 app.get('/healthz', (c) => c.json({ status: 'ok' }));
+
+app.get('/openapi.json', (c) => c.json(spec));
+
+app.get('/scalar', (c) =>
+  c.html(`<!doctype html>
+<html>
+  <head><title>Arbor API — Scalar</title><meta charset="utf-8" /></head>
+  <body>
+    <script
+      id="api-reference"
+      data-url="/openapi.json"
+      src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+  </body>
+</html>`),
+);
 
 serve({ fetch: app.fetch, port: env.config.API_PORT }, (info) => {
   console.log(`API listening on port ${info.port.toString()}`);

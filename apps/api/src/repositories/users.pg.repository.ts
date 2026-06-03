@@ -16,7 +16,7 @@ const toUser = (row: unknown): Result<User, string> => {
   return Result.ok({
     id: parsed.data.id,
     email: parsed.data.email,
-    createdAt: parsed.data.created_at,
+    createdAt: parsed.data.created_at.toISOString(),
   });
 };
 

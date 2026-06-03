@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const UserSchema = z.object({
   id: z.uuid(),
   email: z.email(),
-  createdAt: z.coerce.date(),
+  createdAt: z.iso.datetime(),
 });
 export type User = z.infer<typeof UserSchema>;
 
