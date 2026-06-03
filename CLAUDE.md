@@ -30,6 +30,8 @@ export type Derive<N> = N extends RouteNode<unknown, any, any, any, infer Query>
 
 - **Minimize reads**: Do not read entire source files to discover structure. Prefer targeted `rg` (ripgrep) lookups first to locate exact line ranges, then read only those ranges.
 
+- **No linting markdown**: Ignore all lint warnings on markdown documents you create.
+
 ## Working Commands
 
 Working directory is the workspace root (`/Users/tmarsh/git/arbor`). Source lives in `packages/router/`.
@@ -161,6 +163,7 @@ T-shirt Sizing guide:
 - XL: very large, 3+ days, major new system
 
 ## Testing Conventions section near existing test guidance.\n\n## Testing Conventions
+
 - Use a single base mock with spread overrides; do NOT use per-test vi.fn() factories or vi.mock for env. Follow the TCA-style static object / dependency-injection idiom.
 - Use valtio's snapshot() (not structuredClone) for state snapshots.
 - Use effect-ts TestClock for time-based tests.
