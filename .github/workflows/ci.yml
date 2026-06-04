@@ -69,7 +69,7 @@ jobs:
           done < <(find . -path "*/coverage/lcov.info" -not -path "*/node_modules/*")
           if [ -n "$args" ]; then
             mkdir -p coverage
-            lcov $args -o coverage/lcov.info
+            lcov --ignore-errors empty $args -o coverage/lcov.info
           fi
 
       - name: Coverage report

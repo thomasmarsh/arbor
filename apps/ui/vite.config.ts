@@ -30,6 +30,7 @@ export default defineConfig({
   test: {
     name: '@arbor/ui',
     environment: 'jsdom',
+    silent: true,
     reporters: process.env['CI']
       ? ['default', ['junit', { outputFile: 'test-results/junit.xml' }]]
       : ['default'],

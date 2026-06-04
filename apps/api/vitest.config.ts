@@ -10,6 +10,7 @@ export default defineConfig({
     include: ['src/**/*.test.ts'],
     exclude: process.env['CI'] ? ['src/**/*.pg.*.test.ts'] : [],
     setupFiles: ['src/testing/setup.ts'],
+    silent: true,
     reporters: process.env['CI']
       ? ['default', ['junit', { outputFile: 'test-results/junit.xml' }]]
       : ['default'],
