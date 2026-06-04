@@ -8,13 +8,13 @@ export default defineConfig({
     root: __dirname,
     environment: 'node',
     include: ['src/**/*.test.ts'],
-    exclude: process.env.CI ? ['src/**/*.pg.*.test.ts'] : [],
+    exclude: process.env['CI'] ? ['src/**/*.pg.*.test.ts'] : [],
     setupFiles: ['src/testing/setup.ts'],
-    reporters: process.env.CI
+    reporters: process.env['CI']
       ? ['default', ['junit', { outputFile: 'test-results/junit.xml' }]]
       : ['default'],
     coverage: {
-      enabled: !!process.env.CI,
+      enabled: !!process.env['CI'],
       provider: 'v8',
       reporter: ['text', 'json', 'json-summary', 'lcov'],
     },
