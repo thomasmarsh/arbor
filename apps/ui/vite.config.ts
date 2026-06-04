@@ -36,7 +36,7 @@ export default defineConfig({
     coverage: {
       enabled: !!process.env.CI,
       provider: 'v8',
-      reporter: ['text', 'json', 'json-summary'],
+      reporter: ['text', 'json', 'json-summary', 'lcov'],
     },
   },
 });

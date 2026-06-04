@@ -52,12 +52,24 @@ jobs:
           path: '**/test-results/junit.xml'
           reporter: java-junit
 
+      - name: Merge coverage reports
+        if: always()
+        run: |
+          args=""
+          while IFS= read -r f; do
+            args="$args -a $f"
+          done < <(find . -path "*/coverage/lcov.info" -not -path "*/node_modules/*")
+          if [ -n "$args" ]; then
+            mkdir -p coverage
+            lcov $args -o coverage/lcov.info
+          fi
+
       - name: Coverage report
-        uses: davelosert/vitest-coverage-report-action@v2
+        uses: romeovs/lcov-reporter-action@v0.4.0
         if: always()
         with:
-          json-summary-glob-input: '**/coverage/coverage-summary.json'
-          json-final-glob-input: '**/coverage/coverage-final.json'
+          lcov-file: coverage/lcov.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Typecheck
         run: pnpm typecheck
