@@ -1,16 +1,17 @@
-import z from 'zod';
+import { integer, literal, object, optional, string } from '../core/schema.js';
 import { defineRoutes, route } from '../core/define-routes.js';
 
-const Users = z.object({ tag: z.literal('users') });
-const User = z.object({ tag: z.literal('user'), id: z.string() });
-const Settings = z.object({ tag: z.literal('settings') });
-const Org = z.object({ tag: z.literal('org'), orgId: z.string() });
-const Project = z.object({ tag: z.literal('project'), projectId: z.number() });
-const Issue = z.object({
-  tag: z.literal('issue'),
-  issueId: z.string(),
-  status: z.enum(['open', 'closed']).optional(),
-  page: z.coerce.number().default(1),
+const Users = object({ tag: literal('users') });
+const User = object({ tag: literal('user'), id: string() });
+const Settings = object({ tag: literal('settings') });
+const Org = object({ tag: literal('org'), orgId: string() });
+const Project = object({ tag: literal('project'), projectId: integer() });
+// status and page arrive as strings from URLSearchParams; no coercion or defaults in native schema
+const Issue = object({
+  tag: literal('issue'),
+  issueId: string(),
+  status: optional(string()),
+  page: optional(string()),
 });
 
 export const routeFixtures = {

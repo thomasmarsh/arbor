@@ -7,12 +7,14 @@ import {
   createWsClient,
   createWsServer,
   defineRoutes,
+  literal,
+  object,
   wsRoute,
 } from '../src/index.js';
 
 const InSchema = z.object({ text: z.string() });
 const OutSchema = z.object({ reply: z.string() });
-const ChatSchema = z.object({ tag: z.literal('ws/chat') });
+const ChatSchema = object({ tag: literal('ws/chat') });
 
 const router = defineRoutes([
   wsRoute(ChatSchema, 'ws/chat', { in: InSchema, out: OutSchema }),

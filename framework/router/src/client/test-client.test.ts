@@ -2,12 +2,13 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { httpRoute, respond } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
+import { literal, object, string } from '../core/schema.js';
 import type { RouterContract } from '../core/router-contract.js';
 import { createTestClient } from './test-client.js';
 
 describe('createTestClient', () => {
-  const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
-  const CreateUser = z.object({ tag: z.literal('create-user') });
+  const GetUser = object({ tag: literal('get-user'), id: string() });
+  const CreateUser = object({ tag: literal('create-user') });
   const UserResp = z.object({ id: z.string(), name: z.string() });
   const ErrorResp = z.object({ error: z.string() });
   const CreateBody = z.object({ name: z.string() });
@@ -52,7 +53,7 @@ describe('createTestClient', () => {
 
 describe('RouterContract assignability', () => {
   it('router from defineRoutes is assignable to RouterContract', () => {
-    const GetItem = z.object({ tag: z.literal('get-item'), id: z.string() });
+    const GetItem = object({ tag: literal('get-item'), id: string() });
     const _router = defineRoutes([
       httpRoute(GetItem, 'GET', '/items/:id', { response: { 200: z.object({ id: z.string() }) } }),
     ]);

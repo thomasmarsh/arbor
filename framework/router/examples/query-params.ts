@@ -1,8 +1,8 @@
 // Route with a Zod query schema — parse returns typed, coerced query params.
 import z from 'zod';
-import { defineRoutes, httpRoute } from '../src/index.js';
+import { defineRoutes, httpRoute, literal, object } from '../src/index.js';
 
-const SearchItems = z.object({ tag: z.literal('search-items') });
+const SearchItems = object({ tag: literal('search-items') });
 const SearchQuery = z.object({
   q: z.string(),
   page: z.coerce.number().default(1),

@@ -1,4 +1,4 @@
-import type z from 'zod';
+import type { AnyObjectSchema } from './schema.js';
 import type { Segment } from './segments.js';
 
 // Collapses intersection types like `{ tag: 'a' } & { id: string }` into a
@@ -66,11 +66,7 @@ export interface RouteNode<
   _type: R;
   _sectionParams?: SectionParams;
   _embeddedMap?: EmbeddedMap; // phantom — undefined as never at runtime
-  // TODO: we should decouple from Zod here - task 133 explores a custom schema
-  // system that is compatible or interops with zod, but which gives us  a bit
-  // more power.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
-  schema: z.ZodObject<any, any> | null;
+  schema: AnyObjectSchema | null;
   path: string;
   segments: Segment[];
   children: C;
@@ -150,7 +146,7 @@ type FlattenChildrenImpl<
         ? Flatten<{ child?: unknown }>
         : Flatten<R & { child?: unknown }>
       : // Depth limit reached — treat node as a leaf.
-        // TODO: If a tree hits exactly 15 levels of depth, PrevD<0> returns never.
+        // If a tree hits exactly 15 levels of depth, PrevD<0> returns never.
         // The check captures it accurately, but ensures any elements deeper than the
         // ceiling are entirely omitted rather than gracefully degraded. Given the
         // benchmark memo indicating a maximum operational depth of 4, this structural

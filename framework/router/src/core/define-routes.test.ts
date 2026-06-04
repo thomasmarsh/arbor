@@ -1,18 +1,19 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import z from 'zod';
 import { type BuildableRouteNode, type RouteNode, defineRoutes, route, section } from './define-routes.js';
+import { integer, literal, object, optional, string } from './schema.js';
 
 describe('defineRoutes', () => {
-  const Users = z.object({ tag: z.literal('users') });
-  const User = z.object({ tag: z.literal('user'), id: z.string() });
-  const Settings = z.object({ tag: z.literal('settings') });
-  const Org = z.object({ tag: z.literal('org'), orgId: z.string() });
-  const Project = z.object({ tag: z.literal('project'), projectId: z.number() });
-  const Issue = z.object({
-    tag: z.literal('issue'),
-    issueId: z.string(),
-    status: z.enum(['open', 'closed']).optional(),
-    page: z.coerce.number().default(1),
+  const Users = object({ tag: literal('users') });
+  const User = object({ tag: literal('user'), id: string() });
+  const Settings = object({ tag: literal('settings') });
+  const Org = object({ tag: literal('org'), orgId: string() });
+  const Project = object({ tag: literal('project'), projectId: integer() });
+  // status and page arrive as strings from URLSearchParams; no coercion or defaults in native schema
+  const Issue = object({
+    tag: literal('issue'),
+    issueId: string(),
+    status: optional(string()),
+    page: optional(string()),
   });
 
   const router = defineRoutes([
@@ -55,7 +56,7 @@ describe('defineRoutes', () => {
         child: {
           tag: 'project',
           projectId: 42,
-          child: { tag: 'issue', issueId: '7', page: 1 },
+          child: { tag: 'issue', issueId: '7' },
         },
       });
     });
@@ -96,7 +97,7 @@ describe('defineRoutes', () => {
           child: {
             tag: 'project',
             projectId: 42,
-            child: { tag: 'issue', issueId: '7', status: 'open', page: 1 },
+            child: { tag: 'issue', issueId: '7', status: 'open', page: '1' },
           },
         }),
       ).toBe('/orgs/acme/42/7?status=open&page=1');
@@ -120,12 +121,11 @@ describe('defineRoutes', () => {
       });
     }
 
-    it('roundtrip: /orgs/acme/42/7 with default page omitted from print', () => {
+    it('roundtrip: /orgs/acme/42/7 parses and re-prints cleanly', () => {
       const parsed = router.parse(url('/orgs/acme/42/7')).getOrThrow();
-      expect(parsed).toMatchObject({ child: { child: { page: 1 } } });
-      const printed = router.print(router.parse(url('/orgs/acme/42/7')).getOrThrow());
+      const printed = router.print(parsed);
       const reparsed = router.parse(new URL(`https://example.com${printed}`)).getOrThrow();
-      expect(reparsed).toMatchObject({ child: { child: { page: 1 } } });
+      expect(reparsed).toMatchObject({ child: { child: { tag: 'issue', issueId: '7' } } });
     });
 
     it('roundtrip: param with spaces survives encode/decode', () => {
@@ -142,13 +142,13 @@ describe('defineRoutes', () => {
       expect(reparsed).toEqual({ tag: 'users', child: { tag: 'user', id: '日本語' } });
     });
 
-    it('roundtrip: /orgs/acme/42/7?page=3 explicit page survives', () => {
+    it('roundtrip: /orgs/acme/42/7?page=3 page survives as string', () => {
       const parsed = router.parse(url('/orgs/acme/42/7?page=3')).getOrThrow();
-      expect(parsed).toMatchObject({ child: { child: { page: 3 } } });
+      expect(parsed).toMatchObject({ child: { child: { page: '3' } } });
       const printed = router.print(parsed);
       expect(printed).toBe('/orgs/acme/42/7?page=3');
       const reparsed = router.parse(new URL(`https://example.com${printed}`)).getOrThrow();
-      expect(reparsed).toMatchObject({ child: { child: { page: 3 } } });
+      expect(reparsed).toMatchObject({ child: { child: { page: '3' } } });
     });
   });
 
@@ -220,7 +220,7 @@ describe('defineRoutes', () => {
 
     it('prints through two nested sections when params are in innermost child', () => {
       const url = nestedSectionRouter.print(
-        { child: { child: { tag: 'issue', issueId: '7', page: 1 } } },
+        { child: { child: { tag: 'issue', issueId: '7', page: '1' } } },
         { orgId: 'acme' },
       );
       expect(url).toBe('/orgs/acme/projects/7?page=1');
@@ -259,14 +259,12 @@ describe('defineRoutes', () => {
       expect(diagnostics.some((d) => d.kind === 'segment-mismatch')).toBe(true);
     });
 
-    it('returns failure result with schema-error diagnostic for invalid query param', () => {
+    it('parses successfully with any string status (no enum validation in native schema)', () => {
       const { result, diagnostics } = router.parseDiagnostics(
         url('/orgs/acme/42/7?status=invalid'),
       );
-      expect(result.isErr()).toBe(true);
-      const schemaErrors = diagnostics.filter((d) => d.kind === 'schema-error');
-      expect(schemaErrors).toHaveLength(1);
-      expect(schemaErrors[0]).toMatchObject({ kind: 'schema-error', path: ':issueId/' });
+      expect(result.isOk()).toBe(true);
+      expect(diagnostics.filter((d) => d.kind === 'schema-error')).toHaveLength(0);
     });
 
     it('does not affect parse() — parse never allocates the accumulator', () => {
@@ -277,16 +275,16 @@ describe('defineRoutes', () => {
 
   describe('duplicate tag detection', () => {
     it('throws when two routes share the same tag', () => {
-      const A = z.object({ tag: z.literal('dup') });
-      const B = z.object({ tag: z.literal('dup'), extra: z.string() });
+      const A = object({ tag: literal('dup') });
+      const B = object({ tag: literal('dup'), extra: string() });
       expect(() => defineRoutes([route(A, 'a/'), route(B, 'b/')])).toThrow(
         'duplicate route tag: "dup"',
       );
     });
 
     it('throws for duplicate tags in nested children', () => {
-      const Parent = z.object({ tag: z.literal('parent') });
-      const Child = z.object({ tag: z.literal('parent') });
+      const Parent = object({ tag: literal('parent') });
+      const Child = object({ tag: literal('parent') });
       expect(() => defineRoutes([route(Parent, 'p/', [route(Child, 'c/')])])).toThrow(
         'duplicate route tag: "parent"',
       );
@@ -332,7 +330,7 @@ describe('defineRoutes', () => {
 });
 
 describe('buildable (.use / .pipe)', () => {
-  const Tag = z.object({ tag: z.literal('root') });
+  const Tag = object({ tag: literal('root') });
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
   type WithExtra<N extends RouteNode<any, any, any, any, any>> = N & { _extra: true };

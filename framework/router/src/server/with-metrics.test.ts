@@ -2,10 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import z from 'zod';
 import { httpRoute, respond } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
+import { literal, object, string } from '../core/schema.js';
 import { createServer } from './server.js';
 import { withMetrics, type RequestMetric } from './with-metrics.js';
 
-const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
+const GetUser = object({ tag: literal('get-user'), id: string() });
 const router = defineRoutes([
   httpRoute(GetUser, 'GET', 'users/:id/', { response: { 200: z.object({ id: z.string() }) } }),
 ]);

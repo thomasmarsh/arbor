@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { defineRoutes, httpRoute } from '@arbor/router';
+import { defineRoutes, httpRoute, integer, literal, object } from '@arbor/router';
 import { TaskEntry, WaveEntry, PatchTaskStatusBody, PatchTaskRankBody } from '@arbor/app-common';
 
 export type { TaskEntry, TaskStatus } from '@arbor/app-common';
@@ -19,11 +19,11 @@ const DisplayGroupsResponse = z.object({
 export type DisplayGroupsResponse = z.infer<typeof DisplayGroupsResponse>;
 const ErrorResponse = z.object({ error: z.string() });
 
-const GetTasks        = z.object({ tag: z.literal('ledger-get-tasks') });
-const GetQueue        = z.object({ tag: z.literal('ledger-get-queue') });
-const GetTask         = z.object({ tag: z.literal('ledger-get-task'), id: z.coerce.number() });
-const PatchTaskStatus = z.object({ tag: z.literal('ledger-patch-task-status'), id: z.coerce.number() });
-const PatchTaskRank   = z.object({ tag: z.literal('ledger-patch-task-rank'), id: z.coerce.number() });
+const GetTasks        = object({ tag: literal('ledger-get-tasks') });
+const GetQueue        = object({ tag: literal('ledger-get-queue') });
+const GetTask         = object({ tag: literal('ledger-get-task'), id: integer() });
+const PatchTaskStatus = object({ tag: literal('ledger-patch-task-status'), id: integer() });
+const PatchTaskRank   = object({ tag: literal('ledger-patch-task-rank'), id: integer() });
 
 export const ledgerRouter = defineRoutes([
   httpRoute(GetTasks, 'GET', 'api/ledger/tasks', {
@@ -32,14 +32,14 @@ export const ledgerRouter = defineRoutes([
   httpRoute(GetQueue, 'GET', 'api/ledger/queue', {
     response: { 200: DisplayGroupsResponse },
   }),
-  httpRoute(GetTask, 'GET', 'api/ledger/tasks/:id', {
+  httpRoute(GetTask, 'GET', 'api/ledger/tasks/#id', {
     response: { 200: TaskEntry, 404: ErrorResponse },
   }),
-  httpRoute(PatchTaskStatus, 'PATCH', 'api/ledger/tasks/:id', {
+  httpRoute(PatchTaskStatus, 'PATCH', 'api/ledger/tasks/#id', {
     body: PatchTaskStatusBody,
     response: { 200: TaskEntry, 404: ErrorResponse },
   }),
-  httpRoute(PatchTaskRank, 'PATCH', 'api/ledger/tasks/:id/rank', {
+  httpRoute(PatchTaskRank, 'PATCH', 'api/ledger/tasks/#id/rank', {
     body: PatchTaskRankBody,
     response: { 200: TaskEntry, 404: ErrorResponse },
   }),

@@ -1,10 +1,12 @@
-import z from 'zod';
+import type z from 'zod';
 import type { RouteNode } from './route-node.js';
+import type { AnyObjectSchema, SchemaIssue } from './schema.js';
+import { parseObjectSchema } from './schema.js';
 import { type Segment, matchSegments } from './segments.js';
 
 export type ParseDiag =
   | { kind: 'segment-mismatch'; path: string; urlSegments: string[] }
-  | { kind: 'schema-error'; path: string; issues: z.core.$ZodIssue[] };
+  | { kind: 'schema-error'; path: string; issues: SchemaIssue[] };
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- WalkNode structural variance; Meta narrowed to expose querySchema */
 export type WalkNode = RouteNode<
@@ -23,10 +25,9 @@ export function getShape(schema: z.ZodObject<any, any>): Record<string, z.z.ZodT
   return typeof s === 'function' ? s() : s;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
-export function getTag(schema: z.ZodObject<any, any>): string | undefined {
-  const tag = getShape(schema)['tag'];
-  return tag instanceof z.ZodLiteral ? (tag.value as string) : undefined;
+export function getTag(schema: AnyObjectSchema): string | undefined {
+  const field = schema.fields['tag'];
+  return field?.kind === 'literal' ? String(field.value) : undefined;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
@@ -45,7 +46,26 @@ export function validateSchema(
 ): Record<string, unknown> | undefined {
   const result = schema.safeParse(value);
   if (!result.success) {
-    diag?.push({ kind: 'schema-error', path, issues: result.error.issues });
+    diag?.push({
+      kind: 'schema-error',
+      path,
+      issues: result.error.issues.map((i) => ({ message: i.message, path: i.path as (string | number)[] })),
+    });
+    return undefined;
+  }
+  return result.data;
+}
+
+function validateNative(
+  schema: AnyObjectSchema,
+  value: unknown,
+  path: string,
+  diag?: ParseDiag[],
+): Record<string, unknown> | undefined {
+  const input = value != null && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  const result = parseObjectSchema(schema, input);
+  if (!result.success) {
+    diag?.push({ kind: 'schema-error', path, issues: result.issues });
     return undefined;
   }
   return result.data;
@@ -79,16 +99,16 @@ function handleLeafNode(
     const rawQuery = extractQueryParams(querySchema, query);
     const queryData = validateSchema(querySchema, rawQuery, node.path, diag);
     if (!queryData) return null;
-    const data = validateSchema(node.schema, raw, node.path, diag);
+    const data = validateNative(node.schema, raw, node.path, diag);
     return data ? { ...filterDefined(data), query: queryData } : null;
   }
-  for (const key of Object.keys(getShape(node.schema))) {
+  for (const key of Object.keys(node.schema.fields)) {
     if (key === 'tag' || key in raw) continue;
     const vals = query.getAll(key);
     if (vals.length > 1) raw[key] = vals;
     else if (vals.length === 1) raw[key] = vals[0];
   }
-  const data = validateSchema(node.schema, raw, node.path, diag);
+  const data = validateNative(node.schema, raw, node.path, diag);
   return data ? filterDefined(data) : null;
 }
 
@@ -149,7 +169,7 @@ export function walkParseIndexed(
     const child = walkParseIndexed(candidates, rest, query, nextParams, diag);
     if (!child) continue;
     if (node.schema === null) return { child };
-    const data = validateSchema(node.schema, { ...nextParams, tag: getTag(node.schema) }, node.path, diag);
+    const data = validateNative(node.schema, { ...nextParams, tag: getTag(node.schema) }, node.path, diag);
     if (!data) continue;
     return { ...filterDefined(data), child };
   }
@@ -179,7 +199,7 @@ export function walkParse(
     const child = walkParse(node.children as WalkNode[], rest, query, nextParams, diag);
     if (!child) continue;
     if (node.schema === null) return { child };
-    const data = validateSchema(node.schema, { ...nextParams, tag: getTag(node.schema) }, node.path, diag);
+    const data = validateNative(node.schema, { ...nextParams, tag: getTag(node.schema) }, node.path, diag);
     if (!data) continue;
     return { ...filterDefined(data), child };
   }

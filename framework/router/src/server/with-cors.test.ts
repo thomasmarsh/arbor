@@ -3,10 +3,11 @@ import z from 'zod';
 import { collectHttpMaps, httpRoute, respond } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
 import type { HttpWalkNode } from '../contexts/http-context.js';
+import { literal, object, string } from '../core/schema.js';
 import { createServer } from './server.js';
 import { withCors } from './with-cors.js';
 
-const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
+const GetUser = object({ tag: literal('get-user'), id: string() });
 const router = defineRoutes([
   httpRoute(GetUser, 'GET', 'users/:id/', { response: { 200: z.object({ id: z.string() }) } }),
 ]);
@@ -126,8 +127,8 @@ describe('withCors — CSRF', () => {
 });
 
 describe('withCors — per-route override', () => {
-  const PublicPost = z.object({ tag: z.literal('list-posts'), slug: z.string() });
-  const AdminDelete = z.object({ tag: z.literal('delete-post'), id: z.string() });
+  const PublicPost = object({ tag: literal('list-posts'), slug: string() });
+  const AdminDelete = object({ tag: literal('delete-post'), id: string() });
   const routerWithCorsRoutes = defineRoutes([
     httpRoute(PublicPost, 'GET', 'posts/:slug/', {
       response: { 200: z.object({ slug: z.string() }) },

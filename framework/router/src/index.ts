@@ -14,6 +14,22 @@ export {
   type ResponseUnion,
   type RouteNode,
 } from './core/define-routes.js';
+export {
+  boolean,
+  email,
+  integer,
+  literal,
+  number,
+  object,
+  optional,
+  string,
+  url,
+  uuid,
+  type AnyObjectSchema,
+  type AnyScalarSchema,
+  type Infer,
+  type SchemaIssue,
+} from './core/schema.js';
 
 // HTTP
 export { createClient, type FetchLike, type TypedClient } from './client/fetch-client.js';

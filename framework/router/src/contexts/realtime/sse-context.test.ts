@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { defineRoutes } from '../../core/define-routes.js';
+import { literal, object } from '../../core/schema.js';
 import type { InferSession, Send } from '../../core/session.js';
 import { createSseClient, type SseFetchLike } from '../../client/sse-client.js';
 import { createSseServer } from '../../server/sse-dispatch.js';
@@ -9,7 +10,7 @@ import { sseRoute, type SseContext, type SseMeta } from './sse-context.js';
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 const EventSchema = z.object({ count: z.number() });
-const ParamSchema = z.object({ tag: z.literal('stream/counter') });
+const ParamSchema = object({ tag: literal('stream/counter') });
 
 const counterRoute = sseRoute(ParamSchema, 'stream/counter', { events: EventSchema });
 const router = defineRoutes([counterRoute]);
@@ -55,7 +56,7 @@ describe('sseRoute types', () => {
 describe('sseRoute runtime', () => {
   it('builds a route node with eventSchema in _meta', () => {
     const r = sseRoute(
-      z.object({ tag: z.literal('test') }),
+      object({ tag: literal('test') }),
       'test',
       { events: z.object({ msg: z.string() }) },
     );

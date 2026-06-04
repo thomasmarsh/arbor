@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import type { InferContext } from '../core/define-routes.js';
+import { literal, object, string } from '../core/schema.js';
 import type { Branch, Dual, InferDual, InferSession, Recv, Select, Send, Session } from '../core/session.js';
 import {
   httpRoute,
@@ -55,7 +56,7 @@ describe('HttpContext', () => {
 });
 
 describe('httpRoute', () => {
-  const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
+  const GetUser = object({ tag: literal('get-user'), id: string() });
   const UserResponse = z.object({ id: z.string(), email: z.string() });
 
   it('creates a RouteNode with HttpContext', () => {
@@ -100,7 +101,7 @@ describe('httpRoute', () => {
   });
 
   it('infers body type from Zod schema', () => {
-    const CreateUser = z.object({ tag: z.literal('create-user') });
+    const CreateUser = object({ tag: literal('create-user') });
     const BodySchema = z.object({ name: z.string(), email: z.string() });
 
     const r = httpRoute(CreateUser, 'POST', 'users/', {
@@ -141,7 +142,7 @@ describe('httpRoute', () => {
   });
 
   describe('body/method type safety', () => {
-    const Schema = z.object({ tag: z.literal('x') });
+    const Schema = object({ tag: literal('x') });
     const BodySchema = z.object({ name: z.string() });
 
     it('GET + body is a type error', () => {
@@ -168,7 +169,7 @@ describe('httpRoute', () => {
   });
 
   it('infers query type from Zod schema', () => {
-    const ListUsers = z.object({ tag: z.literal('list-users') });
+    const ListUsers = object({ tag: literal('list-users') });
     const QuerySchema = z.object({ page: z.number(), search: z.string().optional() });
 
     const r = httpRoute(ListUsers, 'GET', 'users/', {
@@ -182,7 +183,7 @@ describe('httpRoute', () => {
   });
 
   it('stores querySchema in _meta at runtime', () => {
-    const ListUsers = z.object({ tag: z.literal('list-users') });
+    const ListUsers = object({ tag: literal('list-users') });
     const QuerySchema = z.object({ page: z.number() });
 
     const r = httpRoute(ListUsers, 'GET', 'users/', {
@@ -284,7 +285,7 @@ describe('HttpSession annotation', () => {
       ? { [K in keyof Cases]: Cases[K] extends Recv<infer T, Session> ? { status: K; body: T } : never }[keyof Cases]
       : never;
 
-  const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
+  const GetUser = object({ tag: literal('get-user'), id: string() });
   const UserResponse = z.object({ id: z.string(), email: z.string() });
   const ErrorResponse = z.object({ error: z.string() });
 

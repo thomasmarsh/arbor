@@ -2,6 +2,7 @@ import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 import z from 'zod';
 import { httpRoute, desc, respond } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
+import { literal, object, string } from '../core/schema.js';
 import { createMemoryStore } from './rate-limit.js';
 import { createServer, resolveHandler, validateInput, validateResponse, type HandlerMap } from './server.js';
 import type { InferSingleSuccessBody } from '../contexts/http-context.js';
@@ -106,9 +107,9 @@ describe('validateResponse', () => {
 });
 
 describe('createServer', () => {
-  const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
-  const CreateUser = z.object({ tag: z.literal('create-user') });
-  const SearchItems = z.object({ tag: z.literal('search-items') });
+  const GetUser = object({ tag: literal('get-user'), id: string() });
+  const CreateUser = object({ tag: literal('create-user') });
+  const SearchItems = object({ tag: literal('search-items') });
   const UserResp = z.object({ id: z.string(), email: z.string() });
   const ErrorResp = z.object({ error: z.string() });
   const CreateBody = z.object({ name: z.string(), email: z.string() });
@@ -179,7 +180,7 @@ describe('createServer', () => {
   });
 
   describe('response headers', () => {
-    const TaggedWithHeaders = z.object({ tag: z.literal('get-with-headers'), id: z.string() });
+    const TaggedWithHeaders = object({ tag: literal('get-with-headers'), id: string() });
     const HeaderSchema = z.object({ 'x-request-id': z.string() });
     const routerWithHeaders = defineRoutes([
       httpRoute(TaggedWithHeaders, 'GET', 'items/:id/', {
@@ -221,7 +222,7 @@ describe('createServer', () => {
   });
 
   describe('cookies', () => {
-    const SessionRoute = z.object({ tag: z.literal('create-session') });
+    const SessionRoute = object({ tag: literal('create-session') });
     const SessionBody = z.object({ username: z.string() });
     const SessionResp = z.object({ ok: z.boolean() });
     const CsrfCookieSchema = z.object({ 'csrf-token': z.string() });
@@ -305,7 +306,7 @@ describe('createServer', () => {
   });
 
   describe('request headers', () => {
-    const HeaderRoute = z.object({ tag: z.literal('get-with-req-headers'), id: z.string() });
+    const HeaderRoute = object({ tag: literal('get-with-req-headers'), id: string() });
     const ReqHeaderSchema = z.object({
       'x-tenant-id': z.uuid(),
       'accept-language': z.string().optional(),
@@ -484,7 +485,7 @@ describe('createServer', () => {
   });
 
   describe('handleRequest', () => {
-    const UploadRoute = z.object({ tag: z.literal('upload') });
+    const UploadRoute = object({ tag: literal('upload') });
     const UploadBody = z.object({ file: z.instanceof(File) });
     const uploadRouter = defineRoutes([
       httpRoute(UploadRoute, 'POST', 'upload/', {
@@ -560,7 +561,7 @@ describe('createServer', () => {
   });
 
   describe('rate limiting', () => {
-    const LoginSchema = z.object({ tag: z.literal('login') });
+    const LoginSchema = object({ tag: literal('login') });
     const rateLimitedRouter = defineRoutes([
       httpRoute(LoginSchema, 'POST', 'auth/login/', {
         rateLimit: { windowMs: 60_000, maxRequests: 5 },
@@ -712,7 +713,7 @@ describe('createServer', () => {
   });
 
   describe('requires annotation', () => {
-    const AdminSchema = z.object({ tag: z.literal('get-admin') });
+    const AdminSchema = object({ tag: literal('get-admin') });
     const AdminResp = z.object({ ok: z.boolean() });
 
     const adminRouter = defineRoutes([
@@ -774,7 +775,7 @@ describe('createServer', () => {
     });
 
     it('routes without requires are unaffected', async () => {
-      const PublicSchema = z.object({ tag: z.literal('public') });
+      const PublicSchema = object({ tag: literal('public') });
       const mixedRouter = defineRoutes([
         httpRoute(PublicSchema, 'GET', 'public/', { response: { 200: AdminResp } }),
         httpRoute(AdminSchema, 'GET', 'admin/', { requires: ['admin'] as const, response: { 200: AdminResp } }),
@@ -789,7 +790,7 @@ describe('createServer', () => {
   });
 
   describe('IntoResponse — direct body return', () => {
-    const ItemSchema = z.object({ tag: z.literal('get-item'), id: z.string() });
+    const ItemSchema = object({ tag: literal('get-item'), id: string() });
     const ItemResp = z.object({ id: z.string(), name: z.string() });
     const singleStatusRouter = defineRoutes([
       httpRoute(ItemSchema, 'GET', 'items/:id/', { response: { 200: ItemResp } }),

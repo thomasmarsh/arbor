@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { defineRoutes, section, type InferContext } from '../../core/define-routes.js';
+import { integer, literal, object, string } from '../../core/schema.js';
 import { generateSpec } from '../../openapi/generate-spec.js';
 import { createServer } from '../../server/server.js';
 import { respond } from '../http-context.js';
@@ -19,7 +20,7 @@ describe('OpenApiContext', () => {
 });
 
 describe('openApiRoute', () => {
-  const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
+  const GetUser = object({ tag: literal('get-user'), id: string() });
   const UserResp = z.object({ id: z.string(), email: z.string() });
 
   it('creates a RouteNode with OpenApiContext', () => {
@@ -83,8 +84,8 @@ describe('openApiRoute', () => {
 });
 
 describe('generateSpec', () => {
-  const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
-  const CreateUser = z.object({ tag: z.literal('create-user') });
+  const GetUser = object({ tag: literal('get-user'), id: string() });
+  const CreateUser = object({ tag: literal('create-user') });
   const UserResp = z.object({ id: z.string(), email: z.string() });
   const ErrorResp = z.object({ error: z.string() });
   const CreateBody = z.object({ name: z.string(), email: z.string() });
@@ -181,8 +182,8 @@ describe('generateSpec', () => {
   });
 
   describe('nested routes with sections', () => {
-    const ListProjects = z.object({ tag: z.literal('list-projects') });
-    const GetProject = z.object({ tag: z.literal('get-project'), projectId: z.number() });
+    const ListProjects = object({ tag: literal('list-projects') });
+    const GetProject = object({ tag: literal('get-project'), projectId: integer() });
     const ProjectResp = z.object({ id: z.number(), name: z.string() });
 
     const nestedRouter = defineRoutes([
@@ -221,12 +222,12 @@ describe('generateSpec', () => {
   });
 
   describe('schema types the old hand-rolled converter could not handle', () => {
-    const ListTags = z.object({ tag: z.literal('list-tags') });
+    const ListTags = object({ tag: literal('list-tags') });
     const TagResp = z.object({ tags: z.array(z.string()) });
     const SearchResult = z.object({
       result: z.union([z.object({ id: z.string() }), z.object({ error: z.string() })]),
     });
-    const SearchRoute = z.object({ tag: z.literal('search') });
+    const SearchRoute = object({ tag: literal('search') });
 
     const extRouter = defineRoutes([
       openApiRoute(ListTags, 'GET', 'tags/', {
@@ -274,7 +275,7 @@ describe('generateSpec', () => {
   });
 
   describe('wildcard routes', () => {
-    const FileRoute = z.object({ tag: z.literal('get-file') });
+    const FileRoute = object({ tag: literal('get-file') });
     const FileResp = z.object({ content: z.string() });
 
     const wildcardRouter = defineRoutes([

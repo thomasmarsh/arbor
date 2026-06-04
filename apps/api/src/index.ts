@@ -65,7 +65,8 @@ app.all('/api/*', async (c) => {
   const url = new URL(c.req.url);
   const method = c.req.method;
   const ct = c.req.header('content-type') ?? '';
-  const body: unknown = ct.startsWith('application/json') ? await c.req.json() as unknown : undefined;
+  const hasBody = method !== 'GET' && method !== 'HEAD' && method !== 'DELETE';
+  const body: unknown = hasBody && ct.startsWith('application/json') ? await c.req.json() as unknown : undefined;
   const headers: Record<string, string> = {};
   c.req.raw.headers.forEach((v, k) => { headers[k] = v; });
 

@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { defineRoutes } from '../../core/define-routes.js';
+import { literal, object } from '../../core/schema.js';
 import type { InferSession, Recv, Send } from '../../core/session.js';
 import { createWsClient, type WsConnectFn } from '../../client/ws-client.js';
 import { createWsServer } from '../../server/ws-dispatch.js';
@@ -16,7 +17,7 @@ import {
 
 const InSchema = z.object({ text: z.string() });
 const OutSchema = z.object({ reply: z.string() });
-const ParamSchema = z.object({ tag: z.literal('ws/chat') });
+const ParamSchema = object({ tag: literal('ws/chat') });
 
 const chatRoute = wsRoute(ParamSchema, 'ws/chat', { in: InSchema, out: OutSchema });
 const router = defineRoutes([chatRoute]);
@@ -61,7 +62,7 @@ describe('wsRoute types', () => {
 describe('wsRoute runtime', () => {
   it('builds a route node with inSchema/outSchema in _meta', () => {
     const r = wsRoute(
-      z.object({ tag: z.literal('ws/test') }),
+      object({ tag: literal('ws/test') }),
       'ws/test',
       { in: z.object({ msg: z.string() }), out: z.object({ ack: z.string() }) },
     );

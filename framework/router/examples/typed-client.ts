@@ -1,11 +1,11 @@
 // Typed HTTP client: options object API, request headers, TypedClient utility type.
 import z from 'zod';
 import type { FetchLike, TypedClient } from '../src/index.js';
-import { createClient, createServer, defineRoutes, httpRoute, respond } from '../src/index.js';
+import { createClient, createServer, defineRoutes, httpRoute, literal, object, respond } from '../src/index.js';
 
 const AuthHeader = z.object({ authorization: z.string() });
-const GetMe = z.object({ tag: z.literal('get-me') });
-const CreatePost = z.object({ tag: z.literal('create-post') });
+const GetMe = object({ tag: literal('get-me') });
+const CreatePost = object({ tag: literal('create-post') });
 const MeResp = z.object({ id: z.string(), name: z.string() });
 const PostBody = z.object({ title: z.string() });
 const PostResp = z.object({ id: z.string(), title: z.string() });

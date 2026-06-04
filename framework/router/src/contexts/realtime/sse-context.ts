@@ -3,6 +3,7 @@
 import type z from 'zod';
 import { buildable, type BuildableRouteNode } from '../../core/define-routes.js';
 import type { RouteNode } from '../../core/route-node.js';
+import type { AnyObjectSchema, Infer } from '../../core/schema.js';
 import { parseSegments } from '../../core/segments.js';
 import type { Send, SessionMeta } from '../../core/session.js';
 import { walkCollect } from '../../core/walk.js';
@@ -34,14 +35,14 @@ export function collectSseSchemaMaps(nodes: SseWalkNode[]): Record<string, z.Zod
 // ─── Factory ──────────────────────────────────────────────────────────────────
 
 export function sseRoute<
-  ZS extends z.ZodObject<any, any>,
+  ZS extends AnyObjectSchema,
   E,
 >(
   schema: ZS,
   path: string,
   opts: { events: z.ZodType<E> },
-): BuildableRouteNode<RouteNode<z.infer<ZS>, [], SseContext<E>, never, SseMeta<E>>> {
-  return buildable<RouteNode<z.infer<ZS>, [], SseContext<E>, never, SseMeta<E>>>({
+): BuildableRouteNode<RouteNode<Infer<ZS>, [], SseContext<E>, never, SseMeta<E>>> {
+  return buildable<RouteNode<Infer<ZS>, [], SseContext<E>, never, SseMeta<E>>>({
     _type: undefined as never,
     schema,
     path,

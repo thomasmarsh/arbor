@@ -4,12 +4,14 @@ import { httpRoute, respond } from '../contexts/http-context.js';
 import { createClient } from '../client/fetch-client.js';
 import { createServer } from '../server/server.js';
 import { defineRoutes, route, section, type InferRoute, type ResponseUnion } from './define-routes.js';
+import { integer, literal, object, string } from './schema.js';
+
 
 // --- Fixtures ---
 
-const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
-const CreateUser = z.object({ tag: z.literal('create-user') });
-const SearchItems = z.object({ tag: z.literal('search-items') });
+const GetUser = object({ tag: literal('get-user'), id: string() });
+const CreateUser = object({ tag: literal('create-user') });
+const SearchItems = object({ tag: literal('search-items') });
 const UserResp = z.object({ id: z.string(), email: z.string() });
 const ErrorResp = z.object({ error: z.string() });
 const CreateBody = z.object({ name: z.string(), email: z.string() });
@@ -22,11 +24,11 @@ const httpRouter = defineRoutes([
   httpRoute(SearchItems, 'GET', 'items/', { query: SearchQuery, response: { 200: SearchResp } }),
 ]);
 
-const Org = z.object({ tag: z.literal('org'), orgId: z.string() });
-const Users = z.object({ tag: z.literal('users') });
-const User = z.object({ tag: z.literal('user'), id: z.string() });
-const Settings = z.object({ tag: z.literal('settings') });
-const Project = z.object({ tag: z.literal('project'), projectId: z.number() });
+const Org = object({ tag: literal('org'), orgId: string() });
+const Users = object({ tag: literal('users') });
+const User = object({ tag: literal('user'), id: string() });
+const Settings = object({ tag: literal('settings') });
+const Project = object({ tag: literal('project'), projectId: integer() });
 
 const orgRouter = defineRoutes([route(Org, 'orgs/:orgId/')]);
 const userRouter = defineRoutes([
@@ -169,9 +171,9 @@ describe('CtxMap body types', () => {
 });
 
 describe('CtxMap section recursion', () => {
-  const Hello = z.object({ tag: z.literal('hello') });
+  const Hello = object({ tag: literal('hello') });
   const HelloResp = z.object({ message: z.string() });
-  const GetTask = z.object({ tag: z.literal('get-task'), id: z.coerce.number() });
+  const GetTask = object({ tag: literal('get-task'), id: integer() });
   const TaskResp = z.object({ id: z.number(), title: z.string() });
 
   const helloRouter = defineRoutes([
@@ -203,9 +205,9 @@ describe('CtxMap section recursion', () => {
 });
 
 describe('section(path, router) — Plan 153', () => {
-  const Hello = z.object({ tag: z.literal('hello') });
+  const Hello = object({ tag: literal('hello') });
   const HelloResp = z.object({ message: z.string() });
-  const GetTask = z.object({ tag: z.literal('get-task'), id: z.coerce.number() });
+  const GetTask = object({ tag: literal('get-task'), id: integer() });
   const TaskResp = z.object({ id: z.number(), title: z.string() });
 
   const helloSubRouter = defineRoutes([

@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, it } from 'vitest';
-import z from 'zod';
+import { object, string } from './schema.js';
 import type {
   Branch,
   Channel,
@@ -109,7 +109,7 @@ describe('SessionMeta', () => {
 // ─── sessionRoute ─────────────────────────────────────────────────────────────
 
 describe('sessionRoute', () => {
-  const schema = z.object({ id: z.string() });
+  const schema = object({ id: string() });
   const _node = sessionRoute(schema, '/ws/:id', {} as Send<string, Recv<string>>);
 
   it('_meta carries SessionMeta with the declared S', () => {

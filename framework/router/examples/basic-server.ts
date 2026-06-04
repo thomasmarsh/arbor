@@ -1,8 +1,8 @@
 // Minimal HTTP server: one GET route, in-memory dispatch.
 import z from 'zod';
-import { createServer, defineRoutes, httpRoute, respond } from '../src/index.js';
+import { createServer, defineRoutes, httpRoute, literal, object, respond, string } from '../src/index.js';
 
-const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
+const GetUser = object({ tag: literal('get-user'), id: string() });
 const UserResp = z.object({ id: z.string(), name: z.string() });
 
 const router = defineRoutes([

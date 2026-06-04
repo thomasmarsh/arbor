@@ -1,6 +1,7 @@
 import type z from 'zod';
 import { type BuildableRouteNode, buildable } from '../core/define-routes.js';
 import type { RouteNode } from '../core/route-node.js';
+import type { AnyObjectSchema, Infer } from '../core/schema.js';
 import { parseSegments } from '../core/segments.js';
 import type { Recv, Select, Send, Session, SessionMeta } from '../core/session.js';
 import { walkCollect } from '../core/walk.js';
@@ -181,9 +182,9 @@ export type SafeBodyOption<M extends HttpMethod> =
 
 export interface SessionCtx { userId: string; roles: string[] }
 
-/* eslint-disable @typescript-eslint/no-explicit-any -- httpRoute uses any for Zod/RouteNode structural type params */
+/* eslint-disable @typescript-eslint/no-explicit-any -- httpRoute uses any for RouteNode structural type params */
 export function httpRoute<
-  S extends z.ZodObject<any, any>,
+  S extends AnyObjectSchema,
   Method extends HttpMethod,
   C extends RouteNode<unknown, any, any, any, any, any>[] = [],
   Body = never,
@@ -199,7 +200,7 @@ export function httpRoute<
   options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H; cookies?: CK; requires?: Req; rateLimit?: { windowMs: number; maxRequests: number }; cors?: CorsConfig } & SafeBodyOption<Method>,
   children?: [...C],
 ): BuildableRouteNode<RouteNode<
-  z.infer<S> & (Q extends z.ZodObject<any, any> ? { query: z.infer<Q> } : unknown),
+  Infer<S> & (Q extends z.ZodObject<any, any> ? { query: z.infer<Q> } : unknown),
   [...C],
   HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never, H extends z.ZodObject<any, any> ? z.infer<H> : never, CK extends z.ZodObject<any, any> ? z.infer<CK> : never, Req extends readonly string[] ? SessionCtx : never>,
   never,

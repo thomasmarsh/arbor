@@ -1,5 +1,5 @@
 import { Result } from '@arbor/common';
-import type z from 'zod';
+import type { AnyObjectSchema, Infer } from './schema.js';
 import type { ChildUnion, CtxMap, ExtractPathParams, RouteNode } from './route-node.js';
 import type { AnyCtxMap, RouterContract } from './router-contract.js';
 import { parseSegments } from './segments.js';
@@ -55,11 +55,10 @@ export {
 export type { ParseDiag } from './walk.js';
 
 export function route<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject/RouteNode require any for Zod/variance
-  S extends z.ZodObject<any, any>,
+  S extends AnyObjectSchema,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RouteNode type params require any for structural variance
   C extends RouteNode<unknown, any, any, any, any, any>[] = [],
->(schema: S, path: string, children?: [...C]): BuildableRouteNode<RouteNode<z.infer<S>, [...C]>> {
+>(schema: S, path: string, children?: [...C]): BuildableRouteNode<RouteNode<Infer<S>, [...C]>> {
   return buildable({
     _type: undefined as never,
 

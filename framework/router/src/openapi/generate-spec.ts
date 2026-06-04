@@ -1,7 +1,8 @@
 import z from 'zod';
 import type { RouteNode } from '../core/define-routes.js';
+import type { AnyObjectSchema, AnyScalarSchema, StringConstraints } from '../core/schema.js';
 import type { Segment } from '../core/segments.js';
-import { getShape, getTag } from '../core/walk.js';
+import { getTag } from '../core/walk.js';
 import { getOpenApiMeta, type OpenApiCtxData, type OpenApiWalkNode } from '../contexts/openapi/openapi-context.js';
 
 function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
@@ -35,10 +36,6 @@ function segmentToParam(seg: Segment): Record<string, unknown> | null {
   }
 }
 
-function isRequired(s: z.ZodType): boolean {
-  return !(s instanceof z.ZodOptional) && !(s instanceof z.ZodDefault);
-}
-
 function buildPathParams(segments: Segment[]): [Record<string, unknown>[], Set<string>] {
   const params = segments.map(segmentToParam).filter(Boolean) as Record<string, unknown>[];
   const names = new Set(
@@ -49,14 +46,37 @@ function buildPathParams(segments: Segment[]): [Record<string, unknown>[], Set<s
   return [params, names];
 }
 
+function flattenStringConstraints(c?: StringConstraints): Record<string, unknown> {
+  if (!c) return {};
+  const out: Record<string, unknown> = {};
+  if (c.format) out['format'] = c.format;
+  if (c.minLength !== undefined) out['minLength'] = c.minLength;
+  if (c.maxLength !== undefined) out['maxLength'] = c.maxLength;
+  if (c.pattern) out['pattern'] = c.pattern;
+  return out;
+}
+
+function scalarToJsonSchema(s: AnyScalarSchema): Record<string, unknown> {
+  switch (s.kind) {
+    case 'string':  return { type: 'string', ...flattenStringConstraints(s.constraints) };
+    case 'number':  return { type: 'number', ...s.constraints };
+    case 'integer': return { type: 'integer', ...s.constraints };
+    case 'boolean': return { type: 'boolean' };
+    case 'literal': return { const: s.value };
+    case 'optional': return scalarToJsonSchema(s.inner);
+    case 'brand':   return scalarToJsonSchema(s.inner);
+  }
+}
+
 function buildQueryParams(
-  shape: Record<string, z.ZodType>,
+  schema: AnyObjectSchema,
   pathParamNames: Set<string>,
 ): Record<string, unknown>[] {
   const params: Record<string, unknown>[] = [];
-  for (const [key, val] of Object.entries(shape)) {
+  for (const [key, field] of Object.entries(schema.fields)) {
     if (key === 'tag' || pathParamNames.has(key)) continue;
-    params.push({ name: key, in: 'query', required: isRequired(val), schema: zodToJsonSchema(val) });
+    const required = field.kind !== 'optional';
+    params.push({ name: key, in: 'query', required, schema: scalarToJsonSchema(field) });
   }
   return params;
 }
@@ -67,7 +87,7 @@ function buildHeaderParams(headerSchema: z.ZodObject<any, any>): Record<string, 
   return Object.entries(shape).map(([name, fieldSchema]) => ({
     name,
     in: 'header',
-    required: isRequired(fieldSchema),
+    required: !(fieldSchema instanceof z.ZodOptional) && !(fieldSchema instanceof z.ZodDefault),
     schema: zodToJsonSchema(fieldSchema),
   }));
 }
@@ -135,7 +155,7 @@ function walkSpec(
       const path = '/' + segments.map(segmentToOpenApi).join('/');
 
       const [pathParams, pathParamNames] = buildPathParams(segments);
-      const queryParams = buildQueryParams(getShape(node.schema), pathParamNames);
+      const queryParams = buildQueryParams(node.schema, pathParamNames);
       const headerParams = ctx.headerSchema ? buildHeaderParams(ctx.headerSchema) : [];
       const parameters = [...pathParams, ...queryParams, ...headerParams];
 

@@ -3,12 +3,13 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { desc, httpRoute } from '../contexts/http-context.js';
 import { defineRoutes } from '../core/define-routes.js';
+import { literal, object, string } from '../core/schema.js';
 import { createClient, type FetchLike, type TypedClient } from './fetch-client.js';
 
 describe('createClient', () => {
-  const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
-  const CreateUser = z.object({ tag: z.literal('create-user') });
-  const SearchItems = z.object({ tag: z.literal('search-items') });
+  const GetUser = object({ tag: literal('get-user'), id: string() });
+  const CreateUser = object({ tag: literal('create-user') });
+  const SearchItems = object({ tag: literal('search-items') });
   const UserResp = z.object({ id: z.string(), email: z.string() });
   const ErrorResp = z.object({ error: z.string() });
   const CreateBody = z.object({ name: z.string(), email: z.string() });
@@ -17,7 +18,7 @@ describe('createClient', () => {
 
   const AuthHeader = z.object({ authorization: z.string() });
   const RespHeader = z.object({ 'x-request-id': z.string() });
-  const ProtectedRoute = z.object({ tag: z.literal('protected') });
+  const ProtectedRoute = object({ tag: literal('protected') });
   const HeaderResp = z.object({ id: z.string() });
 
   const router = defineRoutes([

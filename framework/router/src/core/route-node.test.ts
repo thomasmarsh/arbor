@@ -1,5 +1,5 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import z from 'zod';
+import { object, literal, string } from './schema.js';
 import { route } from './define-routes.js';
 import type {
   ChildUnion,
@@ -56,7 +56,7 @@ describe('InferRoute', () => {
 
 describe('InferContext', () => {
   it('extracts never from a route() node', () => {
-    const node = route(z.object({ tag: z.literal('user'), id: z.string() }), ':id/');
+    const node = route(object({ tag: literal('user'), id: string() }), ':id/');
     expect(node.context).toBeUndefined();
     expectTypeOf<InferContext<typeof node>>().toEqualTypeOf<never>();
   });

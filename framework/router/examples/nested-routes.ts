@@ -1,10 +1,9 @@
 // Multi-level route tree: parse produces nested objects; print() reconstructs URLs.
-import z from 'zod';
-import { defineRoutes, route } from '../src/index.js';
+import { defineRoutes, literal, object, route, string } from '../src/index.js';
 
-const Users = z.object({ tag: z.literal('users') });
-const User = z.object({ tag: z.literal('user'), id: z.string() });
-const Settings = z.object({ tag: z.literal('settings') });
+const Users = object({ tag: literal('users') });
+const User = object({ tag: literal('user'), id: string() });
+const Settings = object({ tag: literal('settings') });
 
 const router = defineRoutes([
   route(Users, 'users', [

@@ -1,9 +1,9 @@
 // Generate an OpenAPI 3.1 spec from the router — pipe to `jq` for pretty printing.
 import z from 'zod';
-import { defineRoutes, generateSpec, httpRoute } from '../src/index.js';
+import { defineRoutes, generateSpec, httpRoute, literal, object, string } from '../src/index.js';
 
-const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
-const CreateUser = z.object({ tag: z.literal('create-user') });
+const GetUser = object({ tag: literal('get-user'), id: string() });
+const CreateUser = object({ tag: literal('create-user') });
 const CreateUserBody = z.object({ name: z.string(), email: z.string() });
 const UserResp = z.object({ id: z.string(), name: z.string(), email: z.string() });
 const ErrorResp = z.object({ error: z.string() });

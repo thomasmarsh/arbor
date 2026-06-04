@@ -1,10 +1,10 @@
 // Typed server-sent events: sseRoute declares the event schema; the handler
 // returns AsyncIterable<E>; the client's subscribe() yields the same type.
 import z from 'zod';
-import { type SseFetchLike, createSseClient, createSseServer, defineRoutes, sseRoute } from '../src/index.js';
+import { type SseFetchLike, createSseClient, createSseServer, defineRoutes, literal, object, sseRoute } from '../src/index.js';
 
 const TickEvent = z.object({ tick: z.number(), ts: z.number() });
-const TickSchema = z.object({ tag: z.literal('stream/ticks') });
+const TickSchema = object({ tag: literal('stream/ticks') });
 
 const router = defineRoutes([
   sseRoute(TickSchema, 'stream/ticks', { events: TickEvent }),

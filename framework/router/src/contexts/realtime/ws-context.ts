@@ -3,6 +3,7 @@
 import type z from 'zod';
 import { buildable, type BuildableRouteNode } from '../../core/define-routes.js';
 import type { RouteNode } from '../../core/route-node.js';
+import type { AnyObjectSchema, Infer } from '../../core/schema.js';
 import { parseSegments } from '../../core/segments.js';
 import type { Recv, Send, Session, SessionMeta } from '../../core/session.js';
 import { walkCollect } from '../../core/walk.js';
@@ -74,15 +75,15 @@ export function collectWsMetaMap(nodes: WsWalkNode[]): Record<string, WsMeta<unk
 // ─── Factory ──────────────────────────────────────────────────────────────────
 
 export function wsRoute<
-  ZS extends z.ZodObject<any, any>,
+  ZS extends AnyObjectSchema,
   In,
   Out,
 >(
   schema: ZS,
   path: string,
   opts: { in: z.ZodType<In>; out: z.ZodType<Out> },
-): BuildableRouteNode<RouteNode<z.infer<ZS>, [], WsContext<In, Out>, never, WsMeta<In, Out>>> {
-  return buildable<RouteNode<z.infer<ZS>, [], WsContext<In, Out>, never, WsMeta<In, Out>>>({
+): BuildableRouteNode<RouteNode<Infer<ZS>, [], WsContext<In, Out>, never, WsMeta<In, Out>>> {
+  return buildable<RouteNode<Infer<ZS>, [], WsContext<In, Out>, never, WsMeta<In, Out>>>({
     _type: undefined as never,
     schema,
     path,

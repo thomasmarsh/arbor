@@ -3,6 +3,7 @@
 import type z from 'zod';
 import type { RouteNode } from '../../core/define-routes.js';
 import { type BuildableRouteNode, buildable } from '../../core/define-routes.js';
+import type { AnyObjectSchema, Infer } from '../../core/schema.js';
 import { parseSegments } from '../../core/segments.js';
 import type {
   HttpContext,
@@ -42,7 +43,7 @@ type InferResponseMap<R extends Record<number, z.ZodType>> = {
 };
 
 export function openApiRoute<
-  S extends z.ZodObject<any, any>,
+  S extends AnyObjectSchema,
   Method extends HttpMethod,
   C extends RouteNode<unknown, any, any, any, any, any>[] = [],
   Body = never,
@@ -55,7 +56,7 @@ export function openApiRoute<
   children?: [...C],
 ): BuildableRouteNode<
   RouteNode<
-    z.infer<S>,
+    Infer<S>,
     [...C],
     OpenApiContext<Method, Body, InferResponseMap<Res>>,
     never,

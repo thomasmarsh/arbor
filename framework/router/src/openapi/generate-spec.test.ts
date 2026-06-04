@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import z from 'zod';
 import { defineRoutes, section } from '../core/define-routes.js';
+import { integer, literal, object, string } from '../core/schema.js';
 import { openApiRoute } from '../contexts/openapi/openapi-context.js';
 import { generateSpec } from './generate-spec.js';
 
-const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
-const CreateUser = z.object({ tag: z.literal('create-user') });
-const ListProjects = z.object({ tag: z.literal('list-projects') });
-const GetProject = z.object({ tag: z.literal('get-project'), projectId: z.number() });
+const GetUser = object({ tag: literal('get-user'), id: string() });
+const CreateUser = object({ tag: literal('create-user') });
+const ListProjects = object({ tag: literal('list-projects') });
+const GetProject = object({ tag: literal('get-project'), projectId: integer() });
 const UserResp = z.object({ id: z.string(), email: z.string() });
 const ErrorResp = z.object({ error: z.string() });
 const CreateBody = z.object({ name: z.string(), email: z.string() });
@@ -264,7 +265,7 @@ describe('generateSpec snapshot', () => {
 
 describe('discriminated union response', () => {
   it('emits discriminator.propertyName in the response schema', () => {
-    const Schema = z.object({ tag: z.literal('get-event'), id: z.string() });
+    const Schema = object({ tag: literal('get-event'), id: string() });
     const EventBody = z.discriminatedUnion('kind', [
       z.object({ kind: z.literal('created'), at: z.string() }),
       z.object({ kind: z.literal('deleted'), reason: z.string() }),

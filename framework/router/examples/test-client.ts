@@ -1,9 +1,9 @@
 // createTestClient: in-memory typed client for test suites — no boilerplate needed.
 import z from 'zod';
-import { createTestClient, defineRoutes, httpRoute, respond } from '../src/index.js';
+import { createTestClient, defineRoutes, httpRoute, literal, object, respond, string } from '../src/index.js';
 
-const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
-const CreateUser = z.object({ tag: z.literal('create-user') });
+const GetUser = object({ tag: literal('get-user'), id: string() });
+const CreateUser = object({ tag: literal('create-user') });
 const UserResp = z.object({ id: z.string(), name: z.string() });
 const CreateBody = z.object({ name: z.string() });
 
