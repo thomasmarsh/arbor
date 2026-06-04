@@ -62,8 +62,7 @@ function validateNative(
   path: string,
   diag?: ParseDiag[],
 ): Record<string, unknown> | undefined {
-  const input = value != null && typeof value === 'object' ? (value as Record<string, unknown>) : {};
-  const result = parseObjectSchema(schema, input);
+  const result = parseObjectSchema(schema, value);
   if (!result.success) {
     diag?.push({ kind: 'schema-error', path, issues: result.issues });
     return undefined;

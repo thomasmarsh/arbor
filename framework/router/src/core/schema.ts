@@ -80,12 +80,13 @@ export interface SchemaIssue { message: string; path?: (string | number)[] }
 
 export function parseObjectSchema(
   schema: AnyObjectSchema,
-  input: Record<string, unknown>,
+  input: unknown,
 ): { success: true; data: Record<string, unknown> } | { success: false; issues: SchemaIssue[] } {
+  const record = input != null && typeof input === 'object' ? (input as Record<string, unknown>) : {};
   const data: Record<string, unknown> = {};
   const issues: SchemaIssue[] = [];
   for (const [key, field] of Object.entries(schema.fields)) {
-    const result = parseScalar(field, input[key]);
+    const result = parseScalar(field, record[key]);
     if (result.ok) data[key] = result.value;
     else issues.push({ message: result.message, path: [key] });
   }
