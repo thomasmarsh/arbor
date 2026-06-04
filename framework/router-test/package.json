@@ -25,6 +25,7 @@
     "@arbor/router": "workspace:*",
     "@types/node": "^22.0.0",
     "typescript": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "vitest": "catalog:",
     "zod": "catalog:"
   }

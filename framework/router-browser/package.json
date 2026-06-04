@@ -24,6 +24,7 @@
   "devDependencies": {
     "@arbor/router": "workspace:*",
     "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "catalog:",
     "jsdom": "^25.0.0",
     "typescript": "catalog:",
     "vitest": "catalog:"

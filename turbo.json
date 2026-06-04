@@ -28,7 +28,8 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": []
+      "env": ["CI"],
+      "outputs": ["test-results/**", "coverage/**"]
     },
     "dev": {
       "cache": false,

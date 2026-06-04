@@ -33,6 +33,7 @@
   "devDependencies": {
     "@effect/platform-browser": "^0.76.0",
     "@types/react": "^19.0.0",
+    "@vitest/coverage-v8": "catalog:",
     "effect": "^3.21.2",
     "fast-check": "catalog:",
     "react": "^19.0.0",

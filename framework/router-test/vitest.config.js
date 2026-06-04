@@ -17,5 +17,13 @@ export default defineConfig({
     root: __dirname,
     environment: 'node',
     include: ['src/**/*.test.ts'],
+    reporters: process.env.CI
+      ? ['default', ['junit', { outputFile: 'test-results/junit.xml' }]]
+      : ['default'],
+    coverage: {
+      enabled: !!process.env.CI,
+      provider: 'v8',
+      reporter: ['text', 'json', 'json-summary'],
+    },
   },
 });
