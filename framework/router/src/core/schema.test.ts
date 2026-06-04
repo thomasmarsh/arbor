@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  type AnyObjectSchema,
   boolean,
   integer,
   literal,
@@ -56,7 +57,7 @@ describe('parseObjectSchema', () => {
 });
 
 describe('parseScalar cases', () => {
-  const parse = (schema: ReturnType<typeof object>, input: Record<string, unknown>) =>
+  const parse = (schema: AnyObjectSchema, input: Record<string, unknown>) =>
     parseObjectSchema(schema, input);
 
   describe('string', () => {
