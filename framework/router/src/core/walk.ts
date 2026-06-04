@@ -1,7 +1,6 @@
-import type z from 'zod';
 import type { RouteNode } from './route-node.js';
-import type { AnyObjectSchema, SchemaIssue } from './schema.js';
-import { parseObjectSchema } from './schema.js';
+import type { AnyObjectSchema, AnyUserSchema, SchemaIssue } from './schema.js';
+import { parseObjectSchema, syncValidate } from './schema.js';
 import { type Segment, matchSegments } from './segments.js';
 
 export type ParseDiag =
@@ -19,41 +18,37 @@ export type WalkNode = RouteNode<
 >;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
-export function getShape(schema: z.ZodObject<any, any>): Record<string, z.z.ZodType> {
-  const s = schema.shape as Record<string, z.z.ZodType> | (() => Record<string, z.z.ZodType>);
-  return typeof s === 'function' ? s() : s;
-}
-
 export function getTag(schema: AnyObjectSchema): string | undefined {
   const field = schema.fields['tag'];
   return field?.kind === 'literal' ? String(field.value) : undefined;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
-export function resolveQuerySchema(node: WalkNode): z.ZodObject<any, any> | undefined {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- WalkNode.Meta is any; assert querySchema shape for safe access
-  const meta = node._meta as { querySchema?: z.ZodObject<any, any> } | undefined;
+export function resolveQuerySchema(node: WalkNode): AnyUserSchema | undefined {
+  const meta = node._meta as { querySchema?: AnyUserSchema } | undefined;
   return meta?.querySchema;
 }
 
 export function validateSchema(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
-  schema: z.ZodObject<any, any>,
+  schema: AnyUserSchema,
   value: unknown,
   path: string,
   diag?: ParseDiag[],
 ): Record<string, unknown> | undefined {
-  const result = schema.safeParse(value);
-  if (!result.success) {
+  const result = syncValidate(schema, value);
+  if ('issues' in result) {
     diag?.push({
       kind: 'schema-error',
       path,
-      issues: result.error.issues.map((i) => ({ message: i.message, path: i.path as (string | number)[] })),
+      issues: result.issues.map((i) => {
+        const issuePath = i.path?.map((seg) =>
+          typeof seg === 'object' && 'key' in seg ? seg.key as string | number : seg as string | number,
+        );
+        return issuePath?.length ? { message: i.message, path: issuePath } : { message: i.message };
+      }),
     });
     return undefined;
   }
-  return result.data;
+  return result.value as Record<string, unknown>;
 }
 
 function validateNative(
@@ -74,13 +69,11 @@ function filterDefined(data: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
-function extractQueryParams(schema: z.ZodObject<any, any>, query: URLSearchParams): Record<string, unknown> {
+function extractQueryParams(query: URLSearchParams): Record<string, unknown> {
   const raw: Record<string, unknown> = {};
-  for (const key of Object.keys(getShape(schema))) {
+  for (const key of new Set(query.keys())) {
     const vals = query.getAll(key);
-    if (vals.length > 1) raw[key] = vals;
-    else if (vals.length === 1) raw[key] = vals[0];
+    raw[key] = vals.length > 1 ? vals : vals[0];
   }
   return raw;
 }
@@ -95,7 +88,7 @@ function handleLeafNode(
   const raw: Record<string, unknown> = { ...params, tag: getTag(node.schema) };
   const querySchema = resolveQuerySchema(node);
   if (querySchema) {
-    const rawQuery = extractQueryParams(querySchema, query);
+    const rawQuery = extractQueryParams(query);
     const queryData = validateSchema(querySchema, rawQuery, node.path, diag);
     if (!queryData) return null;
     const data = validateNative(node.schema, raw, node.path, diag);

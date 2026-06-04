@@ -5,6 +5,7 @@ import type { RouteNode } from '../core/route-node.js';
 import type { SseContext, SseWalkNode } from '../contexts/realtime/sse-context.js';
 import { walkCollect } from '../core/walk.js';
 import { getSseMeta } from '../contexts/realtime/sse-context.js';
+import { syncValidate } from '../core/schema.js';
 
 // ─── Transport abstraction ────────────────────────────────────────────────────
 
@@ -95,7 +96,8 @@ export function createSseClient<
                   const dataLine = frame.split('\n').find((l) => l.startsWith('data: '));
                   if (dataLine) {
                     const raw = JSON.parse(dataLine.slice(6)) as unknown;
-                    const value = (schema ? schema.parse(raw) : raw) as Map[Tag]['events'];
+                    const parsed = schema ? syncValidate(schema, raw) : null;
+                    const value = (parsed && !('issues' in parsed) ? parsed.value : raw) as Map[Tag]['events'];
                     return { value, done: false };
                   }
                   continue;

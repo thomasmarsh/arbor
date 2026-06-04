@@ -1,7 +1,6 @@
-import type z from 'zod';
 import { type BuildableRouteNode, buildable } from '../core/define-routes.js';
 import type { RouteNode } from '../core/route-node.js';
-import type { AnyObjectSchema, Infer } from '../core/schema.js';
+import type { AnyObjectSchema, AnyUserSchema, InferUserSchema, UserSchema, Infer } from '../core/schema.js';
 import { parseSegments } from '../core/segments.js';
 import type { Recv, Select, Send, Session, SessionMeta } from '../core/session.js';
 import { walkCollect } from '../core/walk.js';
@@ -39,15 +38,13 @@ export type InferHttpSession<Route> =
 export interface HttpContextData {
   method: HttpMethod;
   requires?: readonly string[];
-  bodySchema?: z.ZodType;
-  responseSchemas?: Record<number, z.ZodType>;
-  /* eslint-disable @typescript-eslint/no-explicit-any -- Zod schema fields require any for z.ZodObject shape param */
-  responseHeaderSchemas?: Record<number, z.ZodObject<any, any>>;
-  responseCookieSchemas?: Record<number, z.ZodObject<any, any>>;
-  querySchema?: z.ZodObject<any, any>;
-  headerSchema?: z.ZodObject<any, any>;
-  cookieSchema?: z.ZodObject<any, any>;
-  /* eslint-enable @typescript-eslint/no-explicit-any */
+  bodySchema?: AnyUserSchema;
+  responseSchemas?: Record<number, AnyUserSchema>;
+  responseHeaderSchemas?: Record<number, AnyUserSchema>;
+  responseCookieSchemas?: Record<number, AnyUserSchema>;
+  querySchema?: AnyUserSchema;
+  headerSchema?: AnyUserSchema;
+  cookieSchema?: AnyUserSchema;
   rateLimit?: { windowMs: number; maxRequests: number };
   cors?: CorsConfig;
 }
@@ -61,11 +58,11 @@ export function getHttpMeta(node: HttpWalkNode): HttpContextData | undefined {
 
 export function collectHttpMaps(nodes: HttpWalkNode[]): {
   methodMap: Record<string, string>;
-  bodySchemaMap: Record<string, z.ZodType>;
-  headerSchemaMap: Record<string, z.ZodType>;
-  cookieSchemaMap: Record<string, z.ZodType>;
-  responseHeaderSchemaMap: Record<string, Record<number, z.ZodType>>;
-  responseCookieSchemaMap: Record<string, Record<number, z.ZodType>>;
+  bodySchemaMap: Record<string, AnyUserSchema>;
+  headerSchemaMap: Record<string, AnyUserSchema>;
+  cookieSchemaMap: Record<string, AnyUserSchema>;
+  responseHeaderSchemaMap: Record<string, Record<number, AnyUserSchema>>;
+  responseCookieSchemaMap: Record<string, Record<number, AnyUserSchema>>;
   rateLimitMap: Record<string, { windowMs: number; maxRequests: number }>;
   corsMap: Record<string, CorsConfig>;
   requiresMap: Record<string, readonly string[]>;
@@ -76,8 +73,8 @@ export function collectHttpMaps(nodes: HttpWalkNode[]): {
     bodySchemaMap:            walkCollect(nodes, (n) => getHttpMeta(n)?.bodySchema),
     headerSchemaMap:          walkCollect(nodes, (n) => getHttpMeta(n)?.headerSchema),
     cookieSchemaMap:          walkCollect(nodes, (n) => getHttpMeta(n)?.cookieSchema),
-    responseHeaderSchemaMap:  walkCollect(nodes, (n) => getHttpMeta(n)?.responseHeaderSchemas) as Record<string, Record<number, z.ZodType>>,
-    responseCookieSchemaMap:  walkCollect(nodes, (n) => getHttpMeta(n)?.responseCookieSchemas) as Record<string, Record<number, z.ZodType>>,
+    responseHeaderSchemaMap:  walkCollect(nodes, (n) => getHttpMeta(n)?.responseHeaderSchemas),
+    responseCookieSchemaMap:  walkCollect(nodes, (n) => getHttpMeta(n)?.responseCookieSchemas),
     rateLimitMap:             walkCollect(nodes, (n) => getHttpMeta(n)?.rateLimit),
     corsMap:                  walkCollect(nodes, (n) => getHttpMeta(n)?.cors),
     requiresMap:              walkCollect(nodes, (n) => getHttpMeta(n)?.requires),
@@ -122,25 +119,22 @@ export interface HttpContext<
 }
 
 // A response descriptor object with an explicit _desc discriminant.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
-interface ResponseDescriptorObj { _desc: true; body: z.ZodType; headers?: z.ZodObject<any, any>; cookies?: z.ZodObject<any, any> }
-// A response for a single status code: either a bare Zod body schema or an explicit descriptor.
-type ResponseDescriptor = z.ZodType | ResponseDescriptorObj;
+interface ResponseDescriptorObj { _desc: true; body: AnyUserSchema; headers?: AnyUserSchema; cookies?: AnyUserSchema }
+// A response for a single status code: either a bare user schema or an explicit descriptor.
+type ResponseDescriptor = AnyUserSchema | ResponseDescriptorObj;
 
-/* eslint-disable @typescript-eslint/no-explicit-any -- InferResponseDescriptor infers from z.ZodObject which requires any */
 type InferResponseDescriptor<D> =
-  D extends z.ZodType
-    ? z.infer<D>
-    : D extends { _desc: true; body: infer B extends z.ZodType; headers: infer H extends z.ZodObject<any, any>; cookies: infer CK extends z.ZodObject<any, any> }
-      ? { body: z.infer<B>; headers: z.infer<H>; cookies: z.infer<CK> }
-      : D extends { _desc: true; body: infer B extends z.ZodType; headers: infer H extends z.ZodObject<any, any> }
-        ? { body: z.infer<B>; headers: z.infer<H> }
-        : D extends { _desc: true; body: infer B extends z.ZodType; cookies: infer CK extends z.ZodObject<any, any> }
-          ? { body: z.infer<B>; cookies: z.infer<CK> }
-          : D extends { _desc: true; body: infer B extends z.ZodType }
-            ? z.infer<B>
+  D extends AnyUserSchema
+    ? InferUserSchema<D>
+    : D extends { _desc: true; body: infer B extends AnyUserSchema; headers: infer H extends AnyUserSchema; cookies: infer CK extends AnyUserSchema }
+      ? { body: InferUserSchema<B>; headers: InferUserSchema<H>; cookies: InferUserSchema<CK> }
+      : D extends { _desc: true; body: infer B extends AnyUserSchema; headers: infer H extends AnyUserSchema }
+        ? { body: InferUserSchema<B>; headers: InferUserSchema<H> }
+        : D extends { _desc: true; body: infer B extends AnyUserSchema; cookies: infer CK extends AnyUserSchema }
+          ? { body: InferUserSchema<B>; cookies: InferUserSchema<CK> }
+          : D extends { _desc: true; body: infer B extends AnyUserSchema }
+            ? InferUserSchema<B>
             : never;
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 type InferResponseMap<R extends Record<number, ResponseDescriptor>> = {
   [K in keyof R]: InferResponseDescriptor<R[K]>;
@@ -168,17 +162,16 @@ export function respond(status: number, body: unknown, opts?: Record<string, unk
   return opts ? { status, body, ...opts } : { status, body };
 }
 
-export function desc<B extends z.ZodType>(body: B): { _desc: true; body: B };
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
-export function desc<B extends z.ZodType, O extends { headers?: z.ZodObject<any, any>; cookies?: z.ZodObject<any, any> }>(
+export function desc<B extends AnyUserSchema>(body: B): { _desc: true; body: B };
+export function desc<B extends AnyUserSchema, O extends { headers?: AnyUserSchema; cookies?: AnyUserSchema }>(
   body: B, opts: O,
 ): { _desc: true; body: B } & O;
-export function desc(body: z.ZodType, opts?: Record<string, unknown>) {
+export function desc(body: AnyUserSchema, opts?: Record<string, unknown>) {
   return opts ? { _desc: true as const, body, ...opts } : { _desc: true as const, body };
 }
 
 export type SafeBodyOption<M extends HttpMethod> =
-  M extends 'GET' | 'HEAD' | 'DELETE' ? { body?: never } : { body?: z.ZodType };
+  M extends 'GET' | 'HEAD' | 'DELETE' ? { body?: never } : { body?: AnyUserSchema };
 
 export interface SessionCtx { userId: string; roles: string[] }
 
@@ -189,26 +182,26 @@ export function httpRoute<
   C extends RouteNode<unknown, any, any, any, any, any>[] = [],
   Body = never,
   Res extends Record<number, ResponseDescriptor> = Record<number, ResponseDescriptor>,
-  Q extends z.ZodObject<any, any> | undefined = undefined,
-  H extends z.ZodObject<any, any> | undefined = undefined,
-  CK extends z.ZodObject<any, any> | undefined = undefined,
+  Q extends AnyUserSchema | undefined = undefined,
+  H extends AnyUserSchema | undefined = undefined,
+  CK extends AnyUserSchema | undefined = undefined,
   Req extends readonly string[] | undefined = undefined,
 >(
   schema: S,
   method: Method,
   path: string,
-  options: { body?: z.ZodType<Body>; response: Res; query?: Q; headers?: H; cookies?: CK; requires?: Req; rateLimit?: { windowMs: number; maxRequests: number }; cors?: CorsConfig } & SafeBodyOption<Method>,
+  options: { body?: UserSchema<Body>; response: Res; query?: Q; headers?: H; cookies?: CK; requires?: Req; rateLimit?: { windowMs: number; maxRequests: number }; cors?: CorsConfig } & SafeBodyOption<Method>,
   children?: [...C],
 ): BuildableRouteNode<RouteNode<
-  Infer<S> & (Q extends z.ZodObject<any, any> ? { query: z.infer<Q> } : unknown),
+  Infer<S> & (Q extends AnyUserSchema ? { query: InferUserSchema<Q> } : unknown),
   [...C],
-  HttpContext<Method, Body, InferResponseMap<Res>, Q extends z.ZodObject<any, any> ? z.infer<Q> : never, H extends z.ZodObject<any, any> ? z.infer<H> : never, CK extends z.ZodObject<any, any> ? z.infer<CK> : never, Req extends readonly string[] ? SessionCtx : never>,
+  HttpContext<Method, Body, InferResponseMap<Res>, Q extends AnyUserSchema ? InferUserSchema<Q> : never, H extends AnyUserSchema ? InferUserSchema<H> : never, CK extends AnyUserSchema ? InferUserSchema<CK> : never, Req extends readonly string[] ? SessionCtx : never>,
   never,
   HttpContextData & SessionMeta<HttpSession<InferResponseMap<Res>>>
 >> {
-  const responseSchemas: Record<number, z.ZodType> = {};
-  const responseHeaderSchemas: Record<number, z.ZodObject<any, any>> = {};
-  const responseCookieSchemas: Record<number, z.ZodObject<any, any>> = {};
+  const responseSchemas: Record<number, AnyUserSchema> = {};
+  const responseHeaderSchemas: Record<number, AnyUserSchema> = {};
+  const responseCookieSchemas: Record<number, AnyUserSchema> = {};
   /* eslint-enable @typescript-eslint/no-explicit-any */
   let hasHeaderSchemas = false;
   let hasCookieSchemas = false;
@@ -223,7 +216,7 @@ export function httpRoute<
       if (d.headers) { responseHeaderSchemas[s] = d.headers; hasHeaderSchemas = true; }
       if (d.cookies) { responseCookieSchemas[s] = d.cookies; hasCookieSchemas = true; }
     } else {
-      responseSchemas[s] = descriptor as z.ZodType;
+      responseSchemas[s] = descriptor as AnyUserSchema;
     }
   }
 

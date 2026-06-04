@@ -1,7 +1,8 @@
-import type z from 'zod';
 import type { HttpContext, HttpMethod, HttpResponse, HttpResponseUnion, InferSingleSuccessBody, SessionCtx } from '../contexts/http-context.js';
 import { collectHttpMaps } from '../contexts/http-context.js';
 import type { HttpWalkNode } from '../contexts/http-context.js';
+import type { AnyUserSchema } from '../core/schema.js';
+import { syncValidate } from '../core/schema.js';
 import type { AnyCtxMap, RouterContract } from '../core/router-contract.js';
 import { createMemoryStore, type RateLimitStore } from './rate-limit.js';
 import { parseBody } from './parse-body.js';
@@ -86,15 +87,15 @@ function extractParams(route: Record<string, unknown>): Record<string, unknown> 
 }
 
 export function validateInput(
-  schema: z.ZodType | undefined,
+  schema: AnyUserSchema | undefined,
   value: unknown,
   errorMsg: string,
   fallback?: unknown,
 ): { ok: true; data: unknown } | { ok: false; status: 400; body: { error: string } } {
   if (!schema) return { ok: true, data: fallback };
-  const r = schema.safeParse(value);
-  if (!r.success) return { ok: false, status: 400, body: { error: errorMsg } };
-  return { ok: true, data: r.data };
+  const r = syncValidate(schema, value);
+  if ('issues' in r) return { ok: false, status: 400, body: { error: errorMsg } };
+  return { ok: true, data: r.value };
 }
 
 export function resolveHandler(
@@ -111,16 +112,16 @@ export function resolveHandler(
 
 export function validateResponse(
   result: { status: number; headers?: Record<string, string>; cookies?: Record<string, string> },
-  headerSchemas: Record<number, z.ZodType> | undefined,
-  cookieSchemas: Record<number, z.ZodType> | undefined,
+  headerSchemas: Record<number, AnyUserSchema> | undefined,
+  cookieSchemas: Record<number, AnyUserSchema> | undefined,
 ): { ok: true } | { ok: false; status: 500; body: { error: string } } {
   if (headerSchemas && result.headers) {
     const schema = headerSchemas[result.status];
-    if (schema && !schema.safeParse(result.headers).success) return { ok: false, status: 500, body: { error: 'invalid response headers' } };
+    if (schema && 'issues' in syncValidate(schema, result.headers)) return { ok: false, status: 500, body: { error: 'invalid response headers' } };
   }
   if (cookieSchemas && result.cookies) {
     const schema = cookieSchemas[result.status];
-    if (schema && !schema.safeParse(result.cookies).success) return { ok: false, status: 500, body: { error: 'invalid response cookies' } };
+    if (schema && 'issues' in syncValidate(schema, result.cookies)) return { ok: false, status: 500, body: { error: 'invalid response cookies' } };
   }
   return { ok: true };
 }

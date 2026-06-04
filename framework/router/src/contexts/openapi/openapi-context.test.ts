@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { defineRoutes, section, type InferContext } from '../../core/define-routes.js';
+import type { AnyUserSchema } from '../../core/schema.js';
 import { integer, literal, object, string } from '../../core/schema.js';
 import { generateSpec } from '../../openapi/generate-spec.js';
 import { createServer } from '../../server/server.js';
@@ -40,7 +41,7 @@ describe('openApiRoute', () => {
     const r = openApiRoute(GetUser, 'GET', 'users/:id/', {
       response: { 200: UserResp },
     });
-    expectTypeOf(r._meta!.responseSchemas!).toEqualTypeOf<Record<number, z.ZodType>>();
+    expectTypeOf(r._meta!.responseSchemas!).toEqualTypeOf<Record<number, AnyUserSchema>>();
   });
 
   it('infers OpenApiContext with meta field', () => {

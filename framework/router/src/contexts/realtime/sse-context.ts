@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type z from 'zod';
 import { buildable, type BuildableRouteNode } from '../../core/define-routes.js';
 import type { RouteNode } from '../../core/route-node.js';
-import type { AnyObjectSchema, Infer } from '../../core/schema.js';
+import type { AnyObjectSchema, AnyUserSchema, UserSchema, Infer } from '../../core/schema.js';
 import { parseSegments } from '../../core/segments.js';
 import type { Send, SessionMeta } from '../../core/session.js';
 import { walkCollect } from '../../core/walk.js';
@@ -18,7 +17,7 @@ export interface SseContext<E> {
 // _meta shape: runtime schema + session type annotation (Send<E> for tooling in plan 90/91)
 export interface SseMeta<E> extends SessionMeta<Send<E>> {
   readonly __sseMeta?: E;
-  readonly eventSchema: z.ZodType<E>;
+  readonly eventSchema: UserSchema<E>;
 }
 
 export type SseWalkNode = RouteNode<unknown, any, any, any, SseMeta<any>>;
@@ -28,7 +27,7 @@ export function getSseMeta(node: RouteNode<unknown, any, any, any, any, any>): S
   return meta && 'eventSchema' in meta ? meta : undefined;
 }
 
-export function collectSseSchemaMaps(nodes: SseWalkNode[]): Record<string, z.ZodType> {
+export function collectSseSchemaMaps(nodes: SseWalkNode[]): Record<string, AnyUserSchema> {
   return walkCollect(nodes, (n) => getSseMeta(n)?.eventSchema);
 }
 
@@ -40,7 +39,7 @@ export function sseRoute<
 >(
   schema: ZS,
   path: string,
-  opts: { events: z.ZodType<E> },
+  opts: { events: UserSchema<E> },
 ): BuildableRouteNode<RouteNode<Infer<ZS>, [], SseContext<E>, never, SseMeta<E>>> {
   return buildable<RouteNode<Infer<ZS>, [], SseContext<E>, never, SseMeta<E>>>({
     _type: undefined as never,

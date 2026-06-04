@@ -1,18 +1,22 @@
 import z from 'zod';
 import type { RouteNode } from '../core/define-routes.js';
-import type { AnyObjectSchema, AnyScalarSchema, StringConstraints } from '../core/schema.js';
+import type { AnyObjectSchema, AnyScalarSchema, AnyUserSchema, StringConstraints } from '../core/schema.js';
 import type { Segment } from '../core/segments.js';
 import { getTag } from '../core/walk.js';
 import { getOpenApiMeta, type OpenApiCtxData, type OpenApiWalkNode } from '../contexts/openapi/openapi-context.js';
 
-function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
-  const { $schema: _, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
-  // z.toJSONSchema emits oneOf for discriminated unions but omits the OAS 3.1
-  // discriminator field. Add it so code generators can use fast-path dispatch.
-  if (schema instanceof z.ZodDiscriminatedUnion) {
-    return { ...rest, discriminator: { propertyName: schema.def.discriminator } };
+function tryJsonSchema(schema: AnyUserSchema): Record<string, unknown> {
+  if (schema instanceof z.ZodType) {
+    const { $schema: _, ...rest } = z.toJSONSchema(schema) as Record<string, unknown>;
+    if (schema instanceof z.ZodDiscriminatedUnion) {
+      return { ...rest, discriminator: { propertyName: schema.def.discriminator } };
+    }
+    return rest;
   }
-  return rest;
+  if (typeof (schema as unknown as { toJsonSchema?: unknown }).toJsonSchema === 'function') {
+    return (schema as unknown as { toJsonSchema: () => Record<string, unknown> }).toJsonSchema();
+  }
+  return {};
 }
 
 function segmentToOpenApi(seg: Segment): string {
@@ -81,14 +85,14 @@ function buildQueryParams(
   return params;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- z.ZodObject requires any for Zod shape param
-function buildHeaderParams(headerSchema: z.ZodObject<any, any>): Record<string, unknown>[] {
+function buildHeaderParams(headerSchema: AnyUserSchema): Record<string, unknown>[] {
+  if (!(headerSchema instanceof z.ZodObject)) return [];
   const shape = headerSchema.shape as Record<string, z.ZodType>;
   return Object.entries(shape).map(([name, fieldSchema]) => ({
     name,
     in: 'header',
     required: !(fieldSchema instanceof z.ZodOptional) && !(fieldSchema instanceof z.ZodDefault),
-    schema: zodToJsonSchema(fieldSchema),
+    schema: tryJsonSchema(fieldSchema),
   }));
 }
 
@@ -107,10 +111,10 @@ function buildOperationMeta(
   return op;
 }
 
-function buildRequestBody(bodySchema: z.ZodType): Record<string, unknown> {
+function buildRequestBody(bodySchema: AnyUserSchema): Record<string, unknown> {
   return {
     required: true,
-    content: { 'application/json': { schema: zodToJsonSchema(bodySchema) } },
+    content: { 'application/json': { schema: tryJsonSchema(bodySchema) } },
   };
 }
 
@@ -120,12 +124,12 @@ function buildResponses(ctx: OpenApiCtxData): Record<string, unknown> {
     const headerSchema = ctx.responseHeaderSchemas?.[Number(status)];
     const entry: Record<string, unknown> = {
       description: 'Response',
-      content: { 'application/json': { schema: zodToJsonSchema(respSchema) } },
+      content: { 'application/json': { schema: tryJsonSchema(respSchema) } },
     };
-    if (headerSchema) {
+    if (headerSchema && headerSchema instanceof z.ZodObject) {
       const shape = headerSchema.shape as Record<string, z.ZodType>;
       entry['headers'] = Object.fromEntries(
-        Object.entries(shape).map(([name, fs]) => [name, { schema: zodToJsonSchema(fs) }]),
+        Object.entries(shape).map(([name, fs]) => [name, { schema: tryJsonSchema(fs) }]),
       );
     }
     responses[status] = entry;

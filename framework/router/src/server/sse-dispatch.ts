@@ -4,6 +4,7 @@ import type { Result } from '@arbor/common';
 import type { RouteNode } from '../core/route-node.js';
 import { walkCollect } from '../core/walk.js';
 import { type SseContext, type SseWalkNode, getSseMeta } from '../contexts/realtime/sse-context.js';
+import { syncValidate } from '../core/schema.js';
 
 // ─── Handler types ────────────────────────────────────────────────────────────
 
@@ -90,7 +91,8 @@ export function createSseServer<
           try {
             const iterable = await Promise.resolve(handler({ params })) as AsyncIterable<unknown>;
             for await (const event of iterable) {
-              const validated = schema ? schema.parse(event) : event;
+              const r = schema ? syncValidate(schema, event) : null;
+              const validated = (r && !('issues' in r)) ? r.value : event;
               controller.enqueue(encoder.encode(serializeEvent(validated)));
             }
           } catch {

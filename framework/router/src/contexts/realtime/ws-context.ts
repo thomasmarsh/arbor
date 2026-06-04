@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type z from 'zod';
 import { buildable, type BuildableRouteNode } from '../../core/define-routes.js';
 import type { RouteNode } from '../../core/route-node.js';
-import type { AnyObjectSchema, Infer } from '../../core/schema.js';
+import type { AnyObjectSchema, UserSchema, Infer } from '../../core/schema.js';
+import { syncValidate } from '../../core/schema.js';
 import { parseSegments } from '../../core/segments.js';
 import type { Recv, Send, Session, SessionMeta } from '../../core/session.js';
 import { walkCollect } from '../../core/walk.js';
@@ -57,8 +57,8 @@ export interface WsContext<In, Out> {
 
 export interface WsMeta<In, Out> extends SessionMeta<Recv<In, Send<Out>>> {
   readonly __wsMeta?: [In, Out];
-  readonly inSchema: z.ZodType<In>;
-  readonly outSchema: z.ZodType<Out>;
+  readonly inSchema: UserSchema<In>;
+  readonly outSchema: UserSchema<Out>;
 }
 
 export type WsWalkNode = RouteNode<unknown, any, any, any, WsMeta<any, any>>;
@@ -81,7 +81,7 @@ export function wsRoute<
 >(
   schema: ZS,
   path: string,
-  opts: { in: z.ZodType<In>; out: z.ZodType<Out> },
+  opts: { in: UserSchema<In>; out: UserSchema<Out> },
 ): BuildableRouteNode<RouteNode<Infer<ZS>, [], WsContext<In, Out>, never, WsMeta<In, Out>>> {
   return buildable<RouteNode<Infer<ZS>, [], WsContext<In, Out>, never, WsMeta<In, Out>>>({
     _type: undefined as never,
@@ -136,15 +136,17 @@ export function createWsAdapterPair(): [WsAdapter, WsAdapter] {
 
 export function buildWsChannel<RecvT, SendT>(
   adapter: WsAdapter,
-  recvSchema: z.ZodType<RecvT>,
-  sendSchema: z.ZodType<SendT>,
+  recvSchema: UserSchema<RecvT>,
+  sendSchema: UserSchema<SendT>,
 ): { messages: AsyncIterable<RecvT>; send(v: SendT): void; close(): void } {
   const queue: RecvT[] = [];
   const waiters: ((r: IteratorResult<RecvT>) => void)[] = [];
   let closed = false;
 
   adapter.onMessage((raw) => {
-    const value = recvSchema.parse(JSON.parse(raw));
+    const parsed = syncValidate(recvSchema, JSON.parse(raw));
+    if ('issues' in parsed) throw new Error(`Invalid WebSocket message: ${parsed.issues[0]?.message ?? 'unknown'}`);
+    const value = parsed.value;
     if (waiters.length > 0) {
       (waiters.shift() as (r: IteratorResult<RecvT>) => void)({ value, done: false });
     } else {
@@ -177,7 +179,11 @@ export function buildWsChannel<RecvT, SendT>(
 
   return {
     messages,
-    send(v: SendT) { adapter.send(JSON.stringify(sendSchema.parse(v))); },
+    send(v: SendT) {
+      const parsed = syncValidate(sendSchema, v);
+      if ('issues' in parsed) throw new Error(`Invalid WebSocket send value: ${parsed.issues[0]?.message ?? 'unknown'}`);
+      adapter.send(JSON.stringify(parsed.value));
+    },
     close() { adapter.close(); },
   };
 }

@@ -11,23 +11,30 @@ clients, and OpenAPI spec generation — all without codegen.
 ## Install
 
 ```sh
-pnpm add @arbor/router zod
+pnpm add @arbor/router
+```
+
+Add a schema library for request/response validation (any [Standard Schema v1](https://standardschema.dev)
+library works — Zod, Valibot, ArkType, etc.):
+
+```sh
+pnpm add zod   # or valibot, @ark/type, etc.
 ```
 
 ---
 
 ## Define routes
 
-Every route has a Zod schema with a `tag: z.literal(...)` field. The tag is the runtime
-discriminant; path parameters are additional fields.
+Every route has a schema with a `tag: literal(...)` field. The tag is the runtime
+discriminant; path parameters are additional fields. Use the built-in schema factories
+(`object`, `literal`, `string`, `integer`, …) for route and param schemas.
 
 ```typescript
-import z from 'zod';
-import { defineRoutes, route, httpRoute, respond } from '@arbor/router';
+import { defineRoutes, route, object, literal, string } from '@arbor/router';
 
-const Users    = z.object({ tag: z.literal('users') });
-const User     = z.object({ tag: z.literal('user'), id: z.string() });
-const Settings = z.object({ tag: z.literal('settings') });
+const Users    = object({ tag: literal('users') });
+const User     = object({ tag: literal('user'), id: string() });
+const Settings = object({ tag: literal('settings') });
 
 const router = defineRoutes([
   route(Users, 'users', [
@@ -64,7 +71,10 @@ TypeScript narrows each `tag` branch fully — `route.child.id` is `string` when
 feeds `createServer()` and `createClient()`.
 
 ```typescript
-const GetUser  = z.object({ tag: z.literal('get-user'), id: z.string() });
+import z from 'zod';
+import { defineRoutes, httpRoute, object, literal, string } from '@arbor/router';
+
+const GetUser  = object({ tag: literal('get-user'), id: string() });
 const UserResp = z.object({ id: z.string(), name: z.string() });
 
 const router = defineRoutes([
@@ -76,6 +86,10 @@ const router = defineRoutes([
   }),
 ]);
 ```
+
+Body, response, query, header, and cookie schemas accept any **Standard Schema v1** library
+(Zod, Valibot, ArkType, …). Route and param schemas (the first argument to `httpRoute`,
+`route`, etc.) use the built-in native factories.
 
 ---
 
@@ -142,11 +156,14 @@ const client = createClient('http://localhost', router, { fetch: mockFetch });
 
 ## Query parameters
 
-Declare a `query` Zod schema on the route; it is parsed and coerced separately from path
-params. The validated result arrives at `ctx.query` in handlers.
+Declare a `query` schema on the route (any Standard Schema v1 library); it is parsed and
+coerced separately from path params. The validated result arrives at `ctx.query` in handlers.
 
 ```typescript
-const SearchItems = z.object({ tag: z.literal('search-items') });
+import z from 'zod';
+import { defineRoutes, httpRoute, object, literal } from '@arbor/router';
+
+const SearchItems = object({ tag: literal('search-items') });
 const SearchQuery = z.object({
   q: z.string(),
   page: z.coerce.number().default(1),
@@ -279,7 +296,11 @@ const corsMiddleware = withCors({
 router and produces an OpenAPI 3.1 document.
 
 ```typescript
-import { openApiRoute, generateSpec } from '@arbor/router';
+import z from 'zod';
+import { openApiRoute, generateSpec, object, literal, string } from '@arbor/router';
+
+const GetUser  = object({ tag: literal('get-user'), id: string() });
+const UserResp = z.object({ id: z.string(), name: z.string() });
 
 const router = defineRoutes([
   openApiRoute(GetUser, 'GET', 'users/:id', {
@@ -301,9 +322,9 @@ parameters (useful for multi-tenant or versioned APIs where the prefix itself ca
 semantic data).
 
 ```typescript
-import { section, defineRoutes } from '@arbor/router';
+import { section, defineRoutes, object, string } from '@arbor/router';
 
-const TenantSection = z.object({ tenantId: z.string() });
+const TenantSection = object({ tenantId: string() });
 
 const router = defineRoutes([
   section(TenantSection, 'tenants/:tenantId', [
@@ -324,14 +345,17 @@ router.print({ tag: 'dashboard' }, { tenantId: 'acme' });
 `createSseClient()` returns the same `AsyncIterable<EventType>` derived from the declared
 schema — no manual type duplication.
 
-```typescript
-import { sseRoute, createSseServer, createSseClient } from '@arbor/router';
+The `events` schema accepts any Standard Schema v1 library.
 
-const Feed = z.object({ tag: z.literal('feed') });
+```typescript
+import z from 'zod';
+import { sseRoute, createSseServer, createSseClient, object, literal } from '@arbor/router';
+
+const Feed      = object({ tag: literal('feed') });
 const FeedEvent = z.object({ msg: z.string(), ts: z.number() });
 
 const router = defineRoutes([
-  sseRoute(Feed, 'stream/feed', { event: FeedEvent }),
+  sseRoute(Feed, 'stream/feed', { events: FeedEvent }),
 ]);
 
 // Server:
@@ -353,14 +377,17 @@ for await (const event of client.subscribe({ tag: 'feed' })) {
 
 ## Typed WebSocket channels
 
-`wsRoute()` attaches `{ in, out }` Zod schemas to a route. The server receives
+`wsRoute()` attaches `{ in, out }` user-defined schemas to a route. The server receives
 `Recv<In, Send<Out>>`; the client automatically receives `Send<In, Recv<Out>>` — the
 dual — as a compile-time guarantee. Mismatches are type errors.
 
-```typescript
-import { wsRoute, createWsServer, createWsClient } from '@arbor/router';
+The `in` and `out` schemas accept any Standard Schema v1 library.
 
-const Chat = z.object({ tag: z.literal('chat') });
+```typescript
+import z from 'zod';
+import { wsRoute, createWsServer, createWsClient, object, literal } from '@arbor/router';
+
+const Chat = object({ tag: literal('chat') });
 
 const router = defineRoutes([
   wsRoute(Chat, 'ws/chat', {

@@ -1,5 +1,5 @@
 // Native schema types and factories for route-level schemas (path params, tags).
-// Body/response/query schemas remain Zod until plan 165.
+// Body/response/query schemas use UserSchema (Standard Schema v1 structural interface).
 
 export interface StringConstraints {
   format?: 'email' | 'url' | 'uuid' | 'cuid' | 'ulid' | 'datetime' | 'date' | 'time';
@@ -73,6 +73,45 @@ export const object = <F extends Record<string, AnyScalarSchema>>(
 export const email = (c?: Omit<StringConstraints, 'format'>): StringSchema => string({ format: 'email', ...c });
 export const uuid  = (c?: Omit<StringConstraints, 'format'>): StringSchema => string({ format: 'uuid',  ...c });
 export const url   = (c?: Omit<StringConstraints, 'format'>): StringSchema => string({ format: 'url',   ...c });
+
+// ─── User-controlled schema interface (Standard Schema v1 structural subset) ──
+//
+// Zod v4, Valibot, and ArkType all satisfy this via structural typing.
+// Do not import from @standard-schema/spec — keep the interface inlined here.
+
+// Standard Schema v1 structural interface (subset sufficient for our use).
+// Zod v4, Valibot, and ArkType all satisfy this via structural typing.
+
+export interface UserSchemaIssue {
+  readonly message: string;
+  // Path segments vary by library; kept broad to satisfy exactOptionalPropertyTypes.
+  readonly path?: readonly (string | number | symbol | { readonly key: string | number | symbol })[] | undefined;
+}
+
+// validate() may return a Promise per the Standard Schema spec; call sites cast to sync.
+// Success branch has no `issues` property so `'issues' in result` narrows correctly.
+export type UserSchemaValidateResult<T> =
+  | { readonly value: T }
+  | { readonly issues: readonly UserSchemaIssue[] };
+
+export interface UserSchema<T> {
+  readonly '~standard': {
+    readonly validate: (value: unknown) => UserSchemaValidateResult<T> | Promise<UserSchemaValidateResult<T>>;
+  };
+}
+
+export type AnyUserSchema = UserSchema<unknown>;
+
+export type InferUserSchema<S> = S extends UserSchema<infer T> ? T : never;
+
+export interface SchemaValidationError {
+  issues: readonly { readonly message: string }[];
+}
+
+// Call-site helper: casts the validate() result to sync.
+// Zod v4, Valibot, and ArkType all validate synchronously in practice.
+export const syncValidate = <T>(schema: UserSchema<T>, value: unknown): UserSchemaValidateResult<T> =>
+  schema['~standard'].validate(value) as UserSchemaValidateResult<T>;
 
 // ─── Runtime validation ───────────────────────────────────────────────────────
 

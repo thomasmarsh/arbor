@@ -1,7 +1,8 @@
 import { Result } from '@arbor/common';
-import type z from 'zod';
 import type { HttpContext, HttpResponseUnion } from '../contexts/http-context.js';
 import { getHttpMeta, type HttpWalkNode } from '../contexts/http-context.js';
+import type { SchemaValidationError } from '../core/schema.js';
+import { syncValidate } from '../core/schema.js';
 import type { AnyCtxMap, RouterContract } from '../core/router-contract.js';
 import { walkCollect } from '../core/walk.js';
 
@@ -43,7 +44,7 @@ export interface TypedClient<
     opts?: RequestOpts<Map[Tag]>,
   ): Promise<
     Validate extends true
-      ? Result<HttpResponseUnion<Map[Tag]['response']>, z.ZodError>
+      ? Result<HttpResponseUnion<Map[Tag]['response']>, SchemaValidationError>
       : HttpResponseUnion<Map[Tag]['response']>
   >;
 }
@@ -102,9 +103,9 @@ export function createClient<
       if (validate) {
         const schema = responseSchemaMap[tag]?.[response.status];
         if (schema) {
-          const parsed = schema.safeParse(responseBody);
-          if (!parsed.success) {
-            return Result.err(parsed.error);
+          const parsed = syncValidate(schema, responseBody);
+          if ('issues' in parsed) {
+            return Result.err({ issues: parsed.issues });
           }
         }
         return Result.ok(responseObj);

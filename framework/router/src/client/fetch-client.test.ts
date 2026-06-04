@@ -2,6 +2,7 @@ import type { Result } from '@arbor/common';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { desc, httpRoute } from '../contexts/http-context.js';
+import type { SchemaValidationError } from '../core/schema.js';
 import { defineRoutes } from '../core/define-routes.js';
 import { literal, object, string } from '../core/schema.js';
 import { createClient, type FetchLike, type TypedClient } from './fetch-client.js';
@@ -312,7 +313,7 @@ describe('createClient', () => {
           Result<
             | { status: 200; body: { id: string; email: string } }
             | { status: 404; body: { error: string } },
-            z.ZodError
+            SchemaValidationError
           >
         >
       >();

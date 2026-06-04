@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type z from 'zod';
 import type { RouteNode } from '../../core/define-routes.js';
 import { type BuildableRouteNode, buildable } from '../../core/define-routes.js';
-import type { AnyObjectSchema, Infer } from '../../core/schema.js';
+import type { AnyObjectSchema, AnyUserSchema, InferUserSchema, UserSchema, Infer } from '../../core/schema.js';
 import { parseSegments } from '../../core/segments.js';
 import type {
   HttpContext,
@@ -38,8 +37,8 @@ export interface OpenApiContext<
   meta: OpenApiMeta;
 }
 
-type InferResponseMap<R extends Record<number, z.ZodType>> = {
-  [K in keyof R]: z.infer<R[K]>;
+type InferResponseMap<R extends Record<number, AnyUserSchema>> = {
+  [K in keyof R]: InferUserSchema<R[K]>;
 };
 
 export function openApiRoute<
@@ -47,12 +46,12 @@ export function openApiRoute<
   Method extends HttpMethod,
   C extends RouteNode<unknown, any, any, any, any, any>[] = [],
   Body = never,
-  Res extends Record<number, z.ZodType> = Record<number, z.ZodType>,
+  Res extends Record<number, AnyUserSchema> = Record<number, AnyUserSchema>,
 >(
   schema: S,
   method: Method,
   path: string,
-  options: { body?: z.ZodType<Body>; response: Res; meta?: OpenApiMeta } & SafeBodyOption<Method>,
+  options: { body?: UserSchema<Body>; response: Res; meta?: OpenApiMeta } & SafeBodyOption<Method>,
   children?: [...C],
 ): BuildableRouteNode<
   RouteNode<
@@ -73,7 +72,7 @@ export function openApiRoute<
     _meta: {
       method,
       ...(options.body ? { bodySchema: options.body } : {}),
-      responseSchemas: options.response as Record<number, z.ZodType>,
+      responseSchemas: options.response as Record<number, AnyUserSchema>,
       ...(options.meta ? { meta: options.meta } : {}),
     } satisfies OpenApiCtxData,
   });
