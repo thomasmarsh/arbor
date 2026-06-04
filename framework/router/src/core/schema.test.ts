@@ -50,7 +50,7 @@ describe('parseObjectSchema', () => {
   describe('null / non-object input (validateNative guard)', () => {
     it('treats null input as empty object', () => {
       const schema = object({ q: optional(string()) });
-      const result = parseObjectSchema(schema, null as unknown as Record<string, unknown>);
+      const result = parseObjectSchema(schema, null);
       expect(result.success).toBe(true);
     });
   });

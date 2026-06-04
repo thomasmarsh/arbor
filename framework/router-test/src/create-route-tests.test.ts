@@ -1,17 +1,17 @@
 import * as fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import z from 'zod';
-import { defineRoutes, httpRoute, respond } from '@arbor/router';
+import { defineRoutes, httpRoute, literal, object, respond, string } from '@arbor/router';
 import { zodToArbitrary } from './arbitraries.js';
 import { createRouteTests } from './create-route-tests.js';
 
 // ─── fixtures ────────────────────────────────────────────────────────────────
 
-const GetUser = z.object({ tag: z.literal('get-user'), id: z.string() });
+const GetUser = object({ tag: literal('get-user'), id: string() });
 const UserBody = z.object({ id: z.string(), name: z.string() });
 const ErrorBody = z.object({ error: z.string() });
 
-const CreateItem = z.object({ tag: z.literal('create-item') });
+const CreateItem = object({ tag: literal('create-item') });
 const ItemBody = z.object({ name: z.string() });
 const CreatedBody = z.object({ id: z.string() });
 

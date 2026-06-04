@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as fc from 'fast-check';
-import type { AnyCtxMap, HandlerMap, RouterContract } from '@arbor/router';
+import type { AnyCtxMap, AnyObjectSchema, AnyScalarSchema, HandlerMap, RouterContract } from '@arbor/router';
 import { createServer } from '@arbor/router/server';
 import type z from 'zod';
 import { zodObjectParamsArb, zodToArbitrary } from './arbitraries.js';
@@ -14,29 +14,45 @@ interface RouteMeta {
 
 // Minimal node shape accessible from RouterContract.children.
 interface WalkableNode {
-  schema: z.ZodObject<any, any> | null;
+  schema: AnyObjectSchema | null;
   path: string;
   children: WalkableNode[];
   _meta?: Record<string, unknown>;
 }
 
-interface TagField { _zod?: { def?: { type?: string; values?: unknown[] } } }
-interface ShapeWithTag { tag?: TagField }
+function getTagFromSchema(schema: AnyObjectSchema): string | undefined {
+  const field = schema.fields['tag'];
+  return field?.kind === 'literal' ? String(field.value) : undefined;
+}
 
-function getTagFromSchema(schema: z.ZodObject<any, any>): string | undefined {
-  const shape = schema.shape as unknown as ShapeWithTag;
-  const tagField = shape.tag;
-  if (!tagField) return undefined;
-  const d = tagField._zod?.def;
-  if (d?.type === 'literal' && Array.isArray(d.values) && d.values.length > 0) {
-    return d.values[0] as string;
+function nativeScalarArb(schema: AnyScalarSchema): fc.Arbitrary<unknown> {
+  switch (schema.kind) {
+    case 'string': return fc.string();
+    case 'number': return fc.float();
+    case 'integer': return fc.integer();
+    case 'boolean': return fc.boolean();
+    case 'literal': return fc.constant(schema.value);
+    case 'optional': return fc.option(nativeScalarArb(schema.inner), { nil: undefined });
+    case 'brand': return nativeScalarArb(schema.inner);
   }
-  return undefined;
+}
+
+function nativeObjectParamsArb(
+  schema: AnyObjectSchema,
+  excludeKeys: string[],
+): fc.Arbitrary<Record<string, unknown>> {
+  const record: Record<string, fc.Arbitrary<unknown>> = {};
+  for (const [k, v] of Object.entries(schema.fields)) {
+    if (!excludeKeys.includes(k)) record[k] = nativeScalarArb(v);
+  }
+  return Object.keys(record).length > 0
+    ? fc.record(record, { withDeletedKeys: false })
+    : fc.constant({});
 }
 
 // Narrowed callback signature: method and schema are guaranteed to be present.
 interface HttpRouteVisit {
-  schema: z.ZodObject<any, any>;
+  schema: AnyObjectSchema;
   tag: string;
   method: string;
   meta: RouteMeta;
@@ -111,7 +127,7 @@ export function createRouteTests<
     );
 
     // Build arbitrary for the route object { tag, ...params, query? }
-    const paramArb = zodObjectParamsArb(schema, ['tag', 'query']);
+    const paramArb = nativeObjectParamsArb(schema, ['tag', 'query']);
     const queryArb: fc.Arbitrary<Record<string, unknown> | undefined> = querySchema
       ? zodObjectParamsArb(querySchema, [])
       : fc.constant(undefined);
