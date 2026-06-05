@@ -1,4 +1,5 @@
-import { Effect, type Reducer } from '@arbor/common';
+import { Effect, Sub, type Reducer } from '@arbor/common';
+import type { Snapshot } from 'valtio';
 import type { DisplayGroupsResponse, TaskEntry, TaskStatus } from '@arbor/api/ledger';
 import type { LedgerEnv } from './ledger.env.js';
 
@@ -70,6 +71,65 @@ export const initialLedgerState: LedgerState = {
   planDoc: { tag: 'idle' },
   filters: initialFilters,
 };
+
+export function applyFilters(tasks: TaskEntry[], filters: LedgerFilters): TaskEntry[] {
+  return tasks.filter((t) => {
+    if (filters.wave   && t.wave !== filters.wave) return false;
+    if (filters.status && t.status !== filters.status) return false;
+    if (filters.kind   && t.kind !== filters.kind) return false;
+    if (filters.text) {
+      const q = filters.text.toLowerCase();
+      if (!t.text.toLowerCase().includes(q) && !String(t.id).includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function waveRanksFor(wave: string, tasks: readonly { wave: string; rank?: number | undefined }[]): number[] {
+  return tasks.flatMap((t) => (t.wave === wave && t.rank !== undefined ? [t.rank] : []));
+}
+
+function toggleNext(status: TaskStatus): TaskStatus { return status === 'next' ? 'todo' : 'next'; }
+function toggleDone(status: TaskStatus): TaskStatus { return status === 'done' ? 'todo' : 'done'; }
+
+export function ledgerSubscriptions(state: Snapshot<LedgerState>): Sub<LedgerAction>[] {
+  if (state.loadState.tag !== 'loaded') return [];
+  const { groups } = state.loadState;
+  const filters = state.filters as LedgerFilters;
+
+  // Cast once: Snapshot<TaskEntry> is structurally identical to TaskEntry (all primitives).
+  const inProgress = [...groups.inProgress] as TaskEntry[];
+  const ready      = [...groups.ready] as TaskEntry[];
+  const blocked    = groups.blocked.map((b) => b.task as unknown as TaskEntry);
+  const done       = [...groups.done, ...groups.canceled] as TaskEntry[];
+
+  const allTasksForRanks = [...inProgress, ...ready, ...blocked, ...done];
+  const visibleRows = [
+    ...applyFilters(inProgress, filters),
+    ...applyFilters(ready, filters),
+    ...applyFilters(blocked, filters),
+    ...(state.showAll ? applyFilters(done, filters) : []),
+  ];
+  const rowCount = visibleRows.length;
+  const selected = visibleRows[state.selectedIndex];
+  return [Sub.keydown<LedgerAction>((e) => {
+    switch (e.key) {
+      case 'ArrowUp':   e.preventDefault(); return { tag: 'selectUp' };
+      case 'ArrowDown': e.preventDefault(); return { tag: 'selectDown', rowCount };
+      case 'k': return { tag: 'selectUp' };
+      case 'j': return { tag: 'selectDown', rowCount };
+      case 'n': return selected ? { tag: 'setStatus', taskId: selected.id, status: toggleNext(selected.status) } : null;
+      case 'd': return selected ? { tag: 'setStatus', taskId: selected.id, status: toggleDone(selected.status) } : null;
+      case 'b': return selected ? { tag: 'bump', taskId: selected.id, waveRanks: waveRanksFor(selected.wave, allTasksForRanks) } : null;
+      case 'D': return selected ? { tag: 'defer', taskId: selected.id, waveRanks: waveRanksFor(selected.wave, allTasksForRanks) } : null;
+      case 'a': return { tag: 'toggleShowAll' };
+      case 'r': return { tag: 'refresh' };
+      case 'Enter': return selected ? { tag: 'openDetail', taskId: selected.id } : null;
+      case 'Escape': return { tag: 'closeDetail' };
+      default: return null;
+    }
+  })];
+}
 
 function spliceTask(arr: TaskEntry[], taskId: number, updater: (t: TaskEntry) => TaskEntry): boolean {
   const idx = arr.findIndex((t) => t.id === taskId);

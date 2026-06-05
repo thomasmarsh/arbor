@@ -9,7 +9,8 @@ export class TestStore<S, A, R> {
   private pending: A[] = [];
 
   constructor(reducer: Reducer<S, A, R>, environment: R, initialState: S) {
-    this.proxyState = proxy({ state: initialState });
+    // structuredClone so mutations inside the store never write back to the caller's fixture.
+    this.proxyState = proxy({ state: structuredClone(initialState) });
     this.reducer = reducer;
     this.environment = environment;
   }

@@ -1,8 +1,8 @@
-import { describe, it, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, vi, expect, beforeEach, afterEach } from 'vitest';
 import { Effect, Result } from '@arbor/common';
 import { TestStore } from '@arbor/common';
 import type { TaskEntry, DisplayGroupsResponse } from '@arbor/api/ledger';
-import { ledgerReducer, initialLedgerState, initialFilters } from './ledger.store.js';
+import { ledgerReducer, initialLedgerState, initialFilters, ledgerSubscriptions } from './ledger.store.js';
 import type { LedgerState } from './ledger.store.js';
 import { emptyGroups, groupsWithTasks, mockLedgerEnv } from './ledger.env.mock.js';
 
@@ -243,7 +243,7 @@ describe('ledgerReducer', () => {
   });
 
   it('setTextFilter sets text and resets selectedIndex to 0', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 3 });
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 3, filters: { ...initialFilters } });
     store.send({ tag: 'setTextFilter', text: 'hello' }, (s) => {
       s.filters.text = 'hello';
       s.selectedIndex = 0;
@@ -252,7 +252,7 @@ describe('ledgerReducer', () => {
   });
 
   it('setWaveFilter sets wave and resets selectedIndex to 0', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 2 });
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 2, filters: { ...initialFilters } });
     store.send({ tag: 'setWaveFilter', wave: 'w5' }, (s) => {
       s.filters.wave = 'w5';
       s.selectedIndex = 0;
@@ -261,7 +261,7 @@ describe('ledgerReducer', () => {
   });
 
   it('setStatusFilter sets status and resets selectedIndex to 0', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 1 });
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 1, filters: { ...initialFilters } });
     store.send({ tag: 'setStatusFilter', status: 'next' }, (s) => {
       s.filters.status = 'next';
       s.selectedIndex = 0;
@@ -270,7 +270,7 @@ describe('ledgerReducer', () => {
   });
 
   it('setKindFilter sets kind and resets selectedIndex to 0', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 4 });
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 4, filters: { ...initialFilters } });
     store.send({ tag: 'setKindFilter', kind: 'spike' }, (s) => {
       s.filters.kind = 'spike';
       s.selectedIndex = 0;
@@ -290,6 +290,41 @@ describe('ledgerReducer', () => {
     });
     store.assertDrained();
   });
+
+  describe('ledgerSubscriptions (Exp D)', () => {
+    it('returns empty array when not loaded', () => {
+      expect(ledgerSubscriptions(freshIdle())).toEqual([]);
+      expect(ledgerSubscriptions({ ...loadedState, loadState: { tag: 'loading' } })).toEqual([]);
+    });
+
+    it('returns a keydown Sub when loaded', () => {
+      const subs = ledgerSubscriptions(loadedState);
+      expect(subs).toHaveLength(1);
+      expect(subs[0]?.tag).toBe('keydown');
+    });
+
+    it.each([
+      { key: 'j',          expected: { tag: 'selectDown', rowCount: 1 } },
+      { key: 'k',          expected: { tag: 'selectUp' } },
+      { key: 'a',          expected: { tag: 'toggleShowAll' } },
+      { key: 'r',          expected: { tag: 'refresh' } },
+      { key: 'Escape',     expected: { tag: 'closeDetail' } },
+      { key: 'Unhandled',  expected: null },
+    ] as const)('keydown handler: $key → $expected', ({ key, expected }) => {
+      const sub = ledgerSubscriptions(loadedState)[0];
+      if (sub?.tag !== 'keydown') throw new Error('expected keydown sub');
+      expect(sub.handler(new KeyboardEvent('keydown', { key }))).toEqual(expected);
+    });
+
+    it('n toggles next status on the selected task', () => {
+      const sub = ledgerSubscriptions({ ...loadedState, selectedIndex: 0 })[0];
+      if (sub?.tag !== 'keydown') throw new Error('expected keydown sub');
+      expect(sub.handler(new KeyboardEvent('keydown', { key: 'n' }))).toEqual({
+        tag: 'setStatus', taskId: task133.id, status: 'todo',
+      });
+    });
+  });
+
 });
 
 // groupsWithTasks is exported for component tests that need tasks in view

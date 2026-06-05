@@ -3,4 +3,5 @@ export { Effect, type Send } from './store/effect.js';
 export { withLogging } from './store/logging.js';
 export { Store, type Reducer } from './store/store.js';
 export { TestStore, createTestStore } from './store/test-store.js';
+export { Sub } from './store/sub.js';
 

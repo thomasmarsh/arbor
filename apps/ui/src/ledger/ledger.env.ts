@@ -16,10 +16,7 @@ const client = createClient('http://localhost:3001', ledgerRouter);
 
 export const liveLedgerEnv: LedgerEnv = {
   fetchQueue: Effect.tryCatch(
-    async () => {
-      const resp = await client.fetch({ tag: 'ledger-get-queue' });
-      return resp.body;
-    },
+    () => client.fetchOk({ tag: 'ledger-get-queue' }),
     (err) => (err instanceof Error ? err.message : 'fetch failed'),
   ),
   setStatus: (id, status) =>
@@ -38,9 +35,8 @@ export const liveLedgerEnv: LedgerEnv = {
   fetchPlanDoc: (taskId) =>
     Effect.tryCatch(
       async () => {
-        const resp = await client.fetch({ tag: 'ledger-get-task-plan', id: taskId });
-        if (resp.status === 200) return resp.body.content;
-        throw new Error(resp.body.error);
+        const plan = await client.fetchOk({ tag: 'ledger-get-task-plan', id: taskId });
+        return plan.content;
       },
       (err) => (err instanceof Error ? err.message : 'fetch plan failed'),
     ),

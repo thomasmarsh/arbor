@@ -1,17 +1,13 @@
 import { withLogging } from '@arbor/common';
 import { useStore } from '@arbor/common/react';
-import { useEffect } from 'react';
 import { liveCounterEnv } from './counter.env';
 import { counterReducer, initialState, type CounterAction } from './counter.store';
 
 export function Counter() {
   console.log('Counter rendering');
-  const [$, send] = useStore(withLogging('counter', counterReducer), liveCounterEnv, initialState);
+  // Exp A: onMount replaces useEffect(() => { send({ tag: 'fetch' }); }, []).
+  const [$, send] = useStore(withLogging('counter', counterReducer), liveCounterEnv, initialState, { tag: 'fetch' });
   console.log('Counter state', $.state);
-
-  useEffect(() => {
-    send({ tag: 'fetch' });
-  }, []);
 
   // Avoid some boilerplate in the JSX
   const wrap = (action: CounterAction): (() => void) => {

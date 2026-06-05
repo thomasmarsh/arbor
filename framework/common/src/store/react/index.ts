@@ -1,1 +1,1 @@
-export { useStore } from './useStore.js';
+export { useStore, type Watch } from './useStore.js';

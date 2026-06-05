@@ -55,7 +55,7 @@ async function writeJsonlSnapshot(pool: Pool): Promise<void> {
       type: 'task', id: r.id, epic: r.epic, story: r.story,
       kind: r.kind, wave: r.wave, layer: r.layer,
       status: r.status, text: r.text, file: r.file,
-      deps: r.deps ?? [],
+      deps: r.deps,
     };
     if (r.size !== null) obj['size'] = r.size;
     if (r.rank !== null) obj['rank'] = r.rank;
