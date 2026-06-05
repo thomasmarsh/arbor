@@ -8,6 +8,7 @@ export interface LedgerEnv {
   setStatus: (id: number, status: TaskStatus) => Effect<undefined>;
   setRank: (id: number, rank: number) => Effect<undefined>;
   pollTick: Effect<undefined>;
+  fetchPlanDoc: (taskId: number) => Effect<Result<string, string>>;
 }
 
 // TODO: base URL should come from env config rather than being hardcoded here.
@@ -34,4 +35,13 @@ export const liveLedgerEnv: LedgerEnv = {
       () => undefined,
     ),
   pollTick: Effect.sleep(5000),
+  fetchPlanDoc: (taskId) =>
+    Effect.tryCatch(
+      async () => {
+        const resp = await client.fetch({ tag: 'ledger-get-task-plan', id: taskId });
+        if (resp.status === 200) return resp.body.content;
+        throw new Error(resp.body.error);
+      },
+      (err) => (err instanceof Error ? err.message : 'fetch plan failed'),
+    ),
 };

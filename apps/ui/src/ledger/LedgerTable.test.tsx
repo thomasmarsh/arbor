@@ -22,9 +22,9 @@ const selectedText = () => {
 };
 
 describe('LedgerTable', () => {
-  it('shows loading before fetch resolves', () => {
+  it('shows loading skeleton before fetch resolves', () => {
     render(<LedgerTable env={mockLedgerEnv} />);
-    expect(screen.getByText('Loading ledger…')).toBeTruthy();
+    expect(screen.getByTestId('ledger-loading')).toBeTruthy();
   });
 
   it('renders an empty table when there are no tasks', async () => {

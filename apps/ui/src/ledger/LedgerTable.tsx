@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef, type Ref } from 'react';
 import { withLogging } from '@arbor/common';
 import { useStore } from '@arbor/common/react';
-import type { TaskStatus } from '@arbor/api/ledger';
+import type { TaskEntry, TaskStatus } from '@arbor/api/ledger';
+import type { Snapshot } from 'valtio';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import Table from '@mui/material/Table';
@@ -10,11 +11,49 @@ import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
+import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import ScienceIcon from '@mui/icons-material/Science';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { liveLedgerEnv, type LedgerEnv } from './ledger.env.js';
 import { ledgerReducer, initialLedgerState } from './ledger.store.js';
+import { LedgerDetailDrawer } from './LedgerDetailDrawer.js';
+import { useLedgerKeyboard } from './useLedgerKeyboard.js';
+
+// Task-column widths cycle through a deterministic spread so rows look natural.
+const TASK_WIDTHS = [160, 130, 190, 145, 175, 120, 165, 140];
+
+function LedgerSkeleton() {
+  return (
+    <Box data-testid="ledger-loading">
+      <TableContainer>
+        <Table stickyHeader size="small">
+          <TableHead>
+            <TableRow>
+              {['ID', 'Wave', 'Epic', 'Story', 'Layer', 'Status', 'Size', 'Task'].map((h) => (
+                <TableCell key={h}>{h}</TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {Array.from({ length: 8 }, (_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton width={24} /></TableCell>
+                <TableCell><Skeleton width={36} /></TableCell>
+                <TableCell><Skeleton variant="rounded" width={32} height={24} /></TableCell>
+                <TableCell><Skeleton variant="rounded" width={32} height={24} /></TableCell>
+                <TableCell><Skeleton variant="rounded" width={48} height={24} /></TableCell>
+                <TableCell><Skeleton variant="rounded" width={64} height={24} /></TableCell>
+                <TableCell><Skeleton width={16} /></TableCell>
+                <TableCell><Skeleton width={TASK_WIDTHS[i % TASK_WIDTHS.length] ?? 150} /></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
+  );
+}
 
 const STATUS_COLORS: Record<TaskStatus, 'primary' | 'warning' | 'default' | 'success'> = {
   next: 'primary',
@@ -45,16 +84,36 @@ function GroupRow({ label }: { label: string }) {
   );
 }
 
-function toggleNext(status: TaskStatus): TaskStatus {
-  return status === 'next' ? 'todo' : 'next';
-}
-
-function toggleDone(status: TaskStatus): TaskStatus {
-  return status === 'done' ? 'todo' : 'done';
-}
-
-function waveRanksFor(wave: string, tasks: readonly { wave: string; rank?: number | undefined }[]): number[] {
-  return tasks.flatMap((t) => (t.wave === wave && t.rank !== undefined ? [t.rank] : []));
+function TaskRow({
+  task, isSelected, rowRef,
+}: {
+  task: Snapshot<TaskEntry>;
+  isSelected: boolean;
+  rowRef: Ref<HTMLTableRowElement> | null;
+}) {
+  const isDim = task.status === 'done' || task.status === 'canceled';
+  return (
+    <TableRow
+      ref={rowRef}
+      selected={isSelected}
+      aria-selected={isSelected || undefined}
+      sx={isDim ? { opacity: 0.4 } : {}}
+    >
+      <TableCell>{task.id}</TableCell>
+      <TableCell>{task.wave}</TableCell>
+      <TableCell><Chip label={task.epic}  size="small" sx={{ fontFamily: 'monospace' }} /></TableCell>
+      <TableCell><Chip label={task.story} size="small" sx={{ fontFamily: 'monospace' }} /></TableCell>
+      <TableCell><Chip label={task.layer} size="small" sx={{ fontFamily: 'monospace' }} /></TableCell>
+      <TableCell><StatusChip status={task.status} /></TableCell>
+      <TableCell>{task.size ?? '—'}</TableCell>
+      <TableCell>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <KindIcon kind={task.kind} />
+          {task.text}
+        </Box>
+      </TableCell>
+    </TableRow>
+  );
 }
 
 export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
@@ -92,43 +151,10 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
     selectedRowRef.current?.scrollIntoView({ block: 'nearest' });
   }, [$.state.selectedIndex]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement) return;
-      const rowCount = visibleRows.length;
-      switch (e.key) {
-        case 'ArrowUp':
-          e.preventDefault();
-          send({ tag: 'selectUp' });
-          break;
-        case 'ArrowDown':
-          e.preventDefault();
-          send({ tag: 'selectDown', rowCount });
-          break;
-        case 'k': send({ tag: 'selectUp' }); break;
-        case 'j': send({ tag: 'selectDown', rowCount }); break;
-        case 'n':
-          if (selected) send({ tag: 'setStatus', taskId: selected.id, status: toggleNext(selected.status) });
-          break;
-        case 'd':
-          if (selected) send({ tag: 'setStatus', taskId: selected.id, status: toggleDone(selected.status) });
-          break;
-        case 'b':
-          if (selected) send({ tag: 'bump', taskId: selected.id, waveRanks: waveRanksFor(selected.wave, allTasksForRanks) });
-          break;
-        case 'D':
-          if (selected) send({ tag: 'defer', taskId: selected.id, waveRanks: waveRanksFor(selected.wave, allTasksForRanks) });
-          break;
-        case 'a': send({ tag: 'toggleShowAll' }); break;
-        case 'r': send({ tag: 'refresh' }); break;
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => { window.removeEventListener('keydown', onKey); };
-  }, [send, selected, visibleRows]);
+  useLedgerKeyboard(send, selected, visibleRows, allTasksForRanks);
 
   if ($.state.loadState.tag === 'idle' || $.state.loadState.tag === 'loading') {
-    return <p>Loading ledger…</p>;
+    return <LedgerSkeleton />;
   }
   if ($.state.loadState.tag === 'error') {
     return <p style={{ color: 'red' }}>Error: {$.state.loadState.message}</p>;
@@ -162,37 +188,13 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
                   <GroupRow label={section.label} />
                   {section.tasks.map((task, i) => {
                     const isSelected = section.startIndex + i === $.state.selectedIndex;
-                    const isDim = task.status === 'done' || task.status === 'canceled';
                     return (
-                      <TableRow
+                      <TaskRow
                         key={task.id}
-                        ref={isSelected ? selectedRowRef : null}
-                        selected={isSelected}
-                        aria-selected={isSelected || undefined}
-                        sx={isDim ? { opacity: 0.4 } : {}}
-                      >
-                        <TableCell>{task.id}</TableCell>
-                        <TableCell>{task.wave}</TableCell>
-                        <TableCell>
-                          <Chip label={task.epic} size="small" sx={{ fontFamily: 'monospace' }} />
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={task.story} size="small" sx={{ fontFamily: 'monospace' }} />
-                        </TableCell>
-                        <TableCell>
-                          <Chip label={task.layer} size="small" sx={{ fontFamily: 'monospace' }} />
-                        </TableCell>
-                        <TableCell>
-                          <StatusChip status={task.status} />
-                        </TableCell>
-                        <TableCell>{task.size ?? '—'}</TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            <KindIcon kind={task.kind} />
-                            {task.text}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
+                        task={task}
+                        isSelected={isSelected}
+                        rowRef={isSelected ? selectedRowRef : null}
+                      />
                     );
                   })}
                 </Fragment>
@@ -202,8 +204,9 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
         </Table>
       </TableContainer>
       <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-        j/k · n=next · d=done · b=bump · D=defer · a=all · r=refresh
+        j/k · n=next · d=done · b=bump · D=defer · a=all · r=refresh · Enter=detail
       </Typography>
+      <LedgerDetailDrawer state={$.state} send={send} />
     </Box>
   );
 }

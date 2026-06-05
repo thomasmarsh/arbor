@@ -24,6 +24,9 @@ const GetQueue        = object({ tag: literal('ledger-get-queue') });
 const GetTask         = object({ tag: literal('ledger-get-task'), id: integer() });
 const PatchTaskStatus = object({ tag: literal('ledger-patch-task-status'), id: integer() });
 const PatchTaskRank   = object({ tag: literal('ledger-patch-task-rank'), id: integer() });
+const GetTaskPlan     = object({ tag: literal('ledger-get-task-plan'), id: integer() });
+
+const PlanResponse = z.object({ content: z.string() });
 
 export const ledgerRouter = defineRoutes([
   httpRoute(GetTasks, 'GET', 'api/ledger/tasks', {
@@ -42,6 +45,9 @@ export const ledgerRouter = defineRoutes([
   httpRoute(PatchTaskRank, 'PATCH', 'api/ledger/tasks/#id/rank', {
     body: PatchTaskRankBody,
     response: { 200: TaskEntry, 404: ErrorResponse },
+  }),
+  httpRoute(GetTaskPlan, 'GET', 'api/ledger/tasks/#id/plan', {
+    response: { 200: PlanResponse, 404: ErrorResponse },
   }),
 ]);
 

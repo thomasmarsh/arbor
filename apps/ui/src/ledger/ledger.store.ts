@@ -10,11 +10,19 @@ export type LedgerLoadState =
   | { tag: 'loaded'; groups: DisplayGroupsResponse }
   | { tag: 'error'; message: string };
 
+export type PlanDocState =
+  | { tag: 'idle' }
+  | { tag: 'loading'; taskId: number }
+  | { tag: 'loaded'; taskId: number; content: string }
+  | { tag: 'error'; taskId: number; message: string };
+
 export interface LedgerState {
   loadState: LedgerLoadState;
   selectedIndex: number;
   showAll: boolean;
   lastUpdated: Date | null;
+  detailTaskId: number | null;
+  planDoc: PlanDocState;
 }
 
 export type LedgerAction =
@@ -27,13 +35,19 @@ export type LedgerAction =
   | { tag: 'selectUp' }
   | { tag: 'selectDown'; rowCount: number }
   | { tag: 'toggleShowAll' }
-  | { tag: 'refresh' };
+  | { tag: 'refresh' }
+  | { tag: 'openDetail'; taskId: number }
+  | { tag: 'closeDetail' }
+  | { tag: 'planDocLoaded'; taskId: number; content: string }
+  | { tag: 'planDocError'; taskId: number; message: string };
 
 export const initialLedgerState: LedgerState = {
   loadState: { tag: 'idle' },
   selectedIndex: 0,
   showAll: false,
   lastUpdated: null,
+  detailTaskId: null,
+  planDoc: { tag: 'idle' },
 };
 
 function spliceTask(arr: TaskEntry[], taskId: number, updater: (t: TaskEntry) => TaskEntry): boolean {
@@ -116,6 +130,33 @@ export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, 
           (err) => ({ tag: 'error', message: err }),
         ),
       );
+    }
+    case 'openDetail': {
+      $.state.detailTaskId = action.taskId;
+      $.state.planDoc = { tag: 'loading', taskId: action.taskId };
+      return env.fetchPlanDoc(action.taskId).map((result) =>
+        result.fold<LedgerAction>(
+          (content) => ({ tag: 'planDocLoaded', taskId: action.taskId, content }),
+          (err) => ({ tag: 'planDocError', taskId: action.taskId, message: err }),
+        ),
+      );
+    }
+    case 'closeDetail': {
+      $.state.detailTaskId = null;
+      $.state.planDoc = { tag: 'idle' };
+      return null;
+    }
+    case 'planDocLoaded': {
+      if ($.state.planDoc.tag === 'loading' && $.state.planDoc.taskId === action.taskId) {
+        $.state.planDoc = { tag: 'loaded', taskId: action.taskId, content: action.content };
+      }
+      return null;
+    }
+    case 'planDocError': {
+      if ($.state.planDoc.tag === 'loading' && $.state.planDoc.taskId === action.taskId) {
+        $.state.planDoc = { tag: 'error', taskId: action.taskId, message: action.message };
+      }
+      return null;
     }
   }
 };

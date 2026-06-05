@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { LedgerRow, TaskStatus, type TaskEntry, type WaveEntry } from '@arbor/app-common';
 
 export interface DisplayGroups {
@@ -71,4 +72,10 @@ export function computeDisplayGroups(tasks: TaskEntry[], waves: WaveEntry[]): Di
   canceled.sort(cmp);
 
   return { inProgress, ready, blocked, done, canceled };
+}
+
+export function readPlanDoc(file: string, planDir: string): string | null {
+  const fullPath = join(planDir, file);
+  if (!existsSync(fullPath)) return null;
+  return readFileSync(fullPath, 'utf-8');
 }

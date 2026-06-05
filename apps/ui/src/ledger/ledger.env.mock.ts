@@ -28,4 +28,5 @@ export const mockLedgerEnv: LedgerEnv = {
   setStatus: () => Effect.send(undefined),
   setRank:   () => Effect.send(undefined),
   pollTick:  Effect.none(),
+  fetchPlanDoc: () => Effect.send(Result.ok('# Mock Plan\n\nNo content.')),
 };

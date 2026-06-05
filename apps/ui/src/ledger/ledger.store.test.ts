@@ -11,6 +11,8 @@ const freshIdle = (): LedgerState => ({
   selectedIndex: 0,
   showAll: false,
   lastUpdated: null,
+  detailTaskId: null,
+  planDoc: { tag: 'idle' },
 });
 
 const task133: TaskEntry = {
@@ -25,6 +27,8 @@ const loadedState: LedgerState = {
   selectedIndex: 0,
   showAll: false,
   lastUpdated: null,
+  detailTaskId: null,
+  planDoc: { tag: 'idle' },
 };
 
 const NOW = new Date('2025-01-01T12:00:00.000Z');
@@ -184,6 +188,55 @@ describe('ledgerReducer', () => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
         s.lastUpdated = NOW;
       });
+    store.assertDrained();
+  });
+
+  it('openDetail sets detailTaskId + loading planDoc and returns an Effect', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, freshIdle());
+    store
+      .send({ tag: 'openDetail', taskId: 7 }, (s) => {
+        s.detailTaskId = 7;
+        s.planDoc = { tag: 'loading', taskId: 7 };
+      })
+      .receive({ tag: 'planDocLoaded', taskId: 7, content: '# Mock Plan\n\nNo content.' }, (s) => {
+        s.planDoc = { tag: 'loaded', taskId: 7, content: '# Mock Plan\n\nNo content.' };
+      });
+    store.assertDrained();
+  });
+
+  it('closeDetail resets detailTaskId and planDoc to initial values', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, {
+      ...freshIdle(),
+      detailTaskId: 7,
+      planDoc: { tag: 'loaded', taskId: 7, content: '# stuff' },
+    });
+    store.send({ tag: 'closeDetail' }, (s) => {
+      s.detailTaskId = null;
+      s.planDoc = { tag: 'idle' };
+    });
+    store.assertDrained();
+  });
+
+  it('planDocLoaded with stale taskId is a no-op', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, {
+      ...freshIdle(),
+      detailTaskId: 7,
+      planDoc: { tag: 'loading', taskId: 7 },
+    });
+    // taskId 99 does not match the loading taskId 7 — state unchanged
+    store.send({ tag: 'planDocLoaded', taskId: 99, content: 'stale' }, (_s) => { /* no-op */ });
+    store.assertDrained();
+  });
+
+  it('planDocError transitions to error state', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, {
+      ...freshIdle(),
+      detailTaskId: 5,
+      planDoc: { tag: 'loading', taskId: 5 },
+    });
+    store.send({ tag: 'planDocError', taskId: 5, message: 'not found' }, (s) => {
+      s.planDoc = { tag: 'error', taskId: 5, message: 'not found' };
+    });
     store.assertDrained();
   });
 });

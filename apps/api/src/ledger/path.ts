@@ -6,6 +6,10 @@ export function ledgerPath(): string {
   return process.env['ARBOR_LEDGER_PATH'] ?? join(repoRoot(), 'plan', 'ledger.jsonl');
 }
 
+export function planDir(): string {
+  return process.env['PLAN_DIR'] ?? join(repoRoot(), 'plan');
+}
+
 function repoRoot(): string {
   let dir = dirname(fileURLToPath(import.meta.url));
   while (dir !== '/') {

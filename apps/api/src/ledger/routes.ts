@@ -1,7 +1,7 @@
 import { createServer, respond } from '@arbor/router';
-import { parseLedger, computeDisplayGroups } from './reader.js';
+import { parseLedger, computeDisplayGroups, readPlanDoc } from './reader.js';
 import { updateTask } from './writer.js';
-import { ledgerPath } from './path.js';
+import { ledgerPath, planDir } from './path.js';
 import { ledgerRouter } from './router.js';
 
 export { ledgerRouter };
@@ -32,5 +32,14 @@ export const ledgerServer = createServer(ledgerRouter, {
     const { tasks } = parseLedger(ledgerPath());
     const task = tasks.find((t) => t.id === ctx.params.id);
     return task ? respond(200, task) : respond(404, { error: `Task ${String(ctx.params.id)} not found` });
+  },
+  'ledger-get-task-plan': async (ctx) => {
+    const { tasks } = parseLedger(ledgerPath());
+    const task = tasks.find((t) => t.id === ctx.params.id);
+    if (!task) return respond(404, { error: `Task ${String(ctx.params.id)} not found` });
+    const content = readPlanDoc(task.file, planDir());
+    return content !== null
+      ? respond(200, { content })
+      : respond(404, { error: `Plan doc not found for task ${String(ctx.params.id)}` });
   },
 });
