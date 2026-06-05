@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import type { Snapshot } from 'valtio';
 import Box from '@mui/material/Box';
 import FormControl from '@mui/material/FormControl';
@@ -46,23 +45,6 @@ interface LedgerToolbarProps {
 }
 
 export function LedgerToolbar({ state, send, groups }: LedgerToolbarProps) {
-  const [rawText, setRawText] = useState(state.filters.text);
-
-  // Sync rawText if filters are cleared externally
-  useEffect(() => {
-    if (state.filters.text === '') setRawText('');
-  }, [state.filters.text]);
-
-  // Debounce text input: dispatch after 200ms of no typing
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (rawText !== state.filters.text) {
-        send({ tag: 'setTextFilter', text: rawText });
-      }
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [rawText]);
-
   const waves = groups ? deriveWaves(groups) : [];
   const anyActive = isAnyFilterActive(state.filters);
 
@@ -72,8 +54,8 @@ export function LedgerToolbar({ state, send, groups }: LedgerToolbarProps) {
         <TextField
           size="small"
           placeholder="Search tasks…"
-          value={rawText}
-          onChange={(e) => setRawText(e.target.value)}
+          value={state.filters.text}
+          onChange={(e) => send({ tag: 'setTextFilter', text: e.target.value })}
           inputProps={{ 'aria-label': 'search tasks' }}
           sx={{ width: 200 }}
         />

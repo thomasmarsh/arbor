@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, cleanup, fireEvent, act } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LedgerToolbar } from './LedgerToolbar.js';
 import { initialLedgerState, initialFilters } from './ledger.store.js';
@@ -18,17 +18,12 @@ const loadedGroups = groupsWithTasks as unknown as Snapshot<DisplayGroupsRespons
 const noGroups = emptyGroups as unknown as Snapshot<DisplayGroupsResponse>;
 
 describe('LedgerToolbar', () => {
-  it('dispatches setTextFilter after debounce', async () => {
-    vi.useFakeTimers();
+  it('dispatches setTextFilter immediately on input change', () => {
     const send = vi.fn<(action: LedgerAction) => void>();
     render(<LedgerToolbar state={makeState()} send={send} groups={noGroups} />);
 
     fireEvent.change(screen.getByRole('textbox', { name: /search tasks/i }), { target: { value: 'auth' } });
-    expect(send).not.toHaveBeenCalled();
-
-    await act(async () => { vi.advanceTimersByTime(200); });
     expect(send).toHaveBeenCalledWith({ tag: 'setTextFilter', text: 'auth' });
-    vi.useRealTimers();
   });
 
   it('dispatches setWaveFilter with the chosen wave', async () => {
