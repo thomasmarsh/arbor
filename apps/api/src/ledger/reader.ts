@@ -15,14 +15,16 @@ export function parseLedger(path: string): { tasks: TaskEntry[]; waves: WaveEntr
   const waves: WaveEntry[] = [];
 
   const lines = readFileSync(path, 'utf-8').split('\n');
+  const taskMap = new Map<number, TaskEntry>();
   for (const line of lines) {
     const clean = line.trim();
     if (!clean) continue;
     const row = LedgerRow.parse(JSON.parse(clean));
-    if (row.type === 'task') tasks.push(row);
+    if (row.type === 'task') taskMap.set(row.id, row);
     else if (row.type === 'wave') waves.push(row);
   }
 
+  tasks.push(...taskMap.values());
   return { tasks, waves };
 }
 

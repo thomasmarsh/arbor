@@ -19,12 +19,28 @@ export function updateTask(
 ): void {
   const lines = readFileSync(path, 'utf-8').split('\n');
 
-  const idx = lines.findIndex(line => isTaskLine(line, id));
-  if (idx === -1) throw new Error(`Task ${String(id)} not found in ledger`);
+  // Find all occurrences; use the last as the authoritative base (append-log semantics).
+  let lastIdx = -1;
+  let lastObj: Record<string, unknown> | null = null;
+  for (let i = 0; i < lines.length; i++) {
+    if (isTaskLine(lines[i] ?? '', id)) {
+      lastIdx = i;
+      lastObj = JSON.parse(lines[i] ?? '') as Record<string, unknown>;
+    }
+  }
+  if (lastIdx === -1 || lastObj === null) throw new Error(`Task ${String(id)} not found in ledger`);
 
-  const obj = JSON.parse(lines[idx] ?? '') as Record<string, unknown>;
-  const newLines = lines.slice();
-  newLines[idx] = JSON.stringify({ ...obj, ...updates });
+  const updated = JSON.stringify({ ...lastObj, ...updates });
+  // Remove all existing entries for this id; replace the last one with the updated entry.
+  const newLines: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (isTaskLine(lines[i] ?? '', id)) {
+      if (i === lastIdx) newLines.push(updated);
+      // all other occurrences are dropped (deduplication)
+    } else {
+      newLines.push(lines[i] ?? '');
+    }
+  }
 
   writeFileSync(path, newLines.join('\n'), 'utf-8');
 }

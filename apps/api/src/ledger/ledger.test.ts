@@ -62,6 +62,21 @@ describe('computeDisplayGroups', () => {
   });
 });
 
+const TASK2_DUP = '{"type":"task","kind":"task","id":2,"epic":"e1","story":"s1","wave":"w1","layer":"core","status":"done","text":"Task two","file":"2.md","deps":[1]}';
+
+describe('parseLedger — deduplication', () => {
+  it('keeps the last occurrence when a task id is duplicated', () => {
+    const { tasks } = parseLedger(tempLedger(FIXTURE + '\n' + TASK2_DUP));
+    expect(tasks).toHaveLength(5);
+    expect(tasks.find(t => t.id === 2)?.status).toBe('done');
+  });
+
+  it('preserves first-occurrence order with duplicates present', () => {
+    const { tasks } = parseLedger(tempLedger(FIXTURE + '\n' + TASK2_DUP));
+    expect(tasks.map(t => t.id)).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
 describe('updateTask', () => {
   it('rewrites a task status and leaves other lines unchanged', () => {
     const path = tempLedger(FIXTURE);
@@ -72,6 +87,17 @@ describe('updateTask', () => {
     expect(updated['text']).toBe('Task two');
     const task1 = JSON.parse(lines.find(l => { try { const p = JSON.parse(l) as Record<string, unknown>; return p['type'] === 'task' && p['id'] === 1; } catch { return false; } })!) as Record<string, unknown>;
     expect(task1['status']).toBe('done');
+  });
+
+  it('removes all duplicate entries and writes exactly one canonical entry', () => {
+    const task2Orig = '{"type":"task","kind":"task","id":2,"epic":"e1","story":"s1","wave":"w1","layer":"core","status":"next","text":"Task two","file":"2.md","deps":[1]}';
+    const path = tempLedger(FIXTURE + '\n' + task2Orig);
+    updateTask(path, 2, { status: 'done' });
+    const lines = readFileSync(path, 'utf-8').split('\n').filter(l => {
+      try { return (JSON.parse(l) as Record<string, unknown>)['id'] === 2; } catch { return false; }
+    });
+    expect(lines).toHaveLength(1);
+    expect((JSON.parse(lines[0]!) as Record<string, unknown>)['status']).toBe('done');
   });
 
   it('throws when task id is not found', () => {
