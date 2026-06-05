@@ -16,6 +16,11 @@ const envWithTasks: LedgerEnv = {
   fetchQueue: Effect.send(Result.ok(groupsWithTasks)),
 };
 
+const selectedText = () => {
+  const row = screen.getAllByRole('row').find((r) => r.getAttribute('aria-selected') === 'true');
+  return row?.textContent ?? '';
+};
+
 describe('LedgerTable', () => {
   it('shows loading before fetch resolves', () => {
     render(<LedgerTable env={mockLedgerEnv} />);
@@ -66,42 +71,74 @@ describe('LedgerTable', () => {
       await waitFor(() => { expect(screen.queryByText('Task Done')).toBeNull(); });
     });
 
+    it('renders group separator row for non-empty sections only', async () => {
+      render(<LedgerTable env={envWithTasks} />);
+      await waitFor(() => screen.getByText('Task Alpha'));
+      expect(screen.getByText('Ready')).toBeTruthy();
+      expect(screen.queryByText('In Progress')).toBeNull();
+      expect(screen.queryByText('Blocked')).toBeNull();
+    });
+
+    it('shows "Done" group separator when showAll is toggled on', async () => {
+      render(<LedgerTable env={envWithTasks} />);
+      await waitFor(() => screen.getByText('Task Alpha'));
+
+      fireEvent.keyDown(window, { key: 'a' });
+      await waitFor(() => screen.getByText('Done'));
+    });
+
     it('j moves selection to next row, k moves it back', async () => {
       render(<LedgerTable env={envWithTasks} />);
       await waitFor(() => screen.getByText('Task Alpha'));
 
-      const dataRows = () => screen.getAllByRole('row').slice(1);
-      expect(dataRows()[0]?.style.background).toBeTruthy();
-      expect(dataRows()[1]?.style.background).toBeFalsy();
+      expect(selectedText()).toContain('Task Alpha');
 
       fireEvent.keyDown(window, { key: 'j' });
-      await waitFor(() => { expect(dataRows()[1]?.style.background).toBeTruthy(); });
-      expect(dataRows()[0]?.style.background).toBeFalsy();
+      await waitFor(() => { expect(selectedText()).toContain('Task Beta'); });
 
       fireEvent.keyDown(window, { key: 'k' });
-      await waitFor(() => { expect(dataRows()[0]?.style.background).toBeTruthy(); });
-      expect(dataRows()[1]?.style.background).toBeFalsy();
+      await waitFor(() => { expect(selectedText()).toContain('Task Alpha'); });
     });
 
     it('k at first row stays at first row', async () => {
       render(<LedgerTable env={envWithTasks} />);
       await waitFor(() => screen.getByText('Task Alpha'));
 
-      const dataRows = () => screen.getAllByRole('row').slice(1);
       fireEvent.keyDown(window, { key: 'k' });
-      await waitFor(() => { expect(dataRows()[0]?.style.background).toBeTruthy(); });
+      await waitFor(() => { expect(selectedText()).toContain('Task Alpha'); });
     });
 
     it('ArrowDown and ArrowUp also move selection', async () => {
       render(<LedgerTable env={envWithTasks} />);
       await waitFor(() => screen.getByText('Task Alpha'));
 
-      const dataRows = () => screen.getAllByRole('row').slice(1);
       fireEvent.keyDown(window, { key: 'ArrowDown' });
-      await waitFor(() => { expect(dataRows()[1]?.style.background).toBeTruthy(); });
+      await waitFor(() => { expect(selectedText()).toContain('Task Beta'); });
 
       fireEvent.keyDown(window, { key: 'ArrowUp' });
-      await waitFor(() => { expect(dataRows()[0]?.style.background).toBeTruthy(); });
+      await waitFor(() => { expect(selectedText()).toContain('Task Alpha'); });
+    });
+
+    it('ArrowDown calls e.preventDefault()', async () => {
+      render(<LedgerTable env={envWithTasks} />);
+      await waitFor(() => screen.getByText('Task Alpha'));
+
+      const preventDefaultMock = vi.fn();
+      const e = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+      Object.defineProperty(e, 'preventDefault', { value: preventDefaultMock, configurable: true });
+      window.dispatchEvent(e);
+      expect(preventDefaultMock).toHaveBeenCalledOnce();
+    });
+
+    it('ArrowUp calls e.preventDefault()', async () => {
+      render(<LedgerTable env={envWithTasks} />);
+      await waitFor(() => screen.getByText('Task Alpha'));
+
+      const preventDefaultMock = vi.fn();
+      const e = new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true });
+      Object.defineProperty(e, 'preventDefault', { value: preventDefaultMock, configurable: true });
+      window.dispatchEvent(e);
+      expect(preventDefaultMock).toHaveBeenCalledOnce();
     });
 
     it('n calls setStatus with toggled status', async () => {
