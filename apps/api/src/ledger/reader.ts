@@ -1,6 +1,7 @@
-import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { LedgerRow, TaskStatus, type TaskEntry, type WaveEntry } from '@arbor/app-common';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { TaskStatus, type TaskEntry, type WaveEntry } from '@arbor/app-common';
 
 export interface DisplayGroups {
   inProgress: TaskEntry[];
@@ -8,24 +9,6 @@ export interface DisplayGroups {
   blocked: { task: TaskEntry; pendingDeps: number[] }[];
   done: TaskEntry[];
   canceled: TaskEntry[];
-}
-
-export function parseLedger(path: string): { tasks: TaskEntry[]; waves: WaveEntry[] } {
-  const tasks: TaskEntry[] = [];
-  const waves: WaveEntry[] = [];
-
-  const lines = readFileSync(path, 'utf-8').split('\n');
-  const taskMap = new Map<number, TaskEntry>();
-  for (const line of lines) {
-    const clean = line.trim();
-    if (!clean) continue;
-    const row = LedgerRow.parse(JSON.parse(clean));
-    if (row.type === 'task') taskMap.set(row.id, row);
-    else if (row.type === 'wave') waves.push(row);
-  }
-
-  tasks.push(...taskMap.values());
-  return { tasks, waves };
 }
 
 function sortKey(waveOrder: Map<string, number>, t: TaskEntry): [number, number] {
@@ -43,7 +26,9 @@ function byKey(waveOrder: Map<string, number>) {
 export function computeDisplayGroups(tasks: TaskEntry[], waves: WaveEntry[]): DisplayGroups {
   const waveOrder = new Map(waves.map((w, i) => [w.id, i]));
   const satisfiedIds = new Set(
-    tasks.filter(t => t.status === TaskStatus.enum.done || t.status === TaskStatus.enum.canceled).map(t => t.id),
+    tasks
+      .filter((t) => t.status === TaskStatus.enum.done || t.status === TaskStatus.enum.canceled)
+      .map((t) => t.id),
   );
 
   const inProgress: TaskEntry[] = [];
@@ -56,7 +41,7 @@ export function computeDisplayGroups(tasks: TaskEntry[], waves: WaveEntry[]): Di
     if (t.status === TaskStatus.enum.in_progress || t.status === TaskStatus.enum.next) {
       inProgress.push(t);
     } else if (t.status === TaskStatus.enum.todo) {
-      const pending = t.deps.filter(d => !satisfiedIds.has(d));
+      const pending = t.deps.filter((d) => !satisfiedIds.has(d));
       if (pending.length > 0) blocked.push({ task: t, pendingDeps: pending });
       else ready.push(t);
     } else if (t.status === TaskStatus.enum.done) {
@@ -76,8 +61,18 @@ export function computeDisplayGroups(tasks: TaskEntry[], waves: WaveEntry[]): Di
   return { inProgress, ready, blocked, done, canceled };
 }
 
-export function readPlanDoc(file: string, planDir: string): string | null {
-  const fullPath = join(planDir, file);
+function planDir(): string {
+  if (process.env['PLAN_DIR']) return process.env['PLAN_DIR'];
+  let dir = dirname(fileURLToPath(import.meta.url));
+  while (dir !== '/') {
+    if (existsSync(join(dir, 'plan'))) return join(dir, 'plan');
+    dir = dirname(dir);
+  }
+  throw new Error('Could not locate plan/ directory — set PLAN_DIR');
+}
+
+export function readPlanDoc(file: string): string | null {
+  const fullPath = join(planDir(), file);
   if (!existsSync(fullPath)) return null;
   return readFileSync(fullPath, 'utf-8');
 }

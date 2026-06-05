@@ -30,24 +30,24 @@ const PlanResponse = z.object({ content: z.string() });
 
 export const ledgerRouter = defineRoutes([
   httpRoute(GetTasks, 'GET', 'api/ledger/tasks', {
-    response: { 200: TasksResponse },
+    response: { 200: TasksResponse, 500: ErrorResponse },
   }),
   httpRoute(GetQueue, 'GET', 'api/ledger/queue', {
-    response: { 200: DisplayGroupsResponse },
+    response: { 200: DisplayGroupsResponse, 500: ErrorResponse },
   }),
   httpRoute(GetTask, 'GET', 'api/ledger/tasks/#id', {
-    response: { 200: TaskEntry, 404: ErrorResponse },
+    response: { 200: TaskEntry, 404: ErrorResponse, 500: ErrorResponse },
   }),
   httpRoute(PatchTaskStatus, 'PATCH', 'api/ledger/tasks/#id', {
     body: PatchTaskStatusBody,
-    response: { 200: TaskEntry, 404: ErrorResponse },
+    response: { 200: TaskEntry, 404: ErrorResponse, 500: ErrorResponse },
   }),
   httpRoute(PatchTaskRank, 'PATCH', 'api/ledger/tasks/#id/rank', {
     body: PatchTaskRankBody,
-    response: { 200: TaskEntry, 404: ErrorResponse },
+    response: { 200: TaskEntry, 404: ErrorResponse, 500: ErrorResponse },
   }),
   httpRoute(GetTaskPlan, 'GET', 'api/ledger/tasks/#id/plan', {
-    response: { 200: PlanResponse, 404: ErrorResponse },
+    response: { 200: PlanResponse, 404: ErrorResponse, 500: ErrorResponse },
   }),
 ]);
 

@@ -7,11 +7,12 @@ from textual.widgets import DataTable, Footer, Header, Static
 from arbor_cli.ledger import (
     TaskEntry,
     TaskStatus,
-    build_hierarchical_ledger,
     compute_display_groups,
-    find_ledger,
-    update_task,
+    load_ledger_from_pg,
+    update_task_pg,
+    sync_snapshot,
 )
+from arbor_cli.pg import get_conn
 
 _STATUS_LABELS: dict[TaskStatus, str] = {
     TaskStatus.IN_PROGRESS: "in_progress",
@@ -58,7 +59,10 @@ class QueueApp(App):
         self.action_refresh_queue()
 
     def action_refresh_queue(self) -> None:
-        ledger, _ = build_hierarchical_ledger(str(find_ledger()))
+        conn = get_conn()
+        ledger = load_ledger_from_pg(conn)
+        conn.close()
+
         table = self.query_one(DataTable)
         table.clear()
         self._tasks = []
@@ -125,29 +129,23 @@ class QueueApp(App):
     def _apply(self, updates: dict) -> None:
         task = self._selected_task()
         if task is not None:
-            update_task(task.id, updates)
-            #self.action_refresh_queue()
+            conn = get_conn()
+            update_task_pg(conn, task.id, updates)
+            sync_snapshot(conn)
+            conn.close()
 
-    def toggle_set(self, value: TaskStatus):
+    def toggle_set(self, value: TaskStatus) -> None:
         task = self._selected_task()
         if task is None:
             return
-        if task.status is value:
-            self._apply({"status": TaskStatus.TODO.value})
-        else:
-            self._apply({"status": value})
+        new_status = TaskStatus.TODO if task.status is value else value
+        self._apply({"status": new_status.value})
 
     def action_set_next(self) -> None:
         self.toggle_set(TaskStatus.NEXT)
 
     def action_set_done(self) -> None:
-        task = self._selected_task()
-        if task is None:
-            return
-        if task.status is TaskStatus.DONE:
-            self._apply({"status": TaskStatus.TODO.value})
-        else:
-            self._apply({"status": TaskStatus.DONE.value})
+        self.toggle_set(TaskStatus.DONE)
 
     def action_bump_task(self) -> None:
         task = self._selected_task()
@@ -155,7 +153,10 @@ class QueueApp(App):
             return
         wave_tasks = [t for t in self._tasks if t.wave == task.wave]
         effective = [t.rank if t.rank is not None else t.id * 100 for t in wave_tasks]
-        update_task(task.id, {"rank": max(1, min(effective) - 10)})
+        conn = get_conn()
+        update_task_pg(conn, task.id, {"rank": max(1, min(effective) - 10)})
+        sync_snapshot(conn)
+        conn.close()
         self.action_refresh_queue()
 
     def action_defer_task(self) -> None:
@@ -164,5 +165,8 @@ class QueueApp(App):
             return
         wave_tasks = [t for t in self._tasks if t.wave == task.wave]
         effective = [t.rank if t.rank is not None else t.id * 100 for t in wave_tasks]
-        update_task(task.id, {"rank": max(effective) + 10})
+        conn = get_conn()
+        update_task_pg(conn, task.id, {"rank": max(effective) + 10})
+        sync_snapshot(conn)
+        conn.close()
         self.action_refresh_queue()

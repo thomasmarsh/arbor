@@ -4,11 +4,18 @@
 
 **At the start of every session, read `plan/workflow.md`.** It is the canonical execution protocol — stages, gates, mode selection, and all `[CHECKPOINT]` stops live there.
 
-`plan/ledger.jsonl` is the source of truth for task state. Find the current task with:
+Use the `arbor` CLI (installed from `tools/arbor-cli/`) for **all** ledger operations. Never read or modify ledger data files directly.
 
 ```bash
-rg '"status": "next"' plan/ledger.jsonl
+arbor next            # show active task (status: next) or top of queue
+arbor task            # full ready queue
+arbor set N next      # mark task N as next
+arbor set N done      # mark task N as done
+arbor bump N          # promote task N to front of its wave
+arbor defer N         # push task N to back of its wave
 ```
+
+If `ARBOR_PG_URL` is not set or the container is down, run `arbor db up` first.
 
 ## Strict System Rules (Zero Preamble)
 

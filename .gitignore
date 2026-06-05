@@ -7,5 +7,6 @@ dist/
 .turbo/
 certs/
 packages/api/src/**/generated/
+apps/api/src/**/generated/
 .DS_store
 packages/router/scratch/

@@ -32,7 +32,7 @@ Stages marked **[CHECKPOINT]** require you to stop and await user input before c
 
 **Entry**: new session or new task.
 
-1. `rg '"status": "next"' plan/ledger.jsonl` — identify the current task.
+1. `arbor next` — identify the current task (active `next` or top of ready queue).
 2. Read the linked plan file.
 3. State the task goal and the files in its change surface.
 
@@ -127,10 +127,10 @@ Fix any failure before moving to Stage 6. Do not advance with a red chain.
 ### Stage 6 — Close Out
 
 1. If the plan changed the public API, update all affected `examples/` files. Run examples to confirm they produce output.
-2. Mark the task done in the ledger:
+2. Mark the task done in the ledger (auto-updates `plan/ledger.jsonl`):
 
    ```bash
-   sed -i '' '/"id": N,/s/"status": "next"/"status": "done"/' plan/ledger.jsonl
+   arbor set N done
    ```
 
 3. Update `CLAUDE.md` §Examples table if a new example file was added.
@@ -154,9 +154,9 @@ Fix any failure before moving to Stage 6. Do not advance with a red chain.
 
 ## Ledger Reference
 
-`plan/ledger.jsonl` is the single source of truth. Every task is one line of JSON.
+Postgres is the source of truth. Use `arbor` for all reads and writes — never touch ledger data files directly.
 
-### CLI (preferred)
+### CLI
 
 ```bash
 # What to work on next
@@ -177,22 +177,6 @@ arbor defer 86           # push to back of its wave
 
 # Interactive TUI
 arbor tui                # table view; n=next d=done b=bump D=defer r=refresh q=quit
-```
-
-### Ripgrep lookups
-
-```bash
-# Current focus task
-rg '"status": "next"' plan/ledger.jsonl
-
-# Look up by id
-rg '"id": 86,' plan/ledger.jsonl
-
-# All tasks in a wave
-rg '"wave": "w14"' plan/ledger.jsonl
-
-# All tasks in a story
-rg '"story": "s4"' plan/ledger.jsonl
 ```
 
 ---

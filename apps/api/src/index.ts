@@ -5,7 +5,7 @@ import { logger } from 'hono/logger';
 import { defineRoutes, createServer, respond, generateSpec } from '@arbor/router';
 import { makePool } from './db/pg.js';
 import { liveEnv, parseProcessEnv } from './env.js';
-import { ledgerServer } from './ledger/routes.js';
+import { createLedgerServer } from './ledger/routes.js';
 import { helloRouter } from '@arbor/app-common';
 import { usersRouter } from './routes/users.router.js';
 
@@ -15,6 +15,7 @@ export type { LedgerRouter } from './ledger/router.js';
 
 const config = parseProcessEnv();
 const env = liveEnv(makePool(config.ARBOR_PG_URL));
+const ledgerServer = createLedgerServer(env.db.ledger);
 
 const apiRouter = defineRoutes([
   ...helloRouter.children,

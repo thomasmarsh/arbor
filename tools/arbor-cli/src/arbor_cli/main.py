@@ -17,6 +17,8 @@ app.command("bump")(commands.bump_cmd)
 app.command("defer")(commands.defer_cmd)
 app.command("tui")(commands.tui_cmd)
 app.command("plan")(commands.plan_cmd)
+app.command("snapshot")(commands.snapshot_cmd)
+app.command("validate")(commands.validate_cmd)
 
 app.command()(cmd_setup.setup)
 app.command()(cmd_setup.certs)

@@ -9,6 +9,7 @@ dependencies = [
     "graphviz>=0.21",
     "pydantic>=2.13.4",
     "textual>=8.2.7",
+    "psycopg[binary]>=3.2",
 ]
 
 [project.scripts]

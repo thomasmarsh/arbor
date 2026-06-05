@@ -1,3 +1,5 @@
+import re
+from pathlib import Path
 from typing import Annotated
 
 import typer
@@ -5,12 +7,14 @@ import typer
 from arbor_cli.ledger import (
     TaskStatus,
     _all_tasks,
-    build_hierarchical_ledger,
     compute_queue,
     compute_queue_all,
-    find_ledger,
-    update_task,
+    load_ledger_from_pg,
+    update_task_pg,
+    sync_snapshot,
 )
+from arbor_cli.pg import get_conn
+from arbor_cli.util import REPO_ROOT
 
 
 def bootstrap():
@@ -27,9 +31,9 @@ def task_cmd(
     By default only shows tasks whose dependencies are all done (ready to pick up).
     Use --all to also see blocked tasks with their unmet deps listed.
     """
-    ledger, errors = build_hierarchical_ledger(str(find_ledger()))
-    for e in errors:
-        typer.echo(f"  warn: {e}", err=True)
+    conn = get_conn()
+    ledger = load_ledger_from_pg(conn)
+    conn.close()
 
     header = f"  {'#':<4} {'ID':<5} {'Wave':<8} {'Rank':<6} {'Story':<7} Task"
     rule   = f"  {'-'*4} {'-'*5} {'-'*8} {'-'*6} {'-'*7} {'-'*50}"
@@ -76,7 +80,9 @@ def task_cmd(
 
 def next_cmd():
     """Print the active task (status: next) or the top of the queue."""
-    ledger, _ = build_hierarchical_ledger(str(find_ledger()))
+    conn = get_conn()
+    ledger = load_ledger_from_pg(conn)
+    conn.close()
 
     active = next(
         (t for t in _all_tasks(ledger) if t.status == TaskStatus.NEXT),
@@ -108,41 +114,52 @@ def set_cmd(task_id: int, status: str):
             f"  Invalid status '{status}'. Valid: {', '.join(sorted(valid))}", err=True
         )
         raise typer.Exit(1)
-    update_task(task_id, {"status": status})
+    conn = get_conn()
+    update_task_pg(conn, task_id, {"status": status})
+    sync_snapshot(conn)
+    conn.close()
     typer.echo(f"  ✓ Task #{task_id} → {status}")
 
 
 def bump_cmd(task_id: int):
     """Promote a task to the front of its wave in the queue."""
-    ledger, _ = build_hierarchical_ledger(str(find_ledger()))
+    conn = get_conn()
+    ledger = load_ledger_from_pg(conn)
     q = compute_queue(ledger)
 
     target = next((t for t in q if t.id == task_id), None)
     if target is None:
+        conn.close()
         typer.echo(f"  Task #{task_id} is not in the ready queue.", err=True)
         raise typer.Exit(1)
 
     wave_tasks = [t for t in q if t.wave == target.wave]
     effective = [t.rank if t.rank is not None else t.id * 100 for t in wave_tasks]
     new_rank = max(1, min(effective) - 10)
-    update_task(task_id, {"rank": new_rank})
+    update_task_pg(conn, task_id, {"rank": new_rank})
+    sync_snapshot(conn)
+    conn.close()
     typer.echo(f"  ✓ Task #{task_id} bumped → rank {new_rank} (wave {target.wave})")
 
 
 def defer_cmd(task_id: int):
     """Push a task to the back of its wave in the queue."""
-    ledger, _ = build_hierarchical_ledger(str(find_ledger()))
+    conn = get_conn()
+    ledger = load_ledger_from_pg(conn)
     q = compute_queue(ledger)
 
     target = next((t for t in q if t.id == task_id), None)
     if target is None:
+        conn.close()
         typer.echo(f"  Task #{task_id} is not in the ready queue.", err=True)
         raise typer.Exit(1)
 
     wave_tasks = [t for t in q if t.wave == target.wave]
     effective = [t.rank if t.rank is not None else t.id * 100 for t in wave_tasks]
     new_rank = max(effective) + 10
-    update_task(task_id, {"rank": new_rank})
+    update_task_pg(conn, task_id, {"rank": new_rank})
+    sync_snapshot(conn)
+    conn.close()
     typer.echo(f"  ✓ Task #{task_id} deferred → rank {new_rank} (wave {target.wave})")
 
 
@@ -153,13 +170,56 @@ def tui_cmd():
 
 
 def plan_cmd():
-    """(Legacy) Print the ledger tree."""
-    ledger, errors = build_hierarchical_ledger(str(find_ledger()))
-    for e in errors:
-        typer.echo(f"warn: {e}", err=True)
+    """Print the ledger tree."""
+    conn = get_conn()
+    ledger = load_ledger_from_pg(conn)
+    conn.close()
     for epic_node in ledger.epics:
         typer.echo(f"Epic: {epic_node.epic.title} [{epic_node.epic.id}]")
         for story_node in epic_node.stories:
             typer.echo(f"  └── Story: {story_node.story.title}")
             for task in story_node.tasks:
                 typer.echo(f"      ├── [{task.status.value:10}] #{task.id} {task.text}")
+
+
+def snapshot_cmd():
+    """Re-export the DB to the JSONL cache (recovery tool — normally automatic)."""
+    conn = get_conn()
+    sync_snapshot(conn)
+    conn.close()
+    typer.echo("  ✓ plan/ledger.jsonl updated from DB")
+
+
+def validate_cmd():
+    """Check that plan docs and DB tasks are in sync."""
+    conn = get_conn()
+    plan_dir = REPO_ROOT / "plan"
+    doc_pattern = re.compile(r'^(\d+)\..+\.md$')
+
+    with conn.cursor() as cur:
+        cur.execute("SELECT id, file FROM ledger_tasks")
+        db_tasks = cur.fetchall()
+    conn.close()
+
+    db_ids = {row[0] for row in db_tasks}
+    errors: list[str] = []
+
+    for task_id, file in db_tasks:
+        if file and not (plan_dir / file).exists():
+            errors.append(f"  Task #{task_id}: plan/{file} not found on disk")
+
+    for path in sorted(plan_dir.glob("*.md")):
+        m = doc_pattern.match(path.name)
+        if m:
+            doc_id = int(m.group(1))
+            if doc_id not in db_ids:
+                errors.append(f"  plan/{path.name}: no task #{doc_id} in DB")
+
+    if errors:
+        typer.echo("\n  Validation failed:\n")
+        for e in errors:
+            typer.echo(e)
+        typer.echo()
+        raise typer.Exit(1)
+
+    typer.echo(f"  ✓ {len(db_tasks)} tasks and plan docs are in sync")
