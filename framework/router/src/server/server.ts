@@ -1,5 +1,5 @@
 import type { HttpContext, HttpMethod, HttpResponse, HttpResponseUnion, InferSingleSuccessBody, SessionCtx } from '../contexts/http-context.js';
-import { collectHttpMaps } from '../contexts/http-context.js';
+import { collectHttpMaps, createMethodAwareParser } from '../contexts/http-context.js';
 import type { HttpWalkNode } from '../contexts/http-context.js';
 import type { AnyUserSchema } from '../core/schema.js';
 import { syncValidate } from '../core/schema.js';
@@ -144,6 +144,7 @@ export function createServer<
 ) {
   const { methodMap, bodySchemaMap, headerSchemaMap, cookieSchemaMap, responseHeaderSchemaMap, responseCookieSchemaMap, rateLimitMap, requiresMap, wrapStatusMap } =
     collectHttpMaps(router.children as HttpWalkNode[]);
+  const methodAwareParser = createMethodAwareParser<Route>(router.children as HttpWalkNode[]);
 
   const maxBodySize = options?.maxBodySize ?? DEFAULT_MAX_BODY_SIZE;
   let _defaultRateLimitStore: RateLimitStore | undefined;
@@ -224,9 +225,25 @@ export function createServer<
     body: unknown,
     headers: Record<string, string>,
   ): Promise<DispatchResult> {
-    return router.parse(url).fold(
+    return methodAwareParser.parse(url, method).fold(
       (route) => executeRoute(route, url, method, body, headers),
-      (error) => Promise.resolve({ status: 404, body: { error }, tag: 'unmatched' }),
+      () =>
+        // No route matched for this method. Check if the path exists at all
+        // to distinguish 405 (path known, wrong method) from 404 (unknown path).
+        router.parse(url).fold(
+          (anyRoute) => {
+            const leaf = extractLeafRoute(anyRoute);
+            const tag = leaf['tag'] as string;
+            const allowed = methodMap[tag];
+            return Promise.resolve({
+              status: 405 as const,
+              body: { error: 'method not allowed' },
+              ...(allowed ? { headers: { Allow: allowed } } : {}),
+              tag,
+            });
+          },
+          (error) => Promise.resolve({ status: 404, body: { error }, tag: 'unmatched' }),
+        ),
     );
   }
 

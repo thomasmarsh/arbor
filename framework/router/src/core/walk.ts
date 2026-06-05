@@ -140,6 +140,7 @@ export function walkParseIndexed(
   query: URLSearchParams,
   params: Record<string, unknown> = {},
   diag?: ParseDiag[],
+  canMatchLeaf?: (node: WalkNode) => boolean,
 ): Record<string, unknown> | null {
   for (const node of nodes) {
     const match = matchSegments(node.segments, urlSegments, params);
@@ -149,6 +150,7 @@ export function walkParseIndexed(
     }
     const { params: nextParams, rest } = match;
     if (rest.length === 0) {
+      if (canMatchLeaf && !canMatchLeaf(node)) continue;
       const result = handleLeafNode(node, nextParams, query, diag);
       if (result) return result;
       continue;
@@ -158,7 +160,7 @@ export function walkParseIndexed(
     const candidates = first !== undefined
       ? [...(node._index.literals.get(first) ?? []), ...node._index.nonLiterals]
       : node._index.nonLiterals;
-    const child = walkParseIndexed(candidates, rest, query, nextParams, diag);
+    const child = walkParseIndexed(candidates, rest, query, nextParams, diag, canMatchLeaf);
     if (!child) continue;
     if (node.schema === null) return { child };
     const data = validateNative(node.schema, { ...nextParams, tag: getTag(node.schema) }, node.path, diag);
@@ -174,6 +176,7 @@ export function walkParse(
   query: URLSearchParams,
   params: Record<string, unknown> = {},
   diag?: ParseDiag[],
+  canMatchLeaf?: (node: WalkNode) => boolean,
 ): Record<string, unknown> | null {
   for (const node of nodes) {
     const match = matchSegments(node.segments, urlSegments, params);
@@ -183,12 +186,13 @@ export function walkParse(
     }
     const { params: nextParams, rest } = match;
     if (rest.length === 0) {
+      if (canMatchLeaf && !canMatchLeaf(node)) continue;
       const result = handleLeafNode(node, nextParams, query, diag);
       if (result) return result;
       continue;
     }
     if (node.children.length === 0) continue;
-    const child = walkParse(node.children as WalkNode[], rest, query, nextParams, diag);
+    const child = walkParse(node.children as WalkNode[], rest, query, nextParams, diag, canMatchLeaf);
     if (!child) continue;
     if (node.schema === null) return { child };
     const data = validateNative(node.schema, { ...nextParams, tag: getTag(node.schema) }, node.path, diag);

@@ -399,6 +399,43 @@ describe('createServer', () => {
       expect(result).toMatchObject({ status: 405, body: { error: 'method not allowed' }, headers: { Allow: 'GET' } });
     });
 
+    describe('same path, different methods', () => {
+      const GetItem  = object({ tag: literal('get-item'),    id: string() });
+      const PatchItem = object({ tag: literal('patch-item'), id: string() });
+      const ItemBody = z.object({ name: z.string() });
+      const ItemResp = z.object({ id: z.string(), name: z.string() });
+
+      const multiMethodRouter = defineRoutes([
+        httpRoute(GetItem,   'GET',   'items/:id', { response: { 200: ItemResp } }),
+        httpRoute(PatchItem, 'PATCH', 'items/:id', { body: ItemBody, response: { 200: ItemResp } }),
+      ]);
+
+      const multiMethodServer = createServer(multiMethodRouter, {
+        'get-item':   (ctx) => respond(200, { id: ctx.params.id, name: 'original' }),
+        'patch-item': (ctx) => respond(200, { id: ctx.params.id, name: ctx.body.name }),
+      });
+
+      it('routes GET to the GET handler', async () => {
+        const result = await multiMethodServer.handle(new URL('https://example.com/items/42'), 'GET');
+        expect(result).toMatchObject({ status: 200, body: { id: '42', name: 'original' } });
+      });
+
+      it('routes PATCH to the PATCH handler', async () => {
+        const result = await multiMethodServer.handle(new URL('https://example.com/items/42'), 'PATCH', { name: 'updated' });
+        expect(result).toMatchObject({ status: 200, body: { id: '42', name: 'updated' } });
+      });
+
+      it('returns 405 for an unsupported method on the shared path', async () => {
+        const result = await multiMethodServer.handle(new URL('https://example.com/items/42'), 'DELETE');
+        expect(result.status).toBe(405);
+      });
+
+      it('returns 404 for a completely unknown path', async () => {
+        const result = await multiMethodServer.handle(new URL('https://example.com/unknown'), 'GET');
+        expect(result.status).toBe(404);
+      });
+    });
+
     it('passes coerced query params to handler', async () => {
       const result = await server.handle(new URL('https://example.com/items?page=5'), 'GET');
       expect(result).toMatchObject({ status: 200, body: { count: 5 } });

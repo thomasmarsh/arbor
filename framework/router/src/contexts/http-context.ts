@@ -1,9 +1,10 @@
+import { Result } from '@arbor/common';
 import { type BuildableRouteNode, buildable } from '../core/define-routes.js';
 import type { RouteNode } from '../core/route-node.js';
 import type { AnyObjectSchema, AnyUserSchema, InferUserSchema, UserSchema, Infer } from '../core/schema.js';
 import { parseSegments } from '../core/segments.js';
 import type { Recv, Select, Send, Session, SessionMeta } from '../core/session.js';
-import { walkCollect } from '../core/walk.js';
+import { walkCollect, indexNodes, walkParseIndexed, type WalkNode } from '../core/walk.js';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -176,6 +177,32 @@ export type SafeBodyOption<M extends HttpMethod> =
 export interface SessionCtx { userId: string; roles: string[] }
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- httpRoute uses any for RouteNode structural type params */
+// Builds a method-aware parser for HTTP route trees.  Lives here (not core/)
+// because the method constraint is an HTTP concept injected as a generic
+// predicate — the walk layer stays protocol-agnostic.
+export function createMethodAwareParser<Route>(nodes: HttpWalkNode[]): {
+  parse(url: URL, method: string): Result<Route, string>;
+} {
+  const indexedNodes = indexNodes(nodes as WalkNode[]);
+  return {
+    parse(url: URL, method: string): Result<Route, string> {
+      let segments: string[];
+      try {
+        segments = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
+      } catch {
+        return Result.err(`invalid URL encoding: ${url.pathname}`);
+      }
+      const canMatchLeaf = (node: WalkNode) => {
+        const m = getHttpMeta(node as HttpWalkNode)?.method;
+        return !m || m === method;
+      };
+      const raw = walkParseIndexed(indexedNodes, segments, url.searchParams, {}, undefined, canMatchLeaf);
+      if (!raw) return Result.err(`no route: ${url.pathname}`);
+      return Result.ok(raw) as Result<Route, string>;
+    },
+  };
+}
+
 export function httpRoute<
   S extends AnyObjectSchema,
   Method extends HttpMethod,
