@@ -1,8 +1,3 @@
-:root {
-  color-scheme: light;
-}
-
 body {
-  background-color: Canvas;
-  color: CanvasText;
+  margin: 0;
 }
