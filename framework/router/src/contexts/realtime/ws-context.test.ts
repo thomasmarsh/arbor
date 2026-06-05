@@ -4,7 +4,7 @@ import { defineRoutes } from '../../core/define-routes.js';
 import { buildIxSessionOps } from '../../core/ix-session-ops.js';
 import { literal, object } from '../../core/schema.js';
 import type { InferSession, Recv, Send } from '../../core/session.js';
-import { createWsClient, type WsConnectFn } from '../../client/ws-client.js';
+import { createWsClient, createWsSessionClient, type WsConnectFn } from '../../client/ws-client.js';
 import { createWsServer, createWsSessionServer } from '../../server/ws-dispatch.js';
 import {
   createWsAdapterPair,
@@ -231,5 +231,42 @@ describe('wsSessionRoute', () => {
     const server = createWsSessionServer(router, {} as never);
     const [serverAdapter] = createWsAdapterPair();
     await expect(server.handleConnection('unknown', {}, serverAdapter)).resolves.toBeUndefined();
+  });
+});
+
+// ─── createWsSessionClient ────────────────────────────────────────────────────
+
+describe('createWsSessionClient', () => {
+  it('wsSessionRoute round-trip: server recv join, send welcome; client via createWsSessionClient', async () => {
+    const JoinSchema = z.object({ username: z.string() });
+    const WelcomeSchema = z.object({ roomId: z.string() });
+
+    const route = wsSessionRoute(
+      object({ tag: literal('ws/lobby') }),
+      'ws/lobby',
+      undefined as never,
+    );
+    const router = defineRoutes([route]);
+
+    const server = createWsSessionServer(router, {
+      'ws/lobby': async ({ ops }) => {
+        const join = await ops.recv(JoinSchema).run();
+        await ops.send({ roomId: `room-for-${join.username}` }, WelcomeSchema).run();
+      },
+    });
+    const [serverAdapter, clientAdapter] = createWsAdapterPair();
+    void server.handleConnection('ws/lobby', {}, serverAdapter);
+
+    const client = createWsSessionClient('ws://localhost', router, {
+      connect: () => clientAdapter,
+    });
+    const parsed = router.parse(new URL('http://localhost/ws/lobby'));
+    expect(parsed.isOk()).toBe(true);
+    if (!parsed.isOk()) return;
+
+    const ops = client.connectSession(parsed.value);
+    await ops.send({ username: 'alice' }, JoinSchema).run();
+    const welcome = await ops.recv(WelcomeSchema).run();
+    expect(welcome).toEqual({ roomId: 'room-for-alice' });
   });
 });

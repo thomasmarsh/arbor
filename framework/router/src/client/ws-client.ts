@@ -2,12 +2,16 @@
 
 import type { Result } from '@arbor/common';
 import type { RouteNode } from '../core/route-node.js';
+import { buildIxSessionOps, type IxSessionOps } from '../core/ix-session-ops.js';
 import { walkCollect } from '../core/walk.js';
 import {
   buildWsChannel,
+  collectWsSessionMetaMap,
   getWsMeta,
   type WsAdapter,
   type WsContext,
+  type WsSessionContext,
+  type WsSessionWalkNode,
   type WsWalkNode,
 } from '../contexts/realtime/ws-context.js';
 
@@ -73,6 +77,52 @@ export function createWsClient<
       const adapter = connectFn(url);
       // Client sends In (inSchema validates outgoing) and receives Out (outSchema validates incoming)
       return buildWsChannel(adapter, meta.outSchema, meta.inSchema);
+    },
+  };
+}
+
+// ─── Session client types ──────────────────────────────────────────────────────
+
+export interface WsSessionClient<Route extends { tag: string }> {
+  connectSession(route: Route): IxSessionOps;
+}
+
+interface WsRouterLike_Session<
+  Route extends { tag: string },
+  Map extends Record<string, WsSessionContext<any>>,
+> {
+  _type: Route;
+  _ctxMap: Map;
+  children: RouteNode<unknown, any, any, any, any, any>[];
+  parse(url: URL): Result<Route, string>;
+  print(route: Route): string;
+}
+
+// ─── Session client factory ───────────────────────────────────────────────────
+
+export function createWsSessionClient<
+  Route extends { tag: string },
+  Map extends Record<string, WsSessionContext<any>>,
+>(
+  baseUrl: string,
+  router: WsRouterLike_Session<Route, Map>,
+  opts?: { connect?: WsConnectFn },
+): WsSessionClient<Route> {
+  const metaMap = collectWsSessionMetaMap(
+    router.children as WsSessionWalkNode[],
+  );
+
+  const connectFn: WsConnectFn = opts?.connect ?? defaultConnect;
+
+  return {
+    connectSession(route: Route): IxSessionOps {
+      const tag = route.tag;
+      const path = router.print(route);
+      const url = `${baseUrl.replace(/\/$/, '')}${path}`;
+      const meta = metaMap[tag];
+      if (!meta) throw new Error(`no WsSession meta for tag: ${tag}`);
+      const adapter = connectFn(url);
+      return buildIxSessionOps(adapter);
     },
   };
 }
