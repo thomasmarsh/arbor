@@ -24,8 +24,8 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
-    "dev": "tsc -b --watch",
+    "build": "tsc -b tsconfig.build.json",
+    "dev": "tsc -b tsconfig.build.json --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src examples scripts",
     "test": "vitest run",

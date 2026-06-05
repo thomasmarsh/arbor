@@ -5,8 +5,10 @@ import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
+import Divider from '@mui/material/Divider';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
+import Link from '@mui/material/Link';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -158,19 +160,107 @@ export function LedgerDetailDrawer({ state, send }: LedgerDetailDrawerProps) {
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeHighlight]}
             components={{
+              h1: ({ children }) => (
+                <Typography variant="h5" sx={{ mt: 3, mb: 1, fontWeight: 700 }}>
+                  {children}
+                </Typography>
+              ),
+              h2: ({ children }) => (
+                <Typography variant="h6" sx={{ mt: 2.5, mb: 1, fontWeight: 700 }}>
+                  {children}
+                </Typography>
+              ),
+              h3: ({ children }) => (
+                <Typography variant="subtitle1" sx={{ mt: 2, mb: 0.5, fontWeight: 700 }}>
+                  {children}
+                </Typography>
+              ),
+              h4: ({ children }) => (
+                <Typography variant="subtitle2" sx={{ mt: 1.5, mb: 0.5, fontWeight: 700 }}>
+                  {children}
+                </Typography>
+              ),
+              p: ({ children }) => (
+                <Typography variant="body2" sx={{ display: 'block', lineHeight: 1.7, mb: 1.5 }}>
+                  {children}
+                </Typography>
+              ),
+              a: ({ href, children }) => (
+                <Link href={href} target="_blank" rel="noopener noreferrer" underline="hover">
+                  {children}
+                </Link>
+              ),
+              blockquote: ({ children }) => (
+                <Box
+                  component="blockquote"
+                  sx={{
+                    borderLeft: 3,
+                    borderColor: 'primary.main',
+                    bgcolor: 'action.hover',
+                    pl: 2,
+                    pr: 1,
+                    py: 0.5,
+                    ml: 0,
+                    my: 1.5,
+                    borderRadius: '0 4px 4px 0',
+                    color: 'text.secondary',
+                  }}
+                >
+                  {children}
+                </Box>
+              ),
+              code: ({ children, className }) => {
+                if (className) return <code className={className}>{children}</code>;
+                return (
+                  <Box
+                    component="code"
+                    sx={{
+                      fontFamily: 'monospace',
+                      fontSize: '0.82em',
+                      bgcolor: 'action.hover',
+                      px: 0.75,
+                      py: 0.2,
+                      borderRadius: 0.5,
+                      border: 1,
+                      borderColor: 'divider',
+                    }}
+                  >
+                    {children}
+                  </Box>
+                );
+              },
               pre: ({ children, ...props }) => (
                 <pre
                   {...props}
                   style={{
                     background: '#1e1e1e',
-                    borderRadius: 4,
-                    padding: '12px',
+                    borderRadius: 6,
+                    padding: '12px 16px',
                     overflowX: 'auto',
+                    fontSize: '0.82em',
+                    lineHeight: 1.5,
+                    margin: '0 0 16px',
                   }}
                 >
                   {children}
                 </pre>
               ),
+              ul: ({ children }) => (
+                <Box component="ul" sx={{ pl: 3, mb: 1.5, mt: 0 }}>
+                  {children}
+                </Box>
+              ),
+              ol: ({ children }) => (
+                <Box component="ol" sx={{ pl: 3, mb: 1.5, mt: 0 }}>
+                  {children}
+                </Box>
+              ),
+              li: ({ children }) => (
+                <Typography component="li" variant="body2" sx={{ mb: 0.5, lineHeight: 1.7 }}>
+                  {children}
+                </Typography>
+              ),
+              hr: () => <Divider sx={{ my: 2 }} />,
               table: ({ children }) => (
                 <Box sx={{ overflowX: 'auto', mb: 2 }}>
                   <Table size="small" sx={{ borderCollapse: 'collapse' }}>

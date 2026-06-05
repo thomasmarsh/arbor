@@ -32,6 +32,7 @@
       "outputs": ["test-results/**", "coverage/**"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     },
