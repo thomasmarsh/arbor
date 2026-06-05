@@ -6,6 +6,13 @@ import { ledgerReducer, initialLedgerState } from './ledger.store.js';
 import type { LedgerState } from './ledger.store.js';
 import { emptyGroups, groupsWithTasks, mockLedgerEnv } from './ledger.env.mock.js';
 
+const freshIdle = (): LedgerState => ({
+  loadState: { tag: 'idle' },
+  selectedIndex: 0,
+  showAll: false,
+  lastUpdated: null,
+});
+
 const task133: TaskEntry = {
   type: 'task', kind: 'task', id: 133, epic: 'e4', story: 's14',
   wave: 'w28', layer: 'ui', status: 'next', text: 'task', file: '133.md',
@@ -27,7 +34,7 @@ describe('ledgerReducer', () => {
   afterEach(() => { vi.useRealTimers(); });
 
   it('fetch transitions to loading then dispatches loaded on success', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnv, initialLedgerState);
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, freshIdle());
     store
       .send({ tag: 'fetch' }, (s) => {
         s.loadState = { tag: 'loading' };
@@ -41,7 +48,7 @@ describe('ledgerReducer', () => {
 
   it('fetch transitions to loading then dispatches error on failure', () => {
     const errEnv = { ...mockLedgerEnv, fetchQueue: Effect.send(Result.err<DisplayGroupsResponse, string>('network error')) };
-    const store = new TestStore(ledgerReducer, errEnv, initialLedgerState);
+    const store = new TestStore(ledgerReducer, errEnv, freshIdle());
     store
       .send({ tag: 'fetch' }, (s) => {
         s.loadState = { tag: 'loading' };
@@ -60,14 +67,14 @@ describe('ledgerReducer', () => {
       ...mockLedgerEnv,
       pollTick: Effect.of((send) => { if (remaining-- > 0) send(undefined); }),
     };
-    const store = new TestStore(ledgerReducer, oncePollEnv, initialLedgerState);
+    const store = new TestStore(ledgerReducer, oncePollEnv, freshIdle());
     store
       .send({ tag: 'fetch' }, (s) => { s.loadState = { tag: 'loading' }; })
       .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
         s.lastUpdated = NOW;
       })
-      .receive({ tag: 'fetch' }, (s) => { s.loadState = { tag: 'loading' }; })
+      .receive({ tag: 'fetch' }, (_s) => { /* background repoll — stays loaded, no flicker */ })
       .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
         s.lastUpdated = NOW;
@@ -101,7 +108,7 @@ describe('ledgerReducer', () => {
           if (t) t.status = 'done';
         }
       })
-      .receive({ tag: 'fetch' }, (s) => { s.loadState = { tag: 'loading' }; })
+      .receive({ tag: 'fetch' }, (_s) => { /* background refresh — loadState stays loaded */ })
       .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
         s.lastUpdated = NOW;
@@ -118,7 +125,7 @@ describe('ledgerReducer', () => {
           if (t) t.rank = 90;
         }
       })
-      .receive({ tag: 'fetch' }, (s) => { s.loadState = { tag: 'loading' }; })
+      .receive({ tag: 'fetch' }, (_s) => { /* background refresh — loadState stays loaded */ })
       .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
         s.lastUpdated = NOW;
@@ -135,7 +142,7 @@ describe('ledgerReducer', () => {
           if (t) t.rank = 310;
         }
       })
-      .receive({ tag: 'fetch' }, (s) => { s.loadState = { tag: 'loading' }; })
+      .receive({ tag: 'fetch' }, (_s) => { /* background refresh — loadState stays loaded */ })
       .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
         s.lastUpdated = NOW;
@@ -169,10 +176,10 @@ describe('ledgerReducer', () => {
     store.assertDrained();
   });
 
-  it('refresh transitions to loading then dispatches loaded on success', () => {
+  it('refresh silently re-fetches from loaded state without flicker', () => {
     const store = new TestStore(ledgerReducer, mockLedgerEnv, loadedState);
     store
-      .send({ tag: 'refresh' }, (s) => { s.loadState = { tag: 'loading' }; })
+      .send({ tag: 'refresh' }, (_s) => { /* loadState unchanged — data stays visible */ })
       .receive({ tag: 'loaded', groups: emptyGroups }, (s) => {
         s.loadState = { tag: 'loaded', groups: emptyGroups };
         s.lastUpdated = NOW;

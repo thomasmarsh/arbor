@@ -62,7 +62,7 @@ function mutateTaskInGroups(
 export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, action, env) => {
   switch (action.tag) {
     case 'fetch': {
-      $.state.loadState = { tag: 'loading' };
+      if ($.state.loadState.tag !== 'loaded') $.state.loadState = { tag: 'loading' };
       return Effect.merge<LedgerAction>(
         env.fetchQueue.map((result) =>
           result.fold<LedgerAction>(
@@ -109,7 +109,7 @@ export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, 
       return null;
     }
     case 'refresh': {
-      $.state.loadState = { tag: 'loading' };
+      if ($.state.loadState.tag !== 'loaded') $.state.loadState = { tag: 'loading' };
       return env.fetchQueue.map((result) =>
         result.fold<LedgerAction>(
           (groups) => ({ tag: 'loaded', groups }),
