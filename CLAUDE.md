@@ -129,6 +129,8 @@ Self-contained runnable demos in `packages/router/examples/`. Run them as a smok
 | `test-client.ts`    | `createTestClient` — in-memory server + typed client in one call for test suites     |
 | `use-builder.ts`    | `.use()` + `.pipe(pipeline())` — left-to-right route-node transformer composition    |
 | `sse-stream.ts`     | `sseRoute` + `createSseServer` + `createSseClient` — typed SSE stream end-to-end     |
+| `ws-chat.ts`        | `wsRoute` + `createWsServer` + `createWsClient` — typed bidirectional WS channel      |
+| `ws-session.ts`     | `wsSessionRoute` + `createWsSessionServer` + `createWsSessionClient` — structured send/recv session protocol |
 
 **Rules for examples**:
 

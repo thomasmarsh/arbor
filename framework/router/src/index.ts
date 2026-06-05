@@ -110,7 +110,13 @@ export {
 } from './server/sse-dispatch.js';
 
 // WebSocket
-export { createWsClient, type WsClient, type WsConnectFn } from './client/ws-client.js';
+export {
+  createWsClient,
+  createWsSessionClient,
+  type WsClient,
+  type WsConnectFn,
+  type WsSessionClient,
+} from './client/ws-client.js';
 export {
   createWsAdapterPair,
   collectWsSessionMetaMap,
