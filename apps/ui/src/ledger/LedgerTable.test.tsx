@@ -49,9 +49,9 @@ describe('LedgerTable', () => {
       expect(screen.getByText('Task Beta')).toBeTruthy();
     });
 
-    it('shows "Last updated" timestamp after load', async () => {
+    it('shows last-updated timestamp in toolbar after load', async () => {
       render(<LedgerTable env={envWithTasks} />);
-      await waitFor(() => screen.getByText(/Last updated:/));
+      await waitFor(() => screen.getByText(/Last:/));
     });
 
     it('hides done tasks by default', async () => {

@@ -2,6 +2,20 @@ import { Effect, type Reducer } from '@arbor/common';
 import type { DisplayGroupsResponse, TaskEntry, TaskStatus } from '@arbor/api/ledger';
 import type { LedgerEnv } from './ledger.env.js';
 
+export interface LedgerFilters {
+  text: string;
+  wave: string | null;
+  status: TaskStatus | null;
+  kind: 'task' | 'spike' | null;
+}
+
+export const initialFilters: LedgerFilters = {
+  text: '',
+  wave: null,
+  status: null,
+  kind: null,
+};
+
 export type { DisplayGroupsResponse };
 
 export type LedgerLoadState =
@@ -23,6 +37,7 @@ export interface LedgerState {
   lastUpdated: Date | null;
   detailTaskId: number | null;
   planDoc: PlanDocState;
+  filters: LedgerFilters;
 }
 
 export type LedgerAction =
@@ -39,7 +54,12 @@ export type LedgerAction =
   | { tag: 'openDetail'; taskId: number }
   | { tag: 'closeDetail' }
   | { tag: 'planDocLoaded'; taskId: number; content: string }
-  | { tag: 'planDocError'; taskId: number; message: string };
+  | { tag: 'planDocError'; taskId: number; message: string }
+  | { tag: 'setTextFilter'; text: string }
+  | { tag: 'setWaveFilter'; wave: string | null }
+  | { tag: 'setStatusFilter'; status: TaskStatus | null }
+  | { tag: 'setKindFilter'; kind: 'task' | 'spike' | null }
+  | { tag: 'clearFilters' };
 
 export const initialLedgerState: LedgerState = {
   loadState: { tag: 'idle' },
@@ -48,6 +68,7 @@ export const initialLedgerState: LedgerState = {
   lastUpdated: null,
   detailTaskId: null,
   planDoc: { tag: 'idle' },
+  filters: initialFilters,
 };
 
 function spliceTask(arr: TaskEntry[], taskId: number, updater: (t: TaskEntry) => TaskEntry): boolean {
@@ -156,6 +177,31 @@ export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, 
       if ($.state.planDoc.tag === 'loading' && $.state.planDoc.taskId === action.taskId) {
         $.state.planDoc = { tag: 'error', taskId: action.taskId, message: action.message };
       }
+      return null;
+    }
+    case 'setTextFilter': {
+      $.state.filters.text = action.text;
+      $.state.selectedIndex = 0;
+      return null;
+    }
+    case 'setWaveFilter': {
+      $.state.filters.wave = action.wave;
+      $.state.selectedIndex = 0;
+      return null;
+    }
+    case 'setStatusFilter': {
+      $.state.filters.status = action.status;
+      $.state.selectedIndex = 0;
+      return null;
+    }
+    case 'setKindFilter': {
+      $.state.filters.kind = action.kind;
+      $.state.selectedIndex = 0;
+      return null;
+    }
+    case 'clearFilters': {
+      $.state.filters = { ...initialFilters };
+      $.state.selectedIndex = 0;
       return null;
     }
   }

@@ -17,8 +17,23 @@ import ScienceIcon from '@mui/icons-material/Science';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { liveLedgerEnv, type LedgerEnv } from './ledger.env.js';
 import { ledgerReducer, initialLedgerState } from './ledger.store.js';
+import type { LedgerFilters } from './ledger.store.js';
 import { LedgerDetailDrawer } from './LedgerDetailDrawer.js';
+import { LedgerToolbar } from './LedgerToolbar.js';
 import { useLedgerKeyboard } from './useLedgerKeyboard.js';
+
+export function applyFilters(tasks: TaskEntry[], filters: LedgerFilters): TaskEntry[] {
+  return tasks.filter((t) => {
+    if (filters.wave   && t.wave !== filters.wave) return false;
+    if (filters.status && t.status !== filters.status) return false;
+    if (filters.kind   && t.kind !== filters.kind) return false;
+    if (filters.text) {
+      const q = filters.text.toLowerCase();
+      if (!t.text.toLowerCase().includes(q) && !String(t.id).includes(q)) return false;
+    }
+    return true;
+  });
+}
 
 // Task-column widths cycle through a deterministic spread so rows look natural.
 const TASK_WIDTHS = [160, 130, 190, 145, 175, 120, 165, 140];
@@ -125,16 +140,16 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
     ? [...groups.inProgress, ...groups.ready, ...groups.blocked.map((b) => b.task)]
     : [];
   const doneTasks = groups ? [...groups.done, ...groups.canceled] : [];
-  const allTasksForRanks = [...activeTasks, ...doneTasks];
-  const visibleRows = $.state.showAll ? [...activeTasks, ...doneTasks] : activeTasks;
-  const selected = visibleRows[$.state.selectedIndex];
+  const allTasksForRanks = [...activeTasks, ...doneTasks] as TaskEntry[];
+  // Snapshot<LedgerFilters> is structurally identical to LedgerFilters (all primitives)
+  const filters = $.state.filters as LedgerFilters;
 
   const rawSections = groups
     ? [
-        { label: 'In Progress', tasks: groups.inProgress },
-        { label: 'Ready', tasks: groups.ready },
-        { label: 'Blocked', tasks: groups.blocked.map((b) => b.task) },
-        ...($.state.showAll ? [{ label: 'Done', tasks: doneTasks }] : []),
+        { label: 'In Progress', tasks: applyFilters([...groups.inProgress] as TaskEntry[], filters) },
+        { label: 'Ready', tasks: applyFilters([...groups.ready] as TaskEntry[], filters) },
+        { label: 'Blocked', tasks: applyFilters(groups.blocked.map((b) => b.task) as TaskEntry[], filters) },
+        ...($.state.showAll ? [{ label: 'Done', tasks: applyFilters(doneTasks as TaskEntry[], filters) }] : []),
       ]
     : [];
 
@@ -144,6 +159,9 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
     runningOffset += section.tasks.length;
     return { ...section, startIndex };
   });
+
+  const visibleRows = sections.flatMap((s) => s.tasks);
+  const selected = visibleRows[$.state.selectedIndex];
 
   useEffect(() => { send({ tag: 'fetch' }); }, []);
 
@@ -162,11 +180,7 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
 
   return (
     <Box>
-      {$.state.lastUpdated !== null && (
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'right', mb: 0.5 }}>
-          Last updated: {$.state.lastUpdated.toLocaleTimeString()}
-        </Typography>
-      )}
+      <LedgerToolbar state={$.state} send={send} groups={groups} />
       <TableContainer>
         <Table stickyHeader size="small">
           <TableHead>

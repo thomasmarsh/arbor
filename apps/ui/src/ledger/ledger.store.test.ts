@@ -2,7 +2,7 @@ import { describe, it, vi, beforeEach, afterEach } from 'vitest';
 import { Effect, Result } from '@arbor/common';
 import { TestStore } from '@arbor/common';
 import type { TaskEntry, DisplayGroupsResponse } from '@arbor/api/ledger';
-import { ledgerReducer, initialLedgerState } from './ledger.store.js';
+import { ledgerReducer, initialLedgerState, initialFilters } from './ledger.store.js';
 import type { LedgerState } from './ledger.store.js';
 import { emptyGroups, groupsWithTasks, mockLedgerEnv } from './ledger.env.mock.js';
 
@@ -13,6 +13,7 @@ const freshIdle = (): LedgerState => ({
   lastUpdated: null,
   detailTaskId: null,
   planDoc: { tag: 'idle' },
+  filters: { ...initialFilters },
 });
 
 const task133: TaskEntry = {
@@ -29,6 +30,7 @@ const loadedState: LedgerState = {
   lastUpdated: null,
   detailTaskId: null,
   planDoc: { tag: 'idle' },
+  filters: { ...initialFilters },
 };
 
 const NOW = new Date('2025-01-01T12:00:00.000Z');
@@ -236,6 +238,55 @@ describe('ledgerReducer', () => {
     });
     store.send({ tag: 'planDocError', taskId: 5, message: 'not found' }, (s) => {
       s.planDoc = { tag: 'error', taskId: 5, message: 'not found' };
+    });
+    store.assertDrained();
+  });
+
+  it('setTextFilter sets text and resets selectedIndex to 0', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 3 });
+    store.send({ tag: 'setTextFilter', text: 'hello' }, (s) => {
+      s.filters.text = 'hello';
+      s.selectedIndex = 0;
+    });
+    store.assertDrained();
+  });
+
+  it('setWaveFilter sets wave and resets selectedIndex to 0', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 2 });
+    store.send({ tag: 'setWaveFilter', wave: 'w5' }, (s) => {
+      s.filters.wave = 'w5';
+      s.selectedIndex = 0;
+    });
+    store.assertDrained();
+  });
+
+  it('setStatusFilter sets status and resets selectedIndex to 0', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 1 });
+    store.send({ tag: 'setStatusFilter', status: 'next' }, (s) => {
+      s.filters.status = 'next';
+      s.selectedIndex = 0;
+    });
+    store.assertDrained();
+  });
+
+  it('setKindFilter sets kind and resets selectedIndex to 0', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 4 });
+    store.send({ tag: 'setKindFilter', kind: 'spike' }, (s) => {
+      s.filters.kind = 'spike';
+      s.selectedIndex = 0;
+    });
+    store.assertDrained();
+  });
+
+  it('clearFilters restores initialFilters and resets selectedIndex to 0', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, {
+      ...loadedState,
+      selectedIndex: 2,
+      filters: { text: 'foo', wave: 'w3', status: 'done', kind: 'spike' },
+    });
+    store.send({ tag: 'clearFilters' }, (s) => {
+      s.filters = { ...initialFilters };
+      s.selectedIndex = 0;
     });
     store.assertDrained();
   });
