@@ -1,20 +1,20 @@
-import type { Snapshot } from 'valtio';
+import type { DisplayGroupsResponse, TaskStatus } from '@arbor/api/ledger';
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import FormControl from '@mui/material/FormControl';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Paper from '@mui/material/Paper';
 import Select from '@mui/material/Select';
+import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import Switch from '@mui/material/Switch';
-import type { TaskStatus, DisplayGroupsResponse } from '@arbor/api/ledger';
-import type { LedgerAction, LedgerState, LedgerFilters } from './ledger.store.js';
+import type { Snapshot } from 'valtio';
+import type { LedgerAction, LedgerFilters, LedgerState } from './ledger.store.js';
 
 const TASK_STATUSES: TaskStatus[] = ['next', 'in_progress', 'todo', 'done', 'canceled'];
 
@@ -29,13 +29,18 @@ function deriveWaves(groups: Snapshot<DisplayGroupsResponse>): string[] {
   const seen = new Set<string>();
   const waves: string[] = [];
   for (const t of all) {
-    if (!seen.has(t.wave)) { seen.add(t.wave); waves.push(t.wave); }
+    if (!seen.has(t.wave)) {
+      seen.add(t.wave);
+      waves.push(t.wave);
+    }
   }
   return waves;
 }
 
 function isAnyFilterActive(filters: Snapshot<LedgerFilters>): boolean {
-  return filters.text !== '' || filters.wave !== null || filters.status !== null || filters.kind !== null;
+  return (
+    filters.text !== '' || filters.wave !== null || filters.status !== null || filters.kind !== null
+  );
 }
 
 interface LedgerToolbarProps {
@@ -55,8 +60,10 @@ export function LedgerToolbar({ state, send, groups }: LedgerToolbarProps) {
           size="small"
           placeholder="Search tasks…"
           value={state.filters.text}
-          onChange={(e) => send({ tag: 'setTextFilter', text: e.target.value })}
-          inputProps={{ 'aria-label': 'search tasks' }}
+          onChange={(e) => {
+            send({ tag: 'setTextFilter', text: e.target.value });
+          }}
+          slotProps={{ htmlInput: { 'aria-label': 'search tasks' } }}
           sx={{ width: 200 }}
         />
 
@@ -66,10 +73,16 @@ export function LedgerToolbar({ state, send, groups }: LedgerToolbarProps) {
             labelId="wave-label"
             label="Wave"
             value={state.filters.wave ?? ''}
-            onChange={(e) => send({ tag: 'setWaveFilter', wave: e.target.value === '' ? null : e.target.value })}
+            onChange={(e) => {
+              send({ tag: 'setWaveFilter', wave: e.target.value === '' ? null : e.target.value });
+            }}
           >
             <MenuItem value="">All</MenuItem>
-            {waves.map((w) => <MenuItem key={w} value={w}>{w}</MenuItem>)}
+            {waves.map((w) => (
+              <MenuItem key={w} value={w}>
+                {w}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 
@@ -85,7 +98,11 @@ export function LedgerToolbar({ state, send, groups }: LedgerToolbarProps) {
             }}
           >
             <MenuItem value="">All</MenuItem>
-            {TASK_STATUSES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
+            {TASK_STATUSES.map((s) => (
+              <MenuItem key={s} value={s}>
+                {s}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 
@@ -105,7 +122,12 @@ export function LedgerToolbar({ state, send, groups }: LedgerToolbarProps) {
         </ToggleButtonGroup>
 
         {anyActive && (
-          <Button size="small" onClick={() => send({ tag: 'clearFilters' })}>
+          <Button
+            size="small"
+            onClick={() => {
+              send({ tag: 'clearFilters' });
+            }}
+          >
             Clear
           </Button>
         )}
@@ -117,7 +139,9 @@ export function LedgerToolbar({ state, send, groups }: LedgerToolbarProps) {
             <Switch
               size="small"
               checked={state.showAll}
-              onChange={() => send({ tag: 'toggleShowAll' })}
+              onChange={() => {
+                send({ tag: 'toggleShowAll' });
+              }}
             />
           }
           label={<Typography variant="caption">Show done</Typography>}

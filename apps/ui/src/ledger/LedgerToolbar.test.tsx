@@ -11,7 +11,7 @@ import type { Snapshot } from 'valtio';
 afterEach(cleanup);
 
 function makeState(overrides: Partial<LedgerState> = {}): Snapshot<LedgerState> {
-  return { ...initialLedgerState, ...overrides } as unknown as Snapshot<LedgerState>;
+  return { ...initialLedgerState, ...overrides };
 }
 
 const loadedGroups = groupsWithTasks as unknown as Snapshot<DisplayGroupsResponse>;
