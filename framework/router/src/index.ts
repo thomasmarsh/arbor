@@ -93,6 +93,11 @@ export {
   type SessionMeta,
 } from './core/session.js';
 export { IxSession, done, type ChoiceResult, type Done } from './core/ix-session.js';
+export {
+  buildIxSessionOps,
+  type IxSessionOps,
+  type SessionAdapter,
+} from './core/ix-session-ops.js';
 
 // SSE
 export { createSseClient, type SseClient, type SseFetchLike } from './client/sse-client.js';
