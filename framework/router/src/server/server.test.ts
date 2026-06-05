@@ -411,8 +411,8 @@ describe('createServer', () => {
       ]);
 
       const multiMethodServer = createServer(multiMethodRouter, {
-        'get-item':   (ctx) => respond(200, { id: ctx.params.id, name: 'original' }),
-        'patch-item': (ctx) => respond(200, { id: ctx.params.id, name: ctx.body.name }),
+        'get-item':   (ctx) => Promise.resolve(respond(200, { id: ctx.params.id, name: 'original' })),
+        'patch-item': (ctx) => Promise.resolve(respond(200, { id: ctx.params.id, name: ctx.body.name })),
       });
 
       it('routes GET to the GET handler', async () => {

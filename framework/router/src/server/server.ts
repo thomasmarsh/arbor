@@ -227,22 +227,23 @@ export function createServer<
   ): Promise<DispatchResult> {
     return methodAwareParser.parse(url, method).fold(
       (route) => executeRoute(route, url, method, body, headers),
-      () =>
+      (): Promise<DispatchResult> =>
         // No route matched for this method. Check if the path exists at all
         // to distinguish 405 (path known, wrong method) from 404 (unknown path).
         router.parse(url).fold(
-          (anyRoute) => {
+          (anyRoute): Promise<DispatchResult> => {
             const leaf = extractLeafRoute(anyRoute);
             const tag = leaf['tag'] as string;
             const allowed = methodMap[tag];
             return Promise.resolve({
-              status: 405 as const,
+              status: 405,
               body: { error: 'method not allowed' },
               ...(allowed ? { headers: { Allow: allowed } } : {}),
               tag,
             });
           },
-          (error) => Promise.resolve({ status: 404, body: { error }, tag: 'unmatched' }),
+          (error): Promise<DispatchResult> =>
+            Promise.resolve({ status: 404, body: { error }, tag: 'unmatched' }),
         ),
     );
   }
