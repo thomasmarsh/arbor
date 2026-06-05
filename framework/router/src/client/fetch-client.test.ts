@@ -394,4 +394,41 @@ describe('createClient', () => {
       >();
     });
   });
+
+  describe('fetchOk', () => {
+    it('resolves with the 2xx body on success', async () => {
+      const fetchFn = mockFetch(() => ({ status: 200, body: { id: '1', email: 'a@b.com' } }));
+      const client = createClient('https://example.com', router, { fetch: fetchFn });
+      const result = await client.fetchOk({ tag: 'get-user', id: '1' });
+      expect(result).toEqual({ id: '1', email: 'a@b.com' });
+    });
+
+    it('throws on a non-2xx response using the error field when present', async () => {
+      const fetchFn = mockFetch(() => ({ status: 404, body: { error: 'not found' } }));
+      const client = createClient('https://example.com', router, { fetch: fetchFn });
+      await expect(client.fetchOk({ tag: 'get-user', id: '999' })).rejects.toThrow('not found');
+    });
+
+    it('throws with HTTP status when the error body has no error field', async () => {
+      const fetchFn = mockFetch(() => ({ status: 500, body: {} }));
+      const client = createClient('https://example.com', router, { fetch: fetchFn });
+      await expect(client.fetchOk({ tag: 'get-user', id: '1' })).rejects.toThrow('HTTP 500');
+    });
+
+    it('infers the success body type (strips error responses)', () => {
+      const fetchFn = mockFetch(() => ({ status: 200, body: {} }));
+      const client = createClient('https://example.com', router, { fetch: fetchFn });
+      expectTypeOf(client.fetchOk({ tag: 'get-user', id: '1' })).toEqualTypeOf<
+        Promise<{ id: string; email: string }>
+      >();
+    });
+
+    it('returns a union of 2xx bodies for routes with multiple success codes', () => {
+      const fetchFn = mockFetch(() => ({ status: 201, body: {} }));
+      const client = createClient('https://example.com', router, { fetch: fetchFn });
+      expectTypeOf(client.fetchOk({ tag: 'create-user' }, { body: { name: 'x', email: 'x@y' } })).toEqualTypeOf<
+        Promise<{ id: string; email: string }>
+      >();
+    });
+  });
 });

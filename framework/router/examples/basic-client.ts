@@ -26,8 +26,13 @@ const mockFetch: FetchLike = async (url, init) => {
 const client = createClient('http://localhost', router, { fetch: mockFetch });
 
 const route = router.parse(new URL('http://localhost/users/7')).getOrThrow();
-// response is statically typed as:
-//   { status: 200; body: { id: string; name: string } }
-// | { status: 404; body: { error: string } }
+// fetch() returns the full discriminated union — caller narrows by status.
+// response: { status: 200; body: { id: string; name: string } }
+//         | { status: 404; body: { error: string } }
 const response = await client.fetch(route);
 console.log(response);
+
+// fetchOk() resolves with the 2xx body directly; throws on any non-2xx status.
+// body: { id: string; name: string }
+const body = await client.fetchOk({ tag: 'get-user', id: '42' });
+console.log(body);

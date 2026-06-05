@@ -90,7 +90,11 @@ export function collectHttpMaps(nodes: HttpWalkNode[]): {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- distributive conditional requires U extends any to distribute over union
 type UnionToIntersection<U> = (U extends any ? (x: U) => void : never) extends (x: infer I) => void ? I : never;
-type SuccessStatuses = 200 | 201 | 202 | 203 | 204;
+export type SuccessStatuses = 200 | 201 | 202 | 203 | 204;
+
+// Union of all 2xx response body types for a response map.
+// Used by TypedClient.fetchOk() to return only the success body.
+export type HttpSuccessBody<Resp> = Resp[keyof Resp & SuccessStatuses];
 
 // Returns the body type when Resp has exactly one 2xx status key; otherwise never.
 // Enables handlers to return the domain object directly instead of calling respond().

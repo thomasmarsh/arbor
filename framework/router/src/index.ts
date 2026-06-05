@@ -45,6 +45,7 @@ export {
   type HttpResponse,
   type HttpResponseSelect,
   type HttpSession,
+  type HttpSuccessBody,
   type InferHttpSession,
   type InferSingleSuccessBody,
 } from './contexts/http-context.js';
