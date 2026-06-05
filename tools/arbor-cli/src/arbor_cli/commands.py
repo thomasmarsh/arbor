@@ -1,10 +1,11 @@
 import re
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Optional
 
 import typer
 
 from arbor_cli.ledger import (
+    Size,
     TaskStatus,
     _all_tasks,
     compute_queue,
@@ -188,6 +189,50 @@ def snapshot_cmd():
     sync_snapshot(conn)
     conn.close()
     typer.echo("  ✓ plan/ledger.jsonl updated from DB")
+
+
+def add_cmd(
+    text: str,
+    story: Annotated[str, typer.Option("--story", "-s", help="Story ID (e.g. s4)")],
+    wave: Annotated[str, typer.Option("--wave", "-w", help="Wave ID (e.g. w16)")],
+    kind: Annotated[str, typer.Option("--kind", "-k", help="task or spike")] = "task",
+    size: Annotated[Optional[str], typer.Option("--size", help="xs|s|m|l|xl")] = None,
+    file: Annotated[Optional[str], typer.Option("--file", "-f", help="Plan doc filename (e.g. 91.my-task.md)")] = None,
+    deps: Annotated[Optional[str], typer.Option("--deps", help="Comma-separated dependency task IDs")] = None,
+):
+    """Add a new task to the ledger."""
+    if kind not in ("task", "spike"):
+        typer.echo(f"  Invalid kind '{kind}'. Valid: task, spike", err=True)
+        raise typer.Exit(1)
+    if size and size not in {s.value for s in Size}:
+        typer.echo(f"  Invalid size '{size}'. Valid: xs, s, m, l, xl", err=True)
+        raise typer.Exit(1)
+
+    dep_ids = [int(d.strip()) for d in deps.split(",") if d.strip()] if deps else []
+
+    conn = get_conn()
+    with conn.cursor() as cur:
+        cur.execute("SELECT COALESCE(MAX(id), 0) + 1 FROM ledger_tasks")
+        task_id = cur.fetchone()[0]
+        cur.execute("SELECT epic_id, layer FROM ledger_stories WHERE id = %s", (story,))
+        row = cur.fetchone()
+        if row is None:
+            conn.close()
+            typer.echo(f"  Story '{story}' not found.", err=True)
+            raise typer.Exit(1)
+        epic_id, layer = row
+        cur.execute(
+            """INSERT INTO ledger_tasks
+                 (id, kind, epic_id, story_id, wave_id, layer, status, size, text, file, deps)
+               VALUES (%s, %s, %s, %s, %s, %s, 'todo', %s, %s, %s, %s)""",
+            (task_id, kind, epic_id, story, wave, layer, size, text, file or "", dep_ids),
+        )
+    conn.commit()
+    sync_snapshot(conn)
+    conn.close()
+    typer.echo(f"  ✓ Task #{task_id} added: {text}")
+    if file:
+        typer.echo(f"  Remember to create plan/{file}")
 
 
 def validate_cmd():

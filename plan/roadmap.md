@@ -14,7 +14,7 @@
 
 ## In Scope
 
-Active work is tracked numerically in `plan/ledger.jsonl`. Current target areas:
+Active work is tracked numerically in the Postgres ledger (`plan/ledger.jsonl` is a read-only cache). Current target areas:
 
 | Area                                                                             | Plans          | Status             |
 | -------------------------------------------------------------------------------- | -------------- | ------------------ |

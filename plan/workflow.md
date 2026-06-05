@@ -50,7 +50,7 @@ Evaluate scope. Choose exactly one mode:
 | **Spike**   | Unknown territory, novel type constraint, unclear feasibility | Stage 1S                      |
 | **Plan**    | Cross-layer (3+ files), or no plan exists yet                 | Write plan → **[CHECKPOINT]** |
 
-**Plan branch**: write the plan file, update `plan/ledger.jsonl`, add `// TODO(plan/<n>): ...` stubs where needed, then **STOP — do not proceed until the user responds**.
+**Plan branch**: write the plan file, run `arbor add` to register the task, add `// TODO(plan/<n>): ...` stubs where needed, then **STOP — do not proceed until the user responds**.
 
 Never drift from Deliver into Plan scope mid-session. If scope expands unexpectedly, write the stubs, write the plan, and stop.
 
@@ -127,7 +127,7 @@ Fix any failure before moving to Stage 6. Do not advance with a red chain.
 ### Stage 6 — Close Out
 
 1. If the plan changed the public API, update all affected `examples/` files. Run examples to confirm they produce output.
-2. Mark the task done in the ledger (auto-updates `plan/ledger.jsonl`):
+2. Mark the task done in the ledger:
 
    ```bash
    arbor set N done

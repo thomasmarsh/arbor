@@ -13,6 +13,7 @@ arbor set N next      # mark task N as next
 arbor set N done      # mark task N as done
 arbor bump N          # promote task N to front of its wave
 arbor defer N         # push task N to back of its wave
+arbor add TEXT --story S --wave W [--kind task|spike] [--size xs|s|m|l|xl] [--file FILENAME] [--deps N,N]  # add a task
 ```
 
 If `ARBOR_PG_URL` is not set or the container is down, run `arbor db up` first.
@@ -49,7 +50,7 @@ Working directory is the workspace root (`/Users/tmarsh/git/arbor`). Source live
 - Verification chain: `pnpm --filter @arbor/router test && pnpm --filter @arbor/router typecheck && pnpm lint && pnpm --filter @arbor/router run examples`
 - Lint config: `/Users/tmarsh/git/arbor/eslint.config.js` (workspace root — no local config)
 
-NOTE: Path structure described in `plan/topology.md`. Execution order in `plan/ledger.jsonl`.
+NOTE: Path structure described in `plan/topology.md`.
 
 ## Testing
 
@@ -153,7 +154,12 @@ When planning, use the following rules:
 
 - Place a plan document in plan/ (using the next available number). Format: `plan/<sequence>.<topic>.md`
 - Open questions for user resolution → new plan file (spike if unvalidated theory)
-- Append a line to `plan/ledger.jsonl` to add the plan to the as a TODO. Example: `{ "type": "task", "id": 91, "epic": "e1", "story": "s4", "kind": "spike", "wave": "w16", "layer": "server", "status": "todo", "size": "m", "text": "Spike — multi-party structural session projections", "file": "91.spike-mpst.md", "deps": [ 87, 88 ] }`.
+- Register the task in the ledger via the CLI (Postgres is source of truth — never edit `plan/ledger.jsonl` directly):
+
+```bash
+arbor add "Spike — multi-party structural session projections" \
+  --story s4 --wave w16 --kind spike --size m --file 91.spike-mpst.md --deps 87,88
+```
 
 - Update `plan/roadmap.md` if the plan changes scope, deferred items, or long-horizon directions
 - Every plan document must include the sections:
@@ -171,11 +177,9 @@ T-shirt Sizing guide:
 - L: large, 1-3 days, multiple files, some design
 - XL: very large, 3+ days, major new system
 
-## Testing Conventions section near existing test guidance.\n\n## Testing Conventions
+## Testing Conventions
 
 - Use a single base mock with spread overrides; do NOT use per-test vi.fn() factories or vi.mock for env. Follow the TCA-style static object / dependency-injection idiom.
 - Use valtio's snapshot() (not structuredClone) for state snapshots.
 - Use effect-ts TestClock for time-based tests.
 - Always include component and keyboard tests when applicable.
-
-k
