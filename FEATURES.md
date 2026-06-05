@@ -99,6 +99,14 @@ replaces the linear walk at runtime.
   the dual. Mismatches are type errors. Transport is pluggable (`WsAdapter` interface).
 - **`createSseServer()` / `createSseClient()`** — server dispatch + typed event client.
 - **`createWsServer()` / `createWsClient()`** — server dispatch + typed channel client.
+- **`wsSessionRoute()`** — structured, step-ordered send/recv protocol route. Unlike `wsRoute`
+  (free-running `AsyncIterable` channel), each `ops.send()` / `ops.recv()` call advances the
+  session by one step and supplies its schema at the call site. Suitable for handshakes,
+  RPC-style request/response over a socket, and phase-gated workflows.
+- **`createWsSessionServer()` / `createWsSessionClient()`** — server dispatch + client factory
+  for `wsSessionRoute`. `client.connectSession(route)` returns `IxSessionOps` backed by a
+  `WsAdapter` connection; the client drives the dual sequence (`send`↔`recv` swapped relative
+  to the server handler).
 - **HTTP session annotation** — `HttpSession<Res>` as a uniform `_meta` phantom annotation
   on `httpRoute`, unifying all three protocol families under the same `Branch`/`Dual` algebra.
   Proves that `matchResponse` is formally the `Branch` combinator for HTTP sessions.
@@ -230,7 +238,7 @@ Key planned packages and milestones:
 | **Test client (in-memory)**      | Yes (`createTestClient`)             | Included             | No                     | No                      | No                |
 | **Property-based testing**       | Yes                                  | No                   | No                     | No                      | No                |
 | **SSE with typed events**        | Yes (`sseRoute`)                     | No                   | No                     | No                      | No                |
-| **WebSocket typed channels**     | Yes (`wsRoute`, dual)                | No                   | No                     | Partial                 | No                |
+| **WebSocket typed channels**     | Yes (`wsRoute` + `wsSessionRoute`)   | No                   | No                     | Partial                 | No                |
 | **Session type duality**         | Yes (compile-time `Dual<S>`)         | No                   | No                     | No                      | No                |
 | **Browser navigation**           | Planned (Wave A–H)                   | No                   | No                     | No                      | No                |
 | **MPST (multi-party protocols)** | Planned (Plan 91 spike)              | No                   | No                     | No                      | No                |

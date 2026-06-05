@@ -385,9 +385,9 @@ The `in` and `out` schemas accept any Standard Schema v1 library.
 
 ```typescript
 import z from 'zod';
-import { wsRoute, createWsServer, createWsClient, object, literal } from '@arbor/router';
+import { wsRoute, createWsServer, createWsClient, defineRoutes, object, literal } from '@arbor/router';
 
-const Chat = object({ tag: literal('chat') });
+const Chat = object({ tag: literal('ws/chat') });
 
 const router = defineRoutes([
   wsRoute(Chat, 'ws/chat', {
@@ -396,21 +396,71 @@ const router = defineRoutes([
   }),
 ]);
 
-// Server — receives text, sends reply:
+// Server — receives In, sends Out; handler ctx is { channel }:
 const server = createWsServer(router, {
-  chat: async (channel) => {
-    for await (const msg of channel.receive()) {
-      await channel.send({ reply: `echo: ${msg.text}` });
+  'ws/chat': async ({ channel }) => {
+    for await (const msg of channel.messages) {
+      channel.send({ reply: `echo: ${msg.text}` });
     }
   },
 });
 
-// Client — dual type: sends text, receives reply:
+// Client — dual type: sends In, receives Out via channel.messages:
 const client = createWsClient('wss://api.example.com', router);
-const channel = client.connect({ tag: 'chat' });
-await channel.send({ text: 'hello' });
-const { reply } = await channel.receive();
+const route = router.parse(new URL('http://localhost/ws/chat')).getOrThrow();
+const channel = client.connect(route);
+channel.send({ text: 'hello' });
+for await (const { reply } of channel.messages) {
+  console.log(reply); // 'echo: hello'
+  break;
+}
 ```
+
+---
+
+## Session-typed WebSocket protocols
+
+`wsSessionRoute()` declares a structured, step-ordered send/recv protocol. Unlike `wsRoute`
+(which gives a free-running `AsyncIterable` channel), session routes enforce the protocol
+sequence at the call site: each `ops.send()` / `ops.recv()` call advances the session by one
+step, and schemas are supplied per step rather than declared globally.
+
+```typescript
+import z from 'zod';
+import {
+  wsSessionRoute, createWsSessionServer, createWsSessionClient,
+  defineRoutes, object, literal,
+} from '@arbor/router';
+
+const Lobby      = object({ tag: literal('ws/lobby') });
+const JoinSchema = z.object({ username: z.string() });
+const WelcomeSchema = z.object({ roomId: z.string() });
+
+// `undefined as never` defers the session type to the ops call sites:
+const router = defineRoutes([
+  wsSessionRoute(Lobby, 'ws/lobby', undefined as never),
+]);
+
+// Server — step 1: recv join; step 2: send welcome:
+const server = createWsSessionServer(router, {
+  'ws/lobby': async ({ ops }) => {
+    const join = await ops.recv(JoinSchema).run();
+    await ops.send({ roomId: `room-${join.username}` }, WelcomeSchema).run();
+  },
+});
+
+// Client — dual sequence (send first, then recv):
+const client = createWsSessionClient('wss://api.example.com', router);
+const route = router.parse(new URL('http://localhost/ws/lobby')).getOrThrow();
+const ops = client.connectSession(route);
+await ops.send({ username: 'alice' }, JoinSchema).run();
+const welcome = await ops.recv(WelcomeSchema).run();
+console.log(welcome.roomId); // 'room-alice'
+```
+
+Use `wsRoute` when the protocol is a free-running message stream (chat, pub/sub). Use
+`wsSessionRoute` when the protocol has a defined, ordered exchange (handshakes, RPC-style
+request/response over a socket, phase-gated workflows).
 
 ---
 
