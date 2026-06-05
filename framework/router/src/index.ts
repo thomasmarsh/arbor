@@ -113,15 +113,26 @@ export {
 export { createWsClient, type WsClient, type WsConnectFn } from './client/ws-client.js';
 export {
   createWsAdapterPair,
+  collectWsSessionMetaMap,
+  getWsSessionMeta,
   wsRoute,
+  wsSessionRoute,
   type WsAdapter,
   type WsChannel,
   type WsContext,
   type WsMeta,
+  type WsSessionContext,
+  type WsSessionMeta,
+  type WsSessionWalkNode,
+  type WsWalkNode,
 } from './contexts/realtime/ws-context.js';
 export {
   createWsServer,
+  createWsSessionServer,
   type WsHandlerCtx,
   type WsHandlerMap,
   type WsRouterContract,
+  type WsSessionHandlerCtx,
+  type WsSessionHandlerMap,
+  type WsSessionRouterContract,
 } from './server/ws-dispatch.js';

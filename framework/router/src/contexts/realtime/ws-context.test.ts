@@ -1,13 +1,15 @@
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import z from 'zod';
 import { defineRoutes } from '../../core/define-routes.js';
+import { buildIxSessionOps } from '../../core/ix-session-ops.js';
 import { literal, object } from '../../core/schema.js';
 import type { InferSession, Recv, Send } from '../../core/session.js';
 import { createWsClient, type WsConnectFn } from '../../client/ws-client.js';
-import { createWsServer } from '../../server/ws-dispatch.js';
+import { createWsServer, createWsSessionServer } from '../../server/ws-dispatch.js';
 import {
   createWsAdapterPair,
   wsRoute,
+  wsSessionRoute,
   type WsChannel,
   type WsContext,
   type WsMeta,
@@ -179,5 +181,55 @@ describe('createWsClient', () => {
     const result = await iter.next();
 
     expect(result.value).toEqual({ reply: 'echo: world' });
+  });
+});
+
+// ─── wsSessionRoute ───────────────────────────────────────────────────────────
+
+describe('wsSessionRoute', () => {
+  const JoinSchema = z.object({ username: z.string() });
+  const WelcomeSchema = z.object({ roomId: z.string() });
+
+  type LobbyS = Recv<{ username: string }, Send<{ roomId: string }>>;
+  const lobbyRoute = wsSessionRoute(
+    object({ tag: literal('ws/lobby') }),
+    'ws/lobby',
+    undefined as never as LobbyS,
+  );
+
+  it('InferSession extracts session type from route node', () => {
+    type S = InferSession<typeof lobbyRoute>;
+    expectTypeOf<S>().toEqualTypeOf<LobbyS>();
+  });
+
+  it('server recv join, send welcome; client verifies', async () => {
+    const route = wsSessionRoute(
+      object({ tag: literal('ws/lobby') }),
+      'ws/lobby',
+      undefined as never,
+    );
+    const router = defineRoutes([route]);
+
+    const server = createWsSessionServer(router, {
+      'ws/lobby': async ({ ops }) => {
+        await ops.recv(JoinSchema).run();
+        await ops.send({ roomId: 'r1' }, WelcomeSchema).run();
+      },
+    });
+
+    const [serverAdapter, clientAdapter] = createWsAdapterPair();
+    void server.handleConnection('ws/lobby', {}, serverAdapter);
+
+    const clientOps = buildIxSessionOps(clientAdapter);
+    await clientOps.send({ username: 'alice' }, JoinSchema).run();
+    const welcome = await clientOps.recv(WelcomeSchema).run();
+    expect(welcome).toEqual({ roomId: 'r1' });
+  });
+
+  it('closes with code 1008 for unknown tag', async () => {
+    const router = defineRoutes([lobbyRoute]);
+    const server = createWsSessionServer(router, {} as never);
+    const [serverAdapter] = createWsAdapterPair();
+    await expect(server.handleConnection('unknown', {}, serverAdapter)).resolves.toBeUndefined();
   });
 });

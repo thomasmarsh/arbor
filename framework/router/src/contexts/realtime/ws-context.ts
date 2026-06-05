@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { buildable, type BuildableRouteNode } from '../../core/define-routes.js';
+import type { IxSessionOps } from '../../core/ix-session-ops.js';
 import type { RouteNode } from '../../core/route-node.js';
 import type { AnyObjectSchema, UserSchema, Infer } from '../../core/schema.js';
 import { syncValidate } from '../../core/schema.js';
@@ -70,6 +71,48 @@ export function getWsMeta(node: RouteNode<unknown, any, any, any, any, any>): Ws
 
 export function collectWsMetaMap(nodes: WsWalkNode[]): Record<string, WsMeta<unknown, unknown>> {
   return walkCollect(nodes, (n) => getWsMeta(n));
+}
+
+// ─── Session context & meta types ────────────────────────────────────────────
+
+export interface WsSessionContext<S extends Session> {
+  ops: IxSessionOps;
+  _sessionType: S; // phantom — undefined as never at runtime
+}
+
+export interface WsSessionMeta<S extends Session> extends SessionMeta<S> {
+  readonly __wsSession?: S; // phantom sentinel for getWsSessionMeta type guard
+}
+
+export type WsSessionWalkNode = RouteNode<unknown, any, any, any, WsSessionMeta<any>>;
+
+export function getWsSessionMeta(node: RouteNode<unknown, any, any, any, any, any>): WsSessionMeta<any> | undefined {
+  const meta = node._meta as WsSessionMeta<any> | undefined;
+  return meta && '__wsSession' in meta ? meta : undefined;
+}
+
+export function collectWsSessionMetaMap(nodes: WsSessionWalkNode[]): Record<string, WsSessionMeta<any>> {
+  return walkCollect(nodes, (n) => getWsSessionMeta(n));
+}
+
+// ─── Session route factory ────────────────────────────────────────────────────
+
+export function wsSessionRoute<
+  ZS extends AnyObjectSchema,
+  S extends Session,
+>(
+  schema: ZS,
+  path: string,
+  _session: S,
+): BuildableRouteNode<RouteNode<Infer<ZS>, [], WsSessionContext<S>, never, WsSessionMeta<S>>> {
+  return buildable<RouteNode<Infer<ZS>, [], WsSessionContext<S>, never, WsSessionMeta<S>>>({
+    _type: undefined as never,
+    schema,
+    path,
+    segments: parseSegments(path),
+    children: [] as [],
+    _meta: { __wsSession: undefined as never },
+  });
 }
 
 // ─── Factory ──────────────────────────────────────────────────────────────────
