@@ -15,6 +15,20 @@ jobs:
       contents: read
     env:
       TURBO_TELEMETRY_DISABLED: 1
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: arbor
+          POSTGRES_PASSWORD: arbor
+          POSTGRES_DB: arbor_dev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -40,7 +54,17 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Create env files
-        run: cp apps/api/.env.example apps/api/.env.local
+        run: |
+          cp apps/api/.env.example apps/api/.env.local
+          echo "ARBOR_PG_URL=postgresql://arbor:arbor@localhost:5433/arbor_dev" >> apps/api/.env.local
+
+      - name: Migrate database
+        run: pnpm --filter @arbor/api db:migrate
+        env:
+          ARBOR_PG_URL: postgresql://arbor:arbor@localhost:5433/arbor_dev
+
+      - name: Generate database types
+        run: pnpm --filter @arbor/api db:generate
 
       - name: Build
         run: pnpm build
