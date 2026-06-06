@@ -129,5 +129,35 @@ export const ledgerRepositorySpec = (
       expect(result.isErr()).toBe(true);
       expect(result.error).toBe('not_found');
     });
+
+    it('getAllEpics returns the seeded epic', async () => {
+      const result = await repo.getAllEpics();
+      expect(result.isOk()).toBe(true);
+      result.fold(
+        (epics) => {
+          const epic = epics.find((e) => e.id === 'te1');
+          expect(epic).toBeDefined();
+          expect(epic?.title).toBe('Test Epic');
+          expect(epic?.type).toBe('epic');
+        },
+        () => { throw new Error('expected ok'); },
+      );
+    });
+
+    it('getAllStories returns the seeded story', async () => {
+      const result = await repo.getAllStories();
+      expect(result.isOk()).toBe(true);
+      result.fold(
+        (stories) => {
+          const story = stories.find((s) => s.id === 'ts1');
+          expect(story).toBeDefined();
+          expect(story?.epic).toBe('te1');
+          expect(story?.layer).toBe('test');
+          expect(story?.title).toBe('Test Story');
+          expect(story?.type).toBe('story');
+        },
+        () => { throw new Error('expected ok'); },
+      );
+    });
   });
 };

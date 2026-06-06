@@ -71,3 +71,9 @@ RETURNING
   file,
   rank,
   deps;
+
+/* @name GetAllEpics */
+SELECT id, title FROM ledger_epics ORDER BY id;
+
+/* @name GetAllStories */
+SELECT id, epic_id AS epic, layer, title FROM ledger_stories ORDER BY epic_id, id;

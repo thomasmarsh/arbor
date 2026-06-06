@@ -1,6 +1,6 @@
 import { createServer, respond } from '@arbor/router';
 import type { Result } from '@arbor/common';
-import type { TaskEntry, WaveEntry } from '@arbor/app-common';
+import type { EpicEntry, StoryEntry, TaskEntry, WaveEntry } from '@arbor/app-common';
 import { computeDisplayGroups, readPlanDoc } from './reader.js';
 import { ledgerRouter } from './router.js';
 import type { LedgerRepository } from '../repositories/ledger.repository.js';
@@ -21,6 +21,16 @@ async function getTasksAndWaves(
   if (!t.isOk()) return null;
   if (!w.isOk()) return null;
   return { tasks: t.value, waves: w.value };
+}
+
+async function getHierarchyData(
+  repo: LedgerRepository,
+): Promise<{ epics: EpicEntry[]; stories: StoryEntry[]; tasks: TaskEntry[] } | null> {
+  const [e, s, t] = await Promise.all([repo.getAllEpics(), repo.getAllStories(), repo.getAllTasks()]);
+  if (!e.isOk()) return null;
+  if (!s.isOk()) return null;
+  if (!t.isOk()) return null;
+  return { epics: e.value, stories: s.value, tasks: t.value };
 }
 
 export const createLedgerServer = (repo: LedgerRepository) =>
@@ -56,5 +66,12 @@ export const createLedgerServer = (repo: LedgerRepository) =>
       return content !== null
         ? respond(200, { content })
         : respond(404, { error: `Plan doc not found for task ${String(ctx.params.id)}` });
+    },
+
+    'ledger-get-hierarchy': async (_ctx) => {
+      const data = await getHierarchyData(repo);
+      return data
+        ? respond(200, { epics: data.epics, stories: data.stories, tasks: data.tasks })
+        : respond(500, { error: 'internal' });
     },
   });

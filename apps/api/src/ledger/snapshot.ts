@@ -77,7 +77,11 @@ function fireSnapshot(pool: Pool): void {
  */
 export function withAutoSnapshot(repo: LedgerRepository, pool: Pool): LedgerRepository {
   return {
-    ...repo,
+    getAllEpics:   repo.getAllEpics,
+    getAllStories: repo.getAllStories,
+    getAllTasks:   repo.getAllTasks,
+    getAllWaves:   repo.getAllWaves,
+    getTaskById:  repo.getTaskById,
     updateTaskStatus: async (id, status) => {
       const result = await repo.updateTaskStatus(id, status);
       if (result.isOk()) fireSnapshot(pool);

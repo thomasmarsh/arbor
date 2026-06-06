@@ -1,6 +1,6 @@
 import { Effect, Sub, type Reducer } from '@arbor/common';
 import type { Snapshot } from 'valtio';
-import type { DisplayGroupsResponse, TaskEntry, TaskStatus } from '@arbor/api/ledger';
+import type { DisplayGroupsResponse, EpicEntry, StoryEntry, TaskEntry, TaskStatus } from '@arbor/api/ledger';
 import type { LedgerEnv } from './ledger.env.js';
 
 export type ColId = 'id' | 'wave' | 'epic' | 'story' | 'layer' | 'status' | 'size' | 'task';
@@ -40,7 +40,7 @@ export const initialFilters: LedgerFilters = {
   kind: null,
 };
 
-export type { DisplayGroupsResponse };
+export type { DisplayGroupsResponse, EpicEntry, StoryEntry };
 
 export type LedgerLoadState =
   | { tag: 'idle' }
@@ -64,6 +64,11 @@ export interface LedgerState {
   filters: LedgerFilters;
   helpOpen: boolean;
   columnOrder: readonly ColId[];
+  viewMode: 'flat' | 'tree';
+  epicMeta: EpicEntry[];
+  storyMeta: StoryEntry[];
+  collapsedEpics: Set<string>;
+  collapsedStories: Set<string>;
 }
 
 export type LedgerAction =
@@ -87,7 +92,11 @@ export type LedgerAction =
   | { tag: 'setStatusFilter'; status: TaskStatus | null }
   | { tag: 'setKindFilter'; kind: 'task' | 'spike' | null }
   | { tag: 'clearFilters' }
-  | { tag: 'reorderColumn'; fromId: ColId; toId: ColId };
+  | { tag: 'reorderColumn'; fromId: ColId; toId: ColId }
+  | { tag: 'toggleViewMode' }
+  | { tag: 'hierarchyLoaded'; epics: EpicEntry[]; stories: StoryEntry[] }
+  | { tag: 'toggleEpicCollapse'; epicId: string }
+  | { tag: 'toggleStoryCollapse'; storyId: string };
 
 export const initialLedgerState: LedgerState = {
   loadState: { tag: 'idle' },
@@ -99,6 +108,11 @@ export const initialLedgerState: LedgerState = {
   filters: initialFilters,
   helpOpen: false,
   columnOrder: loadColumnOrder(),
+  viewMode: 'flat',
+  epicMeta: [],
+  storyMeta: [],
+  collapsedEpics: new Set(),
+  collapsedStories: new Set(),
 };
 
 export function applyFilters(tasks: TaskEntry[], filters: LedgerFilters): TaskEntry[] {
@@ -145,12 +159,23 @@ export function ledgerSubscriptions(state: Snapshot<LedgerState>): Sub<LedgerAct
   const blocked    = groups.blocked.map((b) => b.task as unknown as TaskEntry);
   const done       = [...groups.done, ...groups.canceled] as TaskEntry[];
 
-  const visibleRows = [
+  const allTasks = [
     ...applyFilters(inProgress, filters),
     ...applyFilters(ready, filters),
     ...applyFilters(blocked, filters),
     ...(state.showAll ? applyFilters(done, filters) : []),
   ];
+
+  const viewModeRaw: unknown = state.viewMode;
+  const viewMode = viewModeRaw as 'flat' | 'tree';
+  const collapsedEpicsRaw: unknown = state.collapsedEpics;
+  const collapsedEpics = collapsedEpicsRaw as ReadonlySet<string>;
+  const collapsedStoriesRaw: unknown = state.collapsedStories;
+  const collapsedStories = collapsedStoriesRaw as ReadonlySet<string>;
+
+  const visibleRows = viewMode === 'tree'
+    ? allTasks.filter((t) => !collapsedEpics.has(t.epic) && !collapsedStories.has(t.story))
+    : allTasks;
   const selectedId = state.selectedId;
   const selected = visibleRows.find((t) => t.id === selectedId);
 
@@ -309,6 +334,39 @@ export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, 
         if (item !== undefined) next.splice(to, 0, item);
         $.state.columnOrder = next;
         try { localStorage.setItem(LS_COL_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      }
+      return null;
+    }
+    case 'toggleViewMode': {
+      $.state.viewMode = $.state.viewMode === 'flat' ? 'tree' : 'flat';
+      if ($.state.viewMode === 'tree') {
+        return env.fetchHierarchy.map((result) =>
+          result.fold<LedgerAction>(
+            ({ epics, stories }) => ({ tag: 'hierarchyLoaded', epics, stories }),
+            () => ({ tag: 'fetch' }),
+          ),
+        );
+      }
+      return null;
+    }
+    case 'hierarchyLoaded': {
+      $.state.epicMeta  = action.epics;
+      $.state.storyMeta = action.stories;
+      return null;
+    }
+    case 'toggleEpicCollapse': {
+      if ($.state.collapsedEpics.has(action.epicId)) {
+        $.state.collapsedEpics.delete(action.epicId);
+      } else {
+        $.state.collapsedEpics.add(action.epicId);
+      }
+      return null;
+    }
+    case 'toggleStoryCollapse': {
+      if ($.state.collapsedStories.has(action.storyId)) {
+        $.state.collapsedStories.delete(action.storyId);
+      } else {
+        $.state.collapsedStories.add(action.storyId);
       }
       return null;
     }

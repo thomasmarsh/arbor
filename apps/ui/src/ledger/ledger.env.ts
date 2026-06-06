@@ -1,10 +1,11 @@
-import type { DisplayGroupsResponse, TaskStatus } from '@arbor/api/ledger';
+import type { DisplayGroupsResponse, EpicEntry, StoryEntry, TaskStatus } from '@arbor/api/ledger';
 import { ledgerRouter } from '@arbor/api/ledger';
 import { Effect, type Result } from '@arbor/common';
 import { createClient } from '@arbor/router';
 
 export interface LedgerEnv {
   fetchQueue: Effect<Result<DisplayGroupsResponse, string>>;
+  fetchHierarchy: Effect<Result<{ epics: EpicEntry[]; stories: StoryEntry[] }, string>>;
   setStatus: (id: number, status: TaskStatus) => Effect<undefined>;
   setRank: (id: number, rank: number) => Effect<undefined>;
   pollTick: Effect<undefined>;
@@ -18,6 +19,13 @@ export const liveLedgerEnv: LedgerEnv = {
   fetchQueue: Effect.tryCatch(
     () => client.fetchOk({ tag: 'ledger-get-queue' }),
     (err) => (err instanceof Error ? err.message : 'fetch failed'),
+  ),
+  fetchHierarchy: Effect.tryCatch(
+    async () => {
+      const data = await client.fetchOk({ tag: 'ledger-get-hierarchy' });
+      return { epics: data.epics, stories: data.stories };
+    },
+    (err) => (err instanceof Error ? err.message : 'fetch hierarchy failed'),
   ),
   setStatus: (id, status) =>
     Effect.tryPromise(

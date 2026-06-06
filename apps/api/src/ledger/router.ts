@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { defineRoutes, httpRoute, integer, literal, object } from '@arbor/router';
-import { TaskEntry, WaveEntry, PatchTaskStatusBody, PatchTaskRankBody } from '@arbor/app-common';
+import { EpicEntry, StoryEntry, TaskEntry, WaveEntry, PatchTaskStatusBody, PatchTaskRankBody } from '@arbor/app-common';
 
-export type { TaskEntry, TaskStatus } from '@arbor/app-common';
+export type { EpicEntry, StoryEntry, TaskEntry, TaskStatus } from '@arbor/app-common';
 
 const TasksResponse = z.object({
   tasks: z.array(TaskEntry),
@@ -25,8 +25,14 @@ const GetTask         = object({ tag: literal('ledger-get-task'), id: integer() 
 const PatchTaskStatus = object({ tag: literal('ledger-patch-task-status'), id: integer() });
 const PatchTaskRank   = object({ tag: literal('ledger-patch-task-rank'), id: integer() });
 const GetTaskPlan     = object({ tag: literal('ledger-get-task-plan'), id: integer() });
+const GetHierarchy    = object({ tag: literal('ledger-get-hierarchy') });
 
 const PlanResponse = z.object({ content: z.string() });
+const HierarchyResponse = z.object({
+  epics:   z.array(EpicEntry),
+  stories: z.array(StoryEntry),
+  tasks:   z.array(TaskEntry),
+});
 
 export const ledgerRouter = defineRoutes([
   httpRoute(GetTasks, 'GET', 'api/ledger/tasks', {
@@ -48,6 +54,9 @@ export const ledgerRouter = defineRoutes([
   }),
   httpRoute(GetTaskPlan, 'GET', 'api/ledger/tasks/#id/plan', {
     response: { 200: PlanResponse, 404: ErrorResponse, 500: ErrorResponse },
+  }),
+  httpRoute(GetHierarchy, 'GET', 'api/ledger/hierarchy', {
+    response: { 200: HierarchyResponse, 500: ErrorResponse },
   }),
 ]);
 

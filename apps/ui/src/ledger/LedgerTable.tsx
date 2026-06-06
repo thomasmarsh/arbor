@@ -16,11 +16,13 @@ import ScienceIcon from '@mui/icons-material/Science';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { liveLedgerEnv, type LedgerEnv } from './ledger.env.js';
 import { ledgerReducer, initialLedgerState, applyFilters, ledgerSubscriptions } from './ledger.store.js';
-import type { LedgerFilters, LedgerState, ColId } from './ledger.store.js';
+import type { EpicEntry, LedgerAction, LedgerFilters, LedgerState, ColId, StoryEntry } from './ledger.store.js';
 import { LedgerDetailDrawer } from './LedgerDetailDrawer.js';
 import { LedgerToolbar } from './LedgerToolbar.js';
 import { HelpOverlay } from './HelpOverlay.js';
 import { DndSortWrapper, useDndItem } from './dnd-adapter.js';
+import { EpicGroupRow } from './EpicGroupRow.js';
+import { StoryGroupRow } from './StoryGroupRow.js';
 
 // Task-column widths cycle through a deterministic spread so rows look natural.
 const TASK_WIDTHS = [160, 130, 190, 145, 175, 120, 165, 140];
@@ -151,6 +153,72 @@ function TaskRow({
   );
 }
 
+function TreeTableBody({
+  epicMeta, storyMeta, allTasks, collapsedEpics, collapsedStories,
+  columnOrder, selectedId, selectedRowRef, send,
+}: {
+  epicMeta: EpicEntry[];
+  storyMeta: StoryEntry[];
+  allTasks: TaskEntry[];
+  collapsedEpics: ReadonlySet<string>;
+  collapsedStories: ReadonlySet<string>;
+  columnOrder: readonly ColId[];
+  selectedId: number | null;
+  selectedRowRef: Ref<HTMLTableRowElement>;
+  send: (a: LedgerAction) => void;
+}) {
+  return (
+    <>
+      {epicMeta.map((epic) => {
+        const epicTasks = allTasks.filter((t) => t.epic === epic.id);
+        if (epicTasks.length === 0) return null;
+        const isEpicCollapsed = collapsedEpics.has(epic.id);
+        return (
+          <Fragment key={epic.id}>
+            <EpicGroupRow
+              epic={epic}
+              taskCount={epicTasks.length}
+              collapsed={isEpicCollapsed}
+              colSpan={columnOrder.length}
+              onToggle={() => { send({ tag: 'toggleEpicCollapse', epicId: epic.id }); }}
+            />
+            {!isEpicCollapsed && storyMeta
+              .filter((s) => s.epic === epic.id)
+              .map((story) => {
+                const storyTasks = epicTasks.filter((t) => t.story === story.id);
+                if (storyTasks.length === 0) return null;
+                const isStoryCollapsed = collapsedStories.has(story.id);
+                return (
+                  <Fragment key={story.id}>
+                    <StoryGroupRow
+                      story={story}
+                      collapsed={isStoryCollapsed}
+                      colSpan={columnOrder.length}
+                      onToggle={() => { send({ tag: 'toggleStoryCollapse', storyId: story.id }); }}
+                    />
+                    {!isStoryCollapsed && storyTasks.map((task) => {
+                      const isSelected = task.id === selectedId;
+                      return (
+                        <TaskRow
+                          key={task.id}
+                          task={task}
+                          isSelected={isSelected}
+                          rowRef={isSelected ? selectedRowRef : null}
+                          columnOrder={columnOrder}
+                          onClick={() => { send({ tag: 'selectRow', taskId: task.id }); }}
+                        />
+                      );
+                    })}
+                  </Fragment>
+                );
+              })}
+          </Fragment>
+        );
+      })}
+    </>
+  );
+}
+
 export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
   const selectedRowRef = useRef<HTMLTableRowElement>(null);
 
@@ -168,11 +236,19 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
   const groups = $.state.loadState.tag === 'loaded' ? $.state.loadState.groups : null;
   // Snapshot<LedgerFilters> is structurally identical to LedgerFilters (all primitives)
   const filters = $.state.filters as LedgerFilters;
-  // Snapshot<readonly ColId[]> resolves to an error type via valtio's mapped Snapshot.
-  // Assignment to unknown (no cast) then assertion from unknown (necessary) avoids
-  // triggering no-unnecessary-type-assertion.
+  // Two-statement splits for Snapshot<string-literal-union> and Snapshot<Set<string>>
   const colOrderRaw: unknown = $.state.columnOrder;
   const columnOrder = colOrderRaw as readonly ColId[];
+  const viewModeRaw: unknown = $.state.viewMode;
+  const viewMode = viewModeRaw as 'flat' | 'tree';
+  const collapsedEpicsRaw: unknown = $.state.collapsedEpics;
+  const collapsedEpics = collapsedEpicsRaw as ReadonlySet<string>;
+  const collapsedStoriesRaw: unknown = $.state.collapsedStories;
+  const collapsedStories = collapsedStoriesRaw as ReadonlySet<string>;
+  const epicMetaRaw: unknown  = $.state.epicMeta;
+  const epicMeta  = epicMetaRaw  as EpicEntry[];
+  const storyMetaRaw: unknown = $.state.storyMeta;
+  const storyMeta = storyMetaRaw as StoryEntry[];
 
   const rawSections = groups
     ? [
@@ -189,6 +265,18 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
     runningOffset += section.tasks.length;
     return { ...section, startIndex };
   });
+
+  const allTasksForTree: TaskEntry[] = groups
+    ? [
+        ...applyFilters([...groups.inProgress] as TaskEntry[], filters),
+        ...applyFilters([...groups.ready] as TaskEntry[], filters),
+        ...applyFilters(groups.blocked.map((b) => b.task) as TaskEntry[], filters),
+        ...($.state.showAll ? applyFilters(groups.done.concat(groups.canceled) as TaskEntry[], filters) : []),
+      ]
+    : [];
+
+  const selectedIdRaw: unknown = $.state.selectedId;
+  const selectedId = selectedIdRaw as number | null;
 
   if ($.state.loadState.tag === 'idle' || $.state.loadState.tag === 'loading') {
     return <LedgerSkeleton />;
@@ -216,7 +304,7 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
             </DndSortWrapper>
           </TableHead>
           <TableBody>
-            {sections.map((section) =>
+            {viewMode === 'flat' && sections.map((section) =>
               section.tasks.length > 0 ? (
                 <Fragment key={section.label}>
                   <GroupRow label={section.label} colSpan={columnOrder.length} />
@@ -235,6 +323,19 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
                   })}
                 </Fragment>
               ) : null
+            )}
+            {viewMode === 'tree' && (
+              <TreeTableBody
+                epicMeta={epicMeta}
+                storyMeta={storyMeta}
+                allTasks={allTasksForTree}
+                collapsedEpics={collapsedEpics}
+                collapsedStories={collapsedStories}
+                columnOrder={columnOrder}
+                selectedId={selectedId}
+                selectedRowRef={selectedRowRef}
+                send={send}
+              />
             )}
           </TableBody>
         </Table>
