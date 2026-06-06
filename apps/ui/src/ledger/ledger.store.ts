@@ -355,19 +355,17 @@ export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, 
       return null;
     }
     case 'toggleEpicCollapse': {
-      if ($.state.collapsedEpics.has(action.epicId)) {
-        $.state.collapsedEpics.delete(action.epicId);
-      } else {
-        $.state.collapsedEpics.add(action.epicId);
-      }
+      const nextEpics = new Set($.state.collapsedEpics);
+      if (nextEpics.has(action.epicId)) nextEpics.delete(action.epicId);
+      else nextEpics.add(action.epicId);
+      $.state.collapsedEpics = nextEpics;
       return null;
     }
     case 'toggleStoryCollapse': {
-      if ($.state.collapsedStories.has(action.storyId)) {
-        $.state.collapsedStories.delete(action.storyId);
-      } else {
-        $.state.collapsedStories.add(action.storyId);
-      }
+      const nextStories = new Set($.state.collapsedStories);
+      if (nextStories.has(action.storyId)) nextStories.delete(action.storyId);
+      else nextStories.add(action.storyId);
+      $.state.collapsedStories = nextStories;
       return null;
     }
   }
