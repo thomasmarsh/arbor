@@ -94,6 +94,11 @@ type Derive<N> =
 
 - The core types like RouteNode should be as domain independent as much as possible. We use the `Context` type parameter in preference to baking in understanding of different schemes or protocols
 
+## Valtio `watch` / `$.state` Conventions
+
+- **Always annotate the selector parameter explicitly** in `watch` calls: `watch((s: LedgerState) => s.foo, callback)`. Valtio's `Snapshot<T>` resolves nullable and boolean fields to an internal TypeScript "error type" under `strictTypeChecked`, causing false-positive conflicts between `no-unsafe-return`/`no-unsafe-assignment` and `no-unnecessary-type-assertion`. The explicit parameter type is the permanent fix — not a cast or workaround.
+- **Do not assign `$.state` fields directly to typed JSX props** (`open={$.state.helpOpen}`) — same Snapshot type issue. Use the field as a condition instead (`{$.state.helpOpen && <Foo open ... />}`) or pass `$.state` as a whole to a child component that accepts `Snapshot<S>` as a prop (which resolves cleanly because the prop type is explicit).
+
 ## Effect Type Conventions
 
 - **`Effect<undefined>`** is the canonical type for effects that produce no meaningful value (e.g., `sleep`, `pollTick`, mutation side-effects). Never use `Effect<void>` in interface or env types.
