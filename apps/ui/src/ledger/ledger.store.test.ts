@@ -1,7 +1,7 @@
 import { describe, it, vi, expect, beforeEach, afterEach } from 'vitest';
 import { Effect, Result } from '@arbor/common';
 import { TestStore } from '@arbor/common';
-import type { TaskEntry, DisplayGroupsResponse } from '@arbor/api/ledger';
+import type { EpicEntry, StoryEntry, TaskEntry, DisplayGroupsResponse } from '@arbor/api/ledger';
 import { ledgerReducer, initialLedgerState, initialFilters, ledgerSubscriptions, DEFAULT_COLUMN_ORDER } from './ledger.store.js';
 import type { LedgerState, ColId } from './ledger.store.js';
 import { emptyGroups, groupsWithTasks, mockLedgerEnv } from './ledger.env.mock.js';
@@ -16,6 +16,11 @@ const freshIdle = (): LedgerState => ({
   planDoc: { tag: 'idle' },
   filters: { ...initialFilters },
   columnOrder: [...DEFAULT_COLUMN_ORDER],
+  viewMode: 'flat',
+  epicMeta: [],
+  storyMeta: [],
+  collapsedEpics: new Set(),
+  collapsedStories: new Set(),
 });
 
 const task133: TaskEntry = {
@@ -35,6 +40,11 @@ const loadedState: LedgerState = {
   planDoc: { tag: 'idle' },
   filters: { ...initialFilters },
   columnOrder: [...DEFAULT_COLUMN_ORDER],
+  viewMode: 'flat',
+  epicMeta: [],
+  storyMeta: [],
+  collapsedEpics: new Set(),
+  collapsedStories: new Set(),
 };
 
 const NOW = new Date('2025-01-01T12:00:00.000Z');
@@ -309,6 +319,73 @@ describe('ledgerReducer', () => {
     store.assertDrained();
   });
 
+  describe('tree view', () => {
+    const epicA: EpicEntry  = { type: 'epic',  id: 'e1', title: 'Epic One' };
+    const storyA: StoryEntry = { type: 'story', id: 's1', epic: 'e1', layer: 'ui', title: 'Story One' };
+
+    it('toggleViewMode flat→tree sets viewMode and fetches hierarchy', () => {
+      const store = new TestStore(ledgerReducer, mockLedgerEnv, freshIdle());
+      store
+        .send({ tag: 'toggleViewMode' }, (s) => { s.viewMode = 'tree'; })
+        .receive({ tag: 'hierarchyLoaded', epics: [], stories: [] }, (s) => {
+          s.epicMeta  = [];
+          s.storyMeta = [];
+        });
+      store.assertDrained();
+    });
+
+    it('toggleViewMode tree→flat sets viewMode with no side effect', () => {
+      const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...freshIdle(), viewMode: 'tree' });
+      store.send({ tag: 'toggleViewMode' }, (s) => { s.viewMode = 'flat'; });
+      store.assertDrained();
+    });
+
+    it('hierarchyLoaded stores epics and stories', () => {
+      const store = new TestStore(ledgerReducer, mockLedgerEnv, freshIdle());
+      store.send({ tag: 'hierarchyLoaded', epics: [epicA], stories: [storyA] }, (s) => {
+        s.epicMeta  = [epicA];
+        s.storyMeta = [storyA];
+      });
+      store.assertDrained();
+    });
+
+    it('toggleEpicCollapse adds epicId to collapsedEpics', () => {
+      const store = new TestStore(ledgerReducer, mockLedgerEnv, freshIdle());
+      store.send({ tag: 'toggleEpicCollapse', epicId: 'e1' }, (s) => {
+        s.collapsedEpics.add('e1');
+      });
+      store.assertDrained();
+    });
+
+    it('toggleEpicCollapse removes epicId when already collapsed', () => {
+      const store = new TestStore(ledgerReducer, mockLedgerEnv, {
+        ...freshIdle(), collapsedEpics: new Set(['e1']),
+      });
+      store.send({ tag: 'toggleEpicCollapse', epicId: 'e1' }, (s) => {
+        s.collapsedEpics.delete('e1');
+      });
+      store.assertDrained();
+    });
+
+    it('toggleStoryCollapse adds storyId to collapsedStories', () => {
+      const store = new TestStore(ledgerReducer, mockLedgerEnv, freshIdle());
+      store.send({ tag: 'toggleStoryCollapse', storyId: 's1' }, (s) => {
+        s.collapsedStories.add('s1');
+      });
+      store.assertDrained();
+    });
+
+    it('toggleStoryCollapse removes storyId when already collapsed', () => {
+      const store = new TestStore(ledgerReducer, mockLedgerEnv, {
+        ...freshIdle(), collapsedStories: new Set(['s1']),
+      });
+      store.send({ tag: 'toggleStoryCollapse', storyId: 's1' }, (s) => {
+        s.collapsedStories.delete('s1');
+      });
+      store.assertDrained();
+    });
+  });
+
   describe('ledgerSubscriptions (Exp D)', () => {
     it('returns empty array when not loaded', () => {
       expect(ledgerSubscriptions(freshIdle())).toEqual([]);
@@ -354,6 +431,44 @@ describe('ledgerReducer', () => {
       const sub = ledgerSubscriptions(stateWithTwo)[0];
       if (sub?.tag !== 'keydown') throw new Error('expected keydown sub');
       expect(sub.handler(new KeyboardEvent('keydown', { key: 'k' }))).toEqual({
+        tag: 'selectRow', taskId: task133.id,
+      });
+    });
+
+    it('tree mode: collapsed epic hides its tasks from arrow navigation', () => {
+      const state = {
+        ...loadedState,
+        viewMode: 'tree' as const,
+        collapsedEpics: new Set([task133.epic]),
+        collapsedStories: new Set<string>(),
+      };
+      const sub = ledgerSubscriptions(state)[0];
+      if (sub?.tag !== 'keydown') throw new Error('expected keydown sub');
+      expect(sub.handler(new KeyboardEvent('keydown', { key: 'j' }))).toBeNull();
+    });
+
+    it('tree mode: collapsed story hides its tasks from arrow navigation', () => {
+      const state = {
+        ...loadedState,
+        viewMode: 'tree' as const,
+        collapsedEpics: new Set<string>(),
+        collapsedStories: new Set([task133.story]),
+      };
+      const sub = ledgerSubscriptions(state)[0];
+      if (sub?.tag !== 'keydown') throw new Error('expected keydown sub');
+      expect(sub.handler(new KeyboardEvent('keydown', { key: 'j' }))).toBeNull();
+    });
+
+    it('tree mode: uncollapsed tasks are navigable', () => {
+      const state = {
+        ...loadedState,
+        viewMode: 'tree' as const,
+        collapsedEpics: new Set<string>(),
+        collapsedStories: new Set<string>(),
+      };
+      const sub = ledgerSubscriptions(state)[0];
+      if (sub?.tag !== 'keydown') throw new Error('expected keydown sub');
+      expect(sub.handler(new KeyboardEvent('keydown', { key: 'j' }))).toEqual({
         tag: 'selectRow', taskId: task133.id,
       });
     });

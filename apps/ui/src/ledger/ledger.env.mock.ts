@@ -24,9 +24,10 @@ export const groupsWithTasks: DisplayGroupsResponse = {
 };
 
 export const mockLedgerEnv: LedgerEnv = {
-  fetchQueue: Effect.send(Result.ok(emptyGroups)),
-  setStatus: () => Effect.send(undefined),
-  setRank:   () => Effect.send(undefined),
-  pollTick:  Effect.none(),
+  fetchQueue:     Effect.send(Result.ok(emptyGroups)),
+  fetchHierarchy: Effect.send(Result.ok({ epics: [], stories: [] })),
+  setStatus:    () => Effect.send(undefined),
+  setRank:      () => Effect.send(undefined),
+  pollTick:      Effect.none(),
   fetchPlanDoc: () => Effect.send(Result.ok('# Mock Plan\n\nNo content.')),
 };
