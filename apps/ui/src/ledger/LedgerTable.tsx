@@ -12,14 +12,14 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Skeleton from '@mui/material/Skeleton';
-import Typography from '@mui/material/Typography';
 import ScienceIcon from '@mui/icons-material/Science';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { liveLedgerEnv, type LedgerEnv } from './ledger.env.js';
 import { ledgerReducer, initialLedgerState, applyFilters, ledgerSubscriptions } from './ledger.store.js';
-import type { LedgerFilters } from './ledger.store.js';
+import type { LedgerFilters, LedgerState } from './ledger.store.js';
 import { LedgerDetailDrawer } from './LedgerDetailDrawer.js';
 import { LedgerToolbar } from './LedgerToolbar.js';
+import { HelpOverlay } from './HelpOverlay.js';
 
 // Task-column widths cycle through a deterministic spread so rows look natural.
 const TASK_WIDTHS = [160, 130, 190, 145, 175, 120, 165, 140];
@@ -86,11 +86,12 @@ function GroupRow({ label }: { label: string }) {
 }
 
 function TaskRow({
-  task, isSelected, rowRef,
+  task, isSelected, rowRef, onClick,
 }: {
   task: Snapshot<TaskEntry>;
   isSelected: boolean;
   rowRef: Ref<HTMLTableRowElement> | null;
+  onClick: () => void;
 }) {
   const isDim = task.status === 'done' || task.status === 'canceled';
   return (
@@ -98,7 +99,8 @@ function TaskRow({
       ref={rowRef}
       selected={isSelected}
       aria-selected={isSelected || undefined}
-      sx={isDim ? { opacity: 0.4 } : {}}
+      sx={{ ...(isDim ? { opacity: 0.4 } : {}), cursor: 'pointer' }}
+      onClick={onClick}
     >
       <TableCell>{task.id}</TableCell>
       <TableCell>{task.wave}</TableCell>
@@ -127,7 +129,7 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
     { tag: 'fetch' },
     ledgerSubscriptions,
   );
-  watch(s => s.selectedIndex, () => {
+  watch((s: LedgerState) => s.selectedId ?? -1, () => {
     selectedRowRef.current?.scrollIntoView({ block: 'nearest' });
   });
 
@@ -180,14 +182,15 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
               section.tasks.length > 0 ? (
                 <Fragment key={section.label}>
                   <GroupRow label={section.label} />
-                  {section.tasks.map((task, i) => {
-                    const isSelected = section.startIndex + i === $.state.selectedIndex;
+                  {section.tasks.map((task) => {
+                    const isSelected = task.id === $.state.selectedId;
                     return (
                       <TaskRow
                         key={task.id}
                         task={task}
                         isSelected={isSelected}
                         rowRef={isSelected ? selectedRowRef : null}
+                        onClick={() => { send({ tag: 'selectRow', taskId: task.id }); }}
                       />
                     );
                   })}
@@ -197,10 +200,8 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
           </TableBody>
         </Table>
       </TableContainer>
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-        j/k · n=next · d=done · b=bump · D=defer · a=all · r=refresh · Enter=detail
-      </Typography>
       <LedgerDetailDrawer state={$.state} send={send} />
+      {$.state.helpOpen && <HelpOverlay open onClose={() => { send({ tag: 'closeHelp' }); }} />}
     </Box>
   );
 }

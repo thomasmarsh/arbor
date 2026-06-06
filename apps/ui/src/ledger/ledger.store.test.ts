@@ -8,7 +8,8 @@ import { emptyGroups, groupsWithTasks, mockLedgerEnv } from './ledger.env.mock.j
 
 const freshIdle = (): LedgerState => ({
   loadState: { tag: 'idle' },
-  selectedIndex: 0,
+  selectedId: null,
+  helpOpen: false,
   showAll: false,
   lastUpdated: null,
   detailTaskId: null,
@@ -25,7 +26,8 @@ const task133: TaskEntry = {
 const groupsWithTask: DisplayGroupsResponse = { ...emptyGroups, ready: [task133] };
 const loadedState: LedgerState = {
   loadState: { tag: 'loaded', groups: groupsWithTask },
-  selectedIndex: 0,
+  selectedId: null,
+  helpOpen: false,
   showAll: false,
   lastUpdated: null,
   detailTaskId: null,
@@ -156,24 +158,28 @@ describe('ledgerReducer', () => {
     store.assertDrained();
   });
 
-  it('selectUp decrements selectedIndex (min 0)', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 1 });
-    store.send({ tag: 'selectUp' }, (s) => { s.selectedIndex = 0; });
+  it('selectRow sets selectedId', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, loadedState);
+    store.send({ tag: 'selectRow', taskId: 133 }, (s) => { s.selectedId = 133; });
     store.assertDrained();
-
-    const store2 = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 0 });
-    store2.send({ tag: 'selectUp' }, (s) => { s.selectedIndex = 0; });
-    store2.assertDrained();
   });
 
-  it('selectDown increments selectedIndex (clamped to rowCount-1)', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 0 });
-    store.send({ tag: 'selectDown', rowCount: 5 }, (s) => { s.selectedIndex = 1; });
+  it('selectRow with null clears selection', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedId: 133 });
+    store.send({ tag: 'selectRow', taskId: null }, (s) => { s.selectedId = null; });
     store.assertDrained();
+  });
 
-    const store2 = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 4 });
-    store2.send({ tag: 'selectDown', rowCount: 5 }, (s) => { s.selectedIndex = 4; });
-    store2.assertDrained();
+  it('openHelp sets helpOpen to true', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, freshIdle());
+    store.send({ tag: 'openHelp' }, (s) => { s.helpOpen = true; });
+    store.assertDrained();
+  });
+
+  it('closeHelp sets helpOpen to false', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...freshIdle(), helpOpen: true });
+    store.send({ tag: 'closeHelp' }, (s) => { s.helpOpen = false; });
+    store.assertDrained();
   });
 
   it('toggleShowAll flips the showAll flag', () => {
@@ -242,51 +248,46 @@ describe('ledgerReducer', () => {
     store.assertDrained();
   });
 
-  it('setTextFilter sets text and resets selectedIndex to 0', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 3, filters: { ...initialFilters } });
+  it('setTextFilter sets text; selection is preserved', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedId: 133, filters: { ...initialFilters } });
     store.send({ tag: 'setTextFilter', text: 'hello' }, (s) => {
       s.filters.text = 'hello';
-      s.selectedIndex = 0;
     });
     store.assertDrained();
   });
 
-  it('setWaveFilter sets wave and resets selectedIndex to 0', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 2, filters: { ...initialFilters } });
+  it('setWaveFilter sets wave; selection is preserved', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedId: 133, filters: { ...initialFilters } });
     store.send({ tag: 'setWaveFilter', wave: 'w5' }, (s) => {
       s.filters.wave = 'w5';
-      s.selectedIndex = 0;
     });
     store.assertDrained();
   });
 
-  it('setStatusFilter sets status and resets selectedIndex to 0', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 1, filters: { ...initialFilters } });
+  it('setStatusFilter sets status; selection is preserved', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedId: 133, filters: { ...initialFilters } });
     store.send({ tag: 'setStatusFilter', status: 'next' }, (s) => {
       s.filters.status = 'next';
-      s.selectedIndex = 0;
     });
     store.assertDrained();
   });
 
-  it('setKindFilter sets kind and resets selectedIndex to 0', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedIndex: 4, filters: { ...initialFilters } });
+  it('setKindFilter sets kind; selection is preserved', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedId: 133, filters: { ...initialFilters } });
     store.send({ tag: 'setKindFilter', kind: 'spike' }, (s) => {
       s.filters.kind = 'spike';
-      s.selectedIndex = 0;
     });
     store.assertDrained();
   });
 
-  it('clearFilters restores initialFilters and resets selectedIndex to 0', () => {
+  it('clearFilters restores initialFilters; selection is preserved', () => {
     const store = new TestStore(ledgerReducer, mockLedgerEnv, {
       ...loadedState,
-      selectedIndex: 2,
+      selectedId: 133,
       filters: { text: 'foo', wave: 'w3', status: 'done', kind: 'spike' },
     });
     store.send({ tag: 'clearFilters' }, (s) => {
       s.filters = { ...initialFilters };
-      s.selectedIndex = 0;
     });
     store.assertDrained();
   });
@@ -304,23 +305,39 @@ describe('ledgerReducer', () => {
     });
 
     it.each([
-      { key: 'j',          expected: { tag: 'selectDown', rowCount: 1 } },
-      { key: 'k',          expected: { tag: 'selectUp' } },
-      { key: 'a',          expected: { tag: 'toggleShowAll' } },
-      { key: 'r',          expected: { tag: 'refresh' } },
-      { key: 'Escape',     expected: { tag: 'closeDetail' } },
-      { key: 'Unhandled',  expected: null },
+      // selectedId is null → j selects first row; k does nothing
+      { key: 'j',         expected: { tag: 'selectRow', taskId: task133.id } },
+      { key: 'k',         expected: null },
+      { key: '?',         expected: { tag: 'openHelp' } },
+      { key: 'Escape',    expected: { tag: 'closeDetail' } },
+      { key: 'Enter',     expected: null },   // no selection → no-op
+      { key: 'n',         expected: null },
+      { key: 'Unhandled', expected: null },
     ] as const)('keydown handler: $key → $expected', ({ key, expected }) => {
       const sub = ledgerSubscriptions(loadedState)[0];
       if (sub?.tag !== 'keydown') throw new Error('expected keydown sub');
       expect(sub.handler(new KeyboardEvent('keydown', { key }))).toEqual(expected);
     });
 
-    it('n toggles next status on the selected task', () => {
-      const sub = ledgerSubscriptions({ ...loadedState, selectedIndex: 0 })[0];
+    it('Enter opens detail on the selected task', () => {
+      const stateWithSelection = { ...loadedState, selectedId: task133.id };
+      const sub = ledgerSubscriptions(stateWithSelection)[0];
       if (sub?.tag !== 'keydown') throw new Error('expected keydown sub');
-      expect(sub.handler(new KeyboardEvent('keydown', { key: 'n' }))).toEqual({
-        tag: 'setStatus', taskId: task133.id, status: 'todo',
+      expect(sub.handler(new KeyboardEvent('keydown', { key: 'Enter' }))).toEqual({
+        tag: 'openDetail', taskId: task133.id,
+      });
+    });
+
+    it('k navigates up from selected task', () => {
+      const twoTaskGroups: DisplayGroupsResponse = {
+        ...emptyGroups,
+        ready: [task133, { ...task133, id: 134, text: 'task2', rank: 200 }],
+      };
+      const stateWithTwo = { ...loadedState, loadState: { tag: 'loaded' as const, groups: twoTaskGroups }, selectedId: 134 };
+      const sub = ledgerSubscriptions(stateWithTwo)[0];
+      if (sub?.tag !== 'keydown') throw new Error('expected keydown sub');
+      expect(sub.handler(new KeyboardEvent('keydown', { key: 'k' }))).toEqual({
+        tag: 'selectRow', taskId: task133.id,
       });
     });
   });

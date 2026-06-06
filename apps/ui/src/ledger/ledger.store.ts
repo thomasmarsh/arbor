@@ -33,12 +33,13 @@ export type PlanDocState =
 
 export interface LedgerState {
   loadState: LedgerLoadState;
-  selectedIndex: number;
+  selectedId: number | null;
   showAll: boolean;
   lastUpdated: Date | null;
   detailTaskId: number | null;
   planDoc: PlanDocState;
   filters: LedgerFilters;
+  helpOpen: boolean;
 }
 
 export type LedgerAction =
@@ -48,9 +49,10 @@ export type LedgerAction =
   | { tag: 'setStatus'; taskId: number; status: TaskStatus }
   | { tag: 'bump'; taskId: number; waveRanks: number[] }
   | { tag: 'defer'; taskId: number; waveRanks: number[] }
-  | { tag: 'selectUp' }
-  | { tag: 'selectDown'; rowCount: number }
+  | { tag: 'selectRow'; taskId: number | null }
   | { tag: 'toggleShowAll' }
+  | { tag: 'openHelp' }
+  | { tag: 'closeHelp' }
   | { tag: 'refresh' }
   | { tag: 'openDetail'; taskId: number }
   | { tag: 'closeDetail' }
@@ -64,12 +66,13 @@ export type LedgerAction =
 
 export const initialLedgerState: LedgerState = {
   loadState: { tag: 'idle' },
-  selectedIndex: 0,
+  selectedId: null,
   showAll: false,
   lastUpdated: null,
   detailTaskId: null,
   planDoc: { tag: 'idle' },
   filters: initialFilters,
+  helpOpen: false,
 };
 
 export function applyFilters(tasks: TaskEntry[], filters: LedgerFilters): TaskEntry[] {
@@ -85,12 +88,25 @@ export function applyFilters(tasks: TaskEntry[], filters: LedgerFilters): TaskEn
   });
 }
 
-function waveRanksFor(wave: string, tasks: readonly { wave: string; rank?: number | undefined }[]): number[] {
-  return tasks.flatMap((t) => (t.wave === wave && t.rank !== undefined ? [t.rank] : []));
+
+function selectUp(rows: TaskEntry[], selectedId: number | null): { tag: 'selectRow'; taskId: number } | null {
+  if (selectedId === null) return null;
+  const idx = rows.findIndex((t) => t.id === selectedId);
+  if (idx <= 0) return null;
+  const prev = rows[idx - 1];
+  return prev ? { tag: 'selectRow', taskId: prev.id } : null;
 }
 
-function toggleNext(status: TaskStatus): TaskStatus { return status === 'next' ? 'todo' : 'next'; }
-function toggleDone(status: TaskStatus): TaskStatus { return status === 'done' ? 'todo' : 'done'; }
+function selectDown(rows: TaskEntry[], selectedId: number | null): { tag: 'selectRow'; taskId: number } | null {
+  if (rows.length === 0) return null;
+  if (selectedId === null) {
+    const first = rows[0];
+    return first ? { tag: 'selectRow', taskId: first.id } : null;
+  }
+  const idx = rows.findIndex((t) => t.id === selectedId);
+  const next = rows[idx < 0 ? 0 : Math.min(rows.length - 1, idx + 1)];
+  return next ? { tag: 'selectRow', taskId: next.id } : null;
+}
 
 export function ledgerSubscriptions(state: Snapshot<LedgerState>): Sub<LedgerAction>[] {
   if (state.loadState.tag !== 'loaded') return [];
@@ -103,29 +119,24 @@ export function ledgerSubscriptions(state: Snapshot<LedgerState>): Sub<LedgerAct
   const blocked    = groups.blocked.map((b) => b.task as unknown as TaskEntry);
   const done       = [...groups.done, ...groups.canceled] as TaskEntry[];
 
-  const allTasksForRanks = [...inProgress, ...ready, ...blocked, ...done];
   const visibleRows = [
     ...applyFilters(inProgress, filters),
     ...applyFilters(ready, filters),
     ...applyFilters(blocked, filters),
     ...(state.showAll ? applyFilters(done, filters) : []),
   ];
-  const rowCount = visibleRows.length;
-  const selected = visibleRows[state.selectedIndex];
+  const selectedId = state.selectedId;
+  const selected = visibleRows.find((t) => t.id === selectedId);
+
   return [Sub.keydown<LedgerAction>((e) => {
     switch (e.key) {
-      case 'ArrowUp':   e.preventDefault(); return { tag: 'selectUp' };
-      case 'ArrowDown': e.preventDefault(); return { tag: 'selectDown', rowCount };
-      case 'k': return { tag: 'selectUp' };
-      case 'j': return { tag: 'selectDown', rowCount };
-      case 'n': return selected ? { tag: 'setStatus', taskId: selected.id, status: toggleNext(selected.status) } : null;
-      case 'd': return selected ? { tag: 'setStatus', taskId: selected.id, status: toggleDone(selected.status) } : null;
-      case 'b': return selected ? { tag: 'bump', taskId: selected.id, waveRanks: waveRanksFor(selected.wave, allTasksForRanks) } : null;
-      case 'D': return selected ? { tag: 'defer', taskId: selected.id, waveRanks: waveRanksFor(selected.wave, allTasksForRanks) } : null;
-      case 'a': return { tag: 'toggleShowAll' };
-      case 'r': return { tag: 'refresh' };
+      case 'ArrowUp':   e.preventDefault(); return selectUp(visibleRows, selectedId);
+      case 'ArrowDown': e.preventDefault(); return selectDown(visibleRows, selectedId);
+      case 'k': return selectUp(visibleRows, selectedId);
+      case 'j': return selectDown(visibleRows, selectedId);
       case 'Enter': return selected ? { tag: 'openDetail', taskId: selected.id } : null;
       case 'Escape': return { tag: 'closeDetail' };
+      case '?': return { tag: 'openHelp' };
       default: return null;
     }
   })];
@@ -191,12 +202,16 @@ export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, 
       mutateTaskInGroups($.state, action.taskId, (t) => ({ ...t, rank: newRank }));
       return env.setRank(action.taskId, newRank).map(() => ({ tag: 'fetch' }));
     }
-    case 'selectUp': {
-      $.state.selectedIndex = Math.max(0, $.state.selectedIndex - 1);
+    case 'selectRow': {
+      $.state.selectedId = action.taskId;
       return null;
     }
-    case 'selectDown': {
-      $.state.selectedIndex = Math.min(action.rowCount - 1, $.state.selectedIndex + 1);
+    case 'openHelp': {
+      $.state.helpOpen = true;
+      return null;
+    }
+    case 'closeHelp': {
+      $.state.helpOpen = false;
       return null;
     }
     case 'toggleShowAll': {
@@ -241,27 +256,22 @@ export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, 
     }
     case 'setTextFilter': {
       $.state.filters.text = action.text;
-      $.state.selectedIndex = 0;
       return null;
     }
     case 'setWaveFilter': {
       $.state.filters.wave = action.wave;
-      $.state.selectedIndex = 0;
       return null;
     }
     case 'setStatusFilter': {
       $.state.filters.status = action.status;
-      $.state.selectedIndex = 0;
       return null;
     }
     case 'setKindFilter': {
       $.state.filters.kind = action.kind;
-      $.state.selectedIndex = 0;
       return null;
     }
     case 'clearFilters': {
       $.state.filters = { ...initialFilters };
-      $.state.selectedIndex = 0;
       return null;
     }
   }

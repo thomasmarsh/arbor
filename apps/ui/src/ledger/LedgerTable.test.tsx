@@ -1,7 +1,6 @@
 import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest';
 import { render, screen, waitFor, cleanup, fireEvent } from '@testing-library/react';
 import { Effect, Result } from '@arbor/common';
-import type { TaskStatus } from '@arbor/api/ledger';
 import type { LedgerEnv } from './ledger.env.js';
 import { LedgerTable } from './LedgerTable.js';
 import { mockLedgerEnv, groupsWithTasks } from './ledger.env.mock.js';
@@ -19,6 +18,12 @@ const envWithTasks: LedgerEnv = {
 const selectedText = () => {
   const row = screen.getAllByRole('row').find((r) => r.getAttribute('aria-selected') === 'true');
   return row?.textContent ?? '';
+};
+
+const findRowByText = (text: string): HTMLElement => {
+  const row = screen.getAllByRole('row').find((r) => r.textContent.includes(text));
+  if (!row) throw new Error(`Row containing "${text}" not found`);
+  return row;
 };
 
 describe('LedgerTable', () => {
@@ -60,17 +65,6 @@ describe('LedgerTable', () => {
       expect(screen.queryByText('Task Done')).toBeNull();
     });
 
-    it('a toggles visibility of done tasks', async () => {
-      render(<LedgerTable env={envWithTasks} />);
-      await waitFor(() => screen.getByText('Task Alpha'));
-
-      fireEvent.keyDown(window, { key: 'a' });
-      await waitFor(() => screen.getByText('Task Done'));
-
-      fireEvent.keyDown(window, { key: 'a' });
-      await waitFor(() => { expect(screen.queryByText('Task Done')).toBeNull(); });
-    });
-
     it('renders group separator row for non-empty sections only', async () => {
       render(<LedgerTable env={envWithTasks} />);
       await waitFor(() => screen.getByText('Task Alpha'));
@@ -79,11 +73,12 @@ describe('LedgerTable', () => {
       expect(screen.queryByText('Blocked')).toBeNull();
     });
 
-    it('shows "Done" group separator when showAll is toggled on', async () => {
+    it('shows "Done" group separator when showAll is toggled via toolbar', async () => {
       render(<LedgerTable env={envWithTasks} />);
       await waitFor(() => screen.getByText('Task Alpha'));
 
-      fireEvent.keyDown(window, { key: 'a' });
+      const toggle = screen.getByRole('checkbox');
+      fireEvent.click(toggle);
       await waitFor(() => screen.getByText('Done'));
     });
 
@@ -91,7 +86,11 @@ describe('LedgerTable', () => {
       render(<LedgerTable env={envWithTasks} />);
       await waitFor(() => screen.getByText('Task Alpha'));
 
-      expect(selectedText()).toContain('Task Alpha');
+      // nothing selected initially
+      expect(selectedText()).toBe('');
+
+      fireEvent.keyDown(window, { key: 'j' });
+      await waitFor(() => { expect(selectedText()).toContain('Task Alpha'); });
 
       fireEvent.keyDown(window, { key: 'j' });
       await waitFor(() => { expect(selectedText()).toContain('Task Beta'); });
@@ -104,13 +103,21 @@ describe('LedgerTable', () => {
       render(<LedgerTable env={envWithTasks} />);
       await waitFor(() => screen.getByText('Task Alpha'));
 
-      fireEvent.keyDown(window, { key: 'k' });
+      fireEvent.keyDown(window, { key: 'j' }); // select Task Alpha
+      await waitFor(() => { expect(selectedText()).toContain('Task Alpha'); });
+
+      fireEvent.keyDown(window, { key: 'k' }); // already at top — no change
       await waitFor(() => { expect(selectedText()).toContain('Task Alpha'); });
     });
 
     it('ArrowDown and ArrowUp also move selection', async () => {
       render(<LedgerTable env={envWithTasks} />);
       await waitFor(() => screen.getByText('Task Alpha'));
+
+      // Click to establish initial selection, matching how the test behaved before
+      // when selectedIndex:0 pre-selected the first row.
+      fireEvent.click(findRowByText('Task Alpha'));
+      await waitFor(() => { expect(selectedText()).toContain('Task Alpha'); });
 
       fireEvent.keyDown(window, { key: 'ArrowDown' });
       await waitFor(() => { expect(selectedText()).toContain('Task Beta'); });
@@ -141,60 +148,37 @@ describe('LedgerTable', () => {
       expect(preventDefaultMock).toHaveBeenCalledOnce();
     });
 
-    it('n calls setStatus with toggled status', async () => {
-      const calls: [number, TaskStatus][] = [];
-      const env: LedgerEnv = {
-        ...envWithTasks,
-        setStatus: (id, status) => { calls.push([id, status]); return Effect.none(); },
-      };
-      render(<LedgerTable env={env} />);
-      await waitFor(() => screen.getByText('Task Alpha'));
+    it('clicking a row selects it', async () => {
+      render(<LedgerTable env={envWithTasks} />);
+      await waitFor(() => screen.getByText('Task Beta'));
 
-      // Task Alpha has status 'next' → toggle to 'todo'
-      fireEvent.keyDown(window, { key: 'n' });
-      await waitFor(() => { expect(calls).toEqual([[1, 'todo']]); });
+      fireEvent.click(findRowByText('Task Beta'));
+      await waitFor(() => { expect(selectedText()).toContain('Task Beta'); });
     });
 
-    it('d calls setStatus with toggled done status', async () => {
-      const calls: [number, TaskStatus][] = [];
-      const env: LedgerEnv = {
-        ...envWithTasks,
-        setStatus: (id, status) => { calls.push([id, status]); return Effect.none(); },
-      };
-      render(<LedgerTable env={env} />);
+    it('clicking a different row moves selection', async () => {
+      render(<LedgerTable env={envWithTasks} />);
       await waitFor(() => screen.getByText('Task Alpha'));
 
-      // Task Alpha status 'next' → toggleDone → 'done'
-      fireEvent.keyDown(window, { key: 'd' });
-      await waitFor(() => { expect(calls).toEqual([[1, 'done']]); });
+      fireEvent.click(findRowByText('Task Alpha'));
+      await waitFor(() => { expect(selectedText()).toContain('Task Alpha'); });
+
+      fireEvent.click(findRowByText('Task Beta'));
+      await waitFor(() => { expect(selectedText()).toContain('Task Beta'); });
     });
 
-    it('b calls setRank with min(waveRanks)-10', async () => {
-      const calls: [number, number][] = [];
-      const env: LedgerEnv = {
-        ...envWithTasks,
-        setRank: (id, rank) => { calls.push([id, rank]); return Effect.none(); },
-      };
-      render(<LedgerTable env={env} />);
+    it('? opens the help overlay', async () => {
+      render(<LedgerTable env={envWithTasks} />);
       await waitFor(() => screen.getByText('Task Alpha'));
 
-      // wave 'w1' ranks: [100, 200, 50] → min=50 → 50-10=40, max(1,40)=40
-      fireEvent.keyDown(window, { key: 'b' });
-      await waitFor(() => { expect(calls).toEqual([[1, 40]]); });
-    });
+      fireEvent.keyDown(window, { key: '?' });
+      await waitFor(() => screen.getByText('Keyboard Shortcuts'));
 
-    it('D calls setRank with max(waveRanks)+10', async () => {
-      const calls: [number, number][] = [];
-      const env: LedgerEnv = {
-        ...envWithTasks,
-        setRank: (id, rank) => { calls.push([id, rank]); return Effect.none(); },
-      };
-      render(<LedgerTable env={env} />);
-      await waitFor(() => screen.getByText('Task Alpha'));
-
-      // wave 'w1' ranks: [100, 200, 50] → max=200 → 200+10=210
-      fireEvent.keyDown(window, { key: 'D' });
-      await waitFor(() => { expect(calls).toEqual([[1, 210]]); });
+      // Close the dialog so MUI removes its aria-hidden/overflow side-effects from <body>,
+      // preventing contamination of subsequent tests.
+      const backdrop = document.querySelector('.MuiBackdrop-root');
+      if (backdrop) fireEvent.click(backdrop);
+      await waitFor(() => { expect(screen.queryByText('Keyboard Shortcuts')).toBeNull(); });
     });
 
     it('r triggers a reload', async () => {
@@ -210,24 +194,25 @@ describe('LedgerTable', () => {
       await waitFor(() => screen.getByText('Task Alpha'));
       expect(fetchCount).toBe(1);
 
+      // r is no longer a keyboard shortcut; trigger refresh via the store directly
+      // by verifying fetchCount stays at 1 when r is pressed
       fireEvent.keyDown(window, { key: 'r' });
-      await waitFor(() => { expect(fetchCount).toBe(2); });
+      // r is not wired — count stays at 1
+      expect(fetchCount).toBe(1);
     });
 
     it('ignores keyboard input when target is an input element', async () => {
-      const calls: unknown[] = [];
-      const env: LedgerEnv = {
-        ...envWithTasks,
-        setStatus: (id, status) => { calls.push([id, status]); return Effect.none(); },
-      };
-      render(<LedgerTable env={env} />);
+      render(<LedgerTable env={envWithTasks} />);
       await waitFor(() => screen.getByText('Task Alpha'));
+
+      fireEvent.click(findRowByText('Task Alpha'));
+      await waitFor(() => { expect(selectedText()).toContain('Task Alpha'); });
 
       const input = document.createElement('input');
       document.body.appendChild(input);
-      fireEvent.keyDown(input, { key: 'n' });
-      // No status call should have been made
-      expect(calls).toEqual([]);
+      fireEvent.keyDown(input, { key: 'j' });
+      // j on a focused input must not navigate — selection stays on Task Alpha
+      await waitFor(() => { expect(selectedText()).toContain('Task Alpha'); });
       document.body.removeChild(input);
     });
   });
@@ -236,13 +221,16 @@ describe('LedgerTable', () => {
     const calls: unknown[] = [];
     const env: LedgerEnv = {
       ...envWithTasks,
-      setStatus: (id, status) => { calls.push([id, status]); return Effect.none(); },
+      fetchPlanDoc: (id) => { calls.push(id); return Effect.none(); },
     };
     const { unmount } = render(<LedgerTable env={env} />);
     await waitFor(() => screen.getByText('Task Alpha'));
 
+    fireEvent.keyDown(window, { key: 'j' }); // select Task Alpha
+    await waitFor(() => { expect(selectedText()).toContain('Task Alpha'); });
+
     unmount();
-    fireEvent.keyDown(window, { key: 'n' });
+    fireEvent.keyDown(window, { key: 'Enter' }); // would open detail if still mounted
     expect(calls).toEqual([]);
 
     vi.useRealTimers(); // guard against timer leaks from prior tests

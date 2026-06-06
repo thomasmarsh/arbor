@@ -14,7 +14,8 @@ export class Store<S, A, R> {
   private isSending = false;
 
   constructor(reducer: Reducer<S, A, R>, environment: R, initialState: S) {
-    this.proxyState = proxy({ state: initialState });
+    // structuredClone prevents valtio's proxy from mutating the caller's object.
+    this.proxyState = proxy({ state: structuredClone(initialState) });
     this.reducer = reducer;
     this.environment = environment;
   }
