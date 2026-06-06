@@ -2,8 +2,8 @@ import { describe, it, vi, expect, beforeEach, afterEach } from 'vitest';
 import { Effect, Result } from '@arbor/common';
 import { TestStore } from '@arbor/common';
 import type { TaskEntry, DisplayGroupsResponse } from '@arbor/api/ledger';
-import { ledgerReducer, initialLedgerState, initialFilters, ledgerSubscriptions } from './ledger.store.js';
-import type { LedgerState } from './ledger.store.js';
+import { ledgerReducer, initialLedgerState, initialFilters, ledgerSubscriptions, DEFAULT_COLUMN_ORDER } from './ledger.store.js';
+import type { LedgerState, ColId } from './ledger.store.js';
 import { emptyGroups, groupsWithTasks, mockLedgerEnv } from './ledger.env.mock.js';
 
 const freshIdle = (): LedgerState => ({
@@ -15,6 +15,7 @@ const freshIdle = (): LedgerState => ({
   detailTaskId: null,
   planDoc: { tag: 'idle' },
   filters: { ...initialFilters },
+  columnOrder: [...DEFAULT_COLUMN_ORDER],
 });
 
 const task133: TaskEntry = {
@@ -33,6 +34,7 @@ const loadedState: LedgerState = {
   detailTaskId: null,
   planDoc: { tag: 'idle' },
   filters: { ...initialFilters },
+  columnOrder: [...DEFAULT_COLUMN_ORDER],
 };
 
 const NOW = new Date('2025-01-01T12:00:00.000Z');
@@ -289,6 +291,21 @@ describe('ledgerReducer', () => {
     store.send({ tag: 'clearFilters' }, (s) => {
       s.filters = { ...initialFilters };
     });
+    store.assertDrained();
+  });
+
+  it('reorderColumn moves a column to the target position', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, freshIdle());
+    // drag 'wave' (index 1) onto 'status' (index 5)
+    store.send({ tag: 'reorderColumn', fromId: 'wave' satisfies ColId, toId: 'status' satisfies ColId }, (s) => {
+      s.columnOrder = ['id', 'epic', 'story', 'layer', 'status', 'wave', 'size', 'task'] satisfies ColId[];
+    });
+    store.assertDrained();
+  });
+
+  it('reorderColumn is a no-op when fromId equals toId', () => {
+    const store = new TestStore(ledgerReducer, mockLedgerEnv, freshIdle());
+    store.send({ tag: 'reorderColumn', fromId: 'wave', toId: 'wave' }, (_s) => { /* no-op */ });
     store.assertDrained();
   });
 

@@ -16,13 +16,57 @@ import ScienceIcon from '@mui/icons-material/Science';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { liveLedgerEnv, type LedgerEnv } from './ledger.env.js';
 import { ledgerReducer, initialLedgerState, applyFilters, ledgerSubscriptions } from './ledger.store.js';
-import type { LedgerFilters, LedgerState } from './ledger.store.js';
+import type { LedgerFilters, LedgerState, ColId } from './ledger.store.js';
 import { LedgerDetailDrawer } from './LedgerDetailDrawer.js';
 import { LedgerToolbar } from './LedgerToolbar.js';
 import { HelpOverlay } from './HelpOverlay.js';
+import { DndSortWrapper, useDndItem } from './dnd-adapter.js';
 
 // Task-column widths cycle through a deterministic spread so rows look natural.
 const TASK_WIDTHS = [160, 130, 190, 145, 175, 120, 165, 140];
+
+const COLUMN_LABELS: Record<ColId, string> = {
+  id: 'ID',
+  wave: 'Wave',
+  epic: 'Epic',
+  story: 'Story',
+  layer: 'Layer',
+  status: 'Status',
+  size: 'Size',
+  task: 'Task',
+};
+
+const STATUS_COLORS: Record<TaskStatus, 'primary' | 'warning' | 'default' | 'success'> = {
+  next: 'primary',
+  in_progress: 'warning',
+  todo: 'default',
+  done: 'success',
+  canceled: 'default',
+};
+
+function StatusChip({ status }: { status: TaskStatus }) {
+  return <Chip label={status} color={STATUS_COLORS[status]} size="small" />;
+}
+
+function KindIcon({ kind }: { kind: 'spike' | 'task' }) {
+  return kind === 'spike' ? <ScienceIcon fontSize="small" /> : <AssignmentIcon fontSize="small" />;
+}
+
+const COLUMN_RENDER: Record<ColId, (task: Snapshot<TaskEntry>) => React.ReactNode> = {
+  id: (t) => t.id,
+  wave: (t) => t.wave,
+  epic: (t) => <Chip label={t.epic} size="small" sx={{ fontFamily: 'monospace' }} />,
+  story: (t) => <Chip label={t.story} size="small" sx={{ fontFamily: 'monospace' }} />,
+  layer: (t) => <Chip label={t.layer} size="small" sx={{ fontFamily: 'monospace' }} />,
+  status: (t) => <StatusChip status={t.status} />,
+  size: (t) => t.size ?? '—',
+  task: (t) => (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <KindIcon kind={t.kind} />
+      {t.text}
+    </Box>
+  ),
+};
 
 function LedgerSkeleton() {
   return (
@@ -56,27 +100,11 @@ function LedgerSkeleton() {
   );
 }
 
-const STATUS_COLORS: Record<TaskStatus, 'primary' | 'warning' | 'default' | 'success'> = {
-  next: 'primary',
-  in_progress: 'warning',
-  todo: 'default',
-  done: 'success',
-  canceled: 'default',
-};
-
-function StatusChip({ status }: { status: TaskStatus }) {
-  return <Chip label={status} color={STATUS_COLORS[status]} size="small" />;
-}
-
-function KindIcon({ kind }: { kind: 'spike' | 'task' }) {
-  return kind === 'spike' ? <ScienceIcon fontSize="small" /> : <AssignmentIcon fontSize="small" />;
-}
-
-function GroupRow({ label }: { label: string }) {
+function GroupRow({ label, colSpan }: { label: string; colSpan: number }) {
   return (
     <TableRow>
       <TableCell
-        colSpan={8}
+        colSpan={colSpan}
         sx={{ py: 0.5, color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem', bgcolor: 'action.hover' }}
       >
         {label}
@@ -85,12 +113,26 @@ function GroupRow({ label }: { label: string }) {
   );
 }
 
+function SortableColHeader({ id }: { id: ColId }) {
+  const { ref, style, handleProps } = useDndItem(id);
+  return (
+    <TableCell
+      ref={ref}
+      style={style}
+      {...handleProps}
+    >
+      {COLUMN_LABELS[id]}
+    </TableCell>
+  );
+}
+
 function TaskRow({
-  task, isSelected, rowRef, onClick,
+  task, isSelected, rowRef, columnOrder, onClick,
 }: {
   task: Snapshot<TaskEntry>;
   isSelected: boolean;
   rowRef: Ref<HTMLTableRowElement> | null;
+  columnOrder: readonly ColId[];
   onClick: () => void;
 }) {
   const isDim = task.status === 'done' || task.status === 'canceled';
@@ -102,19 +144,9 @@ function TaskRow({
       sx={{ ...(isDim ? { opacity: 0.4 } : {}), cursor: 'pointer' }}
       onClick={onClick}
     >
-      <TableCell>{task.id}</TableCell>
-      <TableCell>{task.wave}</TableCell>
-      <TableCell><Chip label={task.epic}  size="small" sx={{ fontFamily: 'monospace' }} /></TableCell>
-      <TableCell><Chip label={task.story} size="small" sx={{ fontFamily: 'monospace' }} /></TableCell>
-      <TableCell><Chip label={task.layer} size="small" sx={{ fontFamily: 'monospace' }} /></TableCell>
-      <TableCell><StatusChip status={task.status} /></TableCell>
-      <TableCell>{task.size ?? '—'}</TableCell>
-      <TableCell>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <KindIcon kind={task.kind} />
-          {task.text}
-        </Box>
-      </TableCell>
+      {columnOrder.map((id) => (
+        <TableCell key={id}>{COLUMN_RENDER[id](task)}</TableCell>
+      ))}
     </TableRow>
   );
 }
@@ -136,6 +168,11 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
   const groups = $.state.loadState.tag === 'loaded' ? $.state.loadState.groups : null;
   // Snapshot<LedgerFilters> is structurally identical to LedgerFilters (all primitives)
   const filters = $.state.filters as LedgerFilters;
+  // Snapshot<readonly ColId[]> resolves to an error type via valtio's mapped Snapshot.
+  // Assignment to unknown (no cast) then assertion from unknown (necessary) avoids
+  // triggering no-unnecessary-type-assertion.
+  const colOrderRaw: unknown = $.state.columnOrder;
+  const columnOrder = colOrderRaw as readonly ColId[];
 
   const rawSections = groups
     ? [
@@ -166,22 +203,23 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
       <TableContainer>
         <Table stickyHeader size="small">
           <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Wave</TableCell>
-              <TableCell>Epic</TableCell>
-              <TableCell>Story</TableCell>
-              <TableCell>Layer</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Size</TableCell>
-              <TableCell>Task</TableCell>
-            </TableRow>
+            <DndSortWrapper<ColId>
+              ids={columnOrder}
+              onReorder={(fromId, toId) => { send({ tag: 'reorderColumn', fromId, toId }); }}
+              direction="horizontal"
+            >
+              <TableRow>
+                {columnOrder.map((id) => (
+                  <SortableColHeader key={id} id={id} />
+                ))}
+              </TableRow>
+            </DndSortWrapper>
           </TableHead>
           <TableBody>
             {sections.map((section) =>
               section.tasks.length > 0 ? (
                 <Fragment key={section.label}>
-                  <GroupRow label={section.label} />
+                  <GroupRow label={section.label} colSpan={columnOrder.length} />
                   {section.tasks.map((task) => {
                     const isSelected = task.id === $.state.selectedId;
                     return (
@@ -190,6 +228,7 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
                         task={task}
                         isSelected={isSelected}
                         rowRef={isSelected ? selectedRowRef : null}
+                        columnOrder={columnOrder}
                         onClick={() => { send({ tag: 'selectRow', taskId: task.id }); }}
                       />
                     );

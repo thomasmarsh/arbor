@@ -3,6 +3,29 @@ import type { Snapshot } from 'valtio';
 import type { DisplayGroupsResponse, TaskEntry, TaskStatus } from '@arbor/api/ledger';
 import type { LedgerEnv } from './ledger.env.js';
 
+export type ColId = 'id' | 'wave' | 'epic' | 'story' | 'layer' | 'status' | 'size' | 'task';
+
+export const DEFAULT_COLUMN_ORDER: readonly ColId[] = ['id', 'wave', 'epic', 'story', 'layer', 'status', 'size', 'task'];
+
+const LS_COL_KEY = 'ledger:columnOrder';
+
+function loadColumnOrder(): readonly ColId[] {
+  try {
+    const raw = localStorage.getItem(LS_COL_KEY);
+    if (!raw) return DEFAULT_COLUMN_ORDER;
+    const parsed: unknown = JSON.parse(raw);
+    const valid = new Set<string>(DEFAULT_COLUMN_ORDER);
+    if (
+      Array.isArray(parsed) &&
+      parsed.length === DEFAULT_COLUMN_ORDER.length &&
+      (parsed as unknown[]).every((s) => typeof s === 'string' && valid.has(s))
+    ) {
+      return parsed as readonly ColId[];
+    }
+  } catch { /* ignore */ }
+  return DEFAULT_COLUMN_ORDER;
+}
+
 export interface LedgerFilters {
   text: string;
   wave: string | null;
@@ -40,6 +63,7 @@ export interface LedgerState {
   planDoc: PlanDocState;
   filters: LedgerFilters;
   helpOpen: boolean;
+  columnOrder: readonly ColId[];
 }
 
 export type LedgerAction =
@@ -62,7 +86,8 @@ export type LedgerAction =
   | { tag: 'setWaveFilter'; wave: string | null }
   | { tag: 'setStatusFilter'; status: TaskStatus | null }
   | { tag: 'setKindFilter'; kind: 'task' | 'spike' | null }
-  | { tag: 'clearFilters' };
+  | { tag: 'clearFilters' }
+  | { tag: 'reorderColumn'; fromId: ColId; toId: ColId };
 
 export const initialLedgerState: LedgerState = {
   loadState: { tag: 'idle' },
@@ -73,6 +98,7 @@ export const initialLedgerState: LedgerState = {
   planDoc: { tag: 'idle' },
   filters: initialFilters,
   helpOpen: false,
+  columnOrder: loadColumnOrder(),
 };
 
 export function applyFilters(tasks: TaskEntry[], filters: LedgerFilters): TaskEntry[] {
@@ -272,6 +298,18 @@ export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, 
     }
     case 'clearFilters': {
       $.state.filters = { ...initialFilters };
+      return null;
+    }
+    case 'reorderColumn': {
+      const from = $.state.columnOrder.indexOf(action.fromId);
+      const to = $.state.columnOrder.indexOf(action.toId);
+      if (from !== -1 && to !== -1) {
+        const next = [...$.state.columnOrder];
+        const [item] = next.splice(from, 1);
+        if (item !== undefined) next.splice(to, 0, item);
+        $.state.columnOrder = next;
+        try { localStorage.setItem(LS_COL_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      }
       return null;
     }
   }

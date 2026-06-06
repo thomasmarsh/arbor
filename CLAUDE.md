@@ -94,10 +94,38 @@ type Derive<N> =
 
 - The core types like RouteNode should be as domain independent as much as possible. We use the `Context` type parameter in preference to baking in understanding of different schemes or protocols
 
+## ESLint Rules in Effect
+
+**Preset**: `@typescript-eslint/strictTypeChecked` + `@typescript-eslint/stylisticTypeChecked`, applied to all `framework/` and `apps/` source files. `reportUnusedDisableDirectives: 'error'` is also set globally — any `eslint-disable` comment that references a non-existent rule is itself an error.
+
+### Rules that commonly bite
+
+| Rule | Trigger | Fix |
+|---|---|---|
+| `no-unnecessary-type-assertion` | Casting when the type doesn't change — **including** casting from a TypeScript internal error type (valtio Snapshot on arrays of string-literal unions). The error type satisfies all constraints, so every single-step cast looks "unnecessary". | Two-statement split (see Valtio section below). |
+| `no-unnecessary-condition` | A comparison that's always true/false — including `case X:` in a switch when the discriminant union has only one variant. | Remove the switch/if entirely; reference the value directly. |
+| `no-explicit-any` | Any use of `any`. | Use `unknown` + type guard, or binding-site annotation. |
+| `no-invalid-void-type` | `void` as a generic type arg in a call expression. | Use `undefined`; rely on binding-site annotation for contextual inference. |
+| `switch-exhaustiveness-check` | A `switch` over a discriminated union with missing cases and no `default`. | Handle every case or add `default: break`. |
+| `reportUnusedDisableDirectives` | An `eslint-disable` comment for a rule that isn't loaded. | Remove the comment. `react/jsx-props-no-spreading` is **not** loaded — never reference it. |
+
+Run `pnpm lint` (workspace root) to check all files. Run `pnpm --filter @arbor/ui exec eslint src/path/to/file.tsx` for a fast single-file check during development.
+
 ## Valtio `watch` / `$.state` Conventions
 
 - **Always annotate the selector parameter explicitly** in `watch` calls: `watch((s: LedgerState) => s.foo, callback)`. Valtio's `Snapshot<T>` resolves nullable and boolean fields to an internal TypeScript "error type" under `strictTypeChecked`, causing false-positive conflicts between `no-unsafe-return`/`no-unsafe-assignment` and `no-unnecessary-type-assertion`. The explicit parameter type is the permanent fix — not a cast or workaround.
 - **Do not assign `$.state` fields directly to typed JSX props** (`open={$.state.helpOpen}`) — same Snapshot type issue. Use the field as a condition instead (`{$.state.helpOpen && <Foo open ... />}`) or pass `$.state` as a whole to a child component that accepts `Snapshot<S>` as a prop (which resolves cleanly because the prop type is explicit).
+- **Extracting arrays of string-literal unions from `$.state`** (e.g. `readonly ColId[]`) — `Snapshot<readonly ColId[]>` produces an internal error type because valtio maps over `keyof ColId` which equals `keyof string` (all string methods → all `never`). A single-step cast `as readonly ColId[]` is flagged as unnecessary (error type satisfies all constraints). A chained `as unknown as readonly ColId[]` is also flagged (same reason, both steps). **The only fix is the two-statement split**:
+
+  ```ts
+  // ✅ correct
+  const colOrderRaw: unknown = $.state.columnOrder;   // assignment, no cast — error→unknown is safe
+  const columnOrder = colOrderRaw as readonly ColId[];  // necessary narrowing: unknown→ColId[]
+
+  // ❌ both fire no-unnecessary-type-assertion
+  const x = $.state.columnOrder as readonly ColId[];
+  const y = $.state.columnOrder as unknown as readonly ColId[];
+  ```
 
 ## Effect Type Conventions
 
