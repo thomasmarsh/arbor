@@ -3,7 +3,8 @@ import { Effect, Result } from '@arbor/common';
 import { TestStore } from '@arbor/common';
 import type { EpicEntry, StoryEntry, TaskEntry, DisplayGroupsResponse } from '@arbor/api/ledger';
 import { ledgerReducer, initialLedgerState, initialFilters, ledgerSubscriptions, DEFAULT_COLUMN_ORDER } from './ledger.store.js';
-import type { LedgerState, ColId } from './ledger.store.js';
+import type { LedgerState, LedgerAction, ColId } from './ledger.store.js';
+import type { LedgerEnv } from './ledger.env.js';
 import { emptyGroups, groupsWithTasks, mockLedgerEnv } from './ledger.env.mock.js';
 
 const freshIdle = (): LedgerState => ({
@@ -17,6 +18,7 @@ const freshIdle = (): LedgerState => ({
   filters: { ...initialFilters },
   columnOrder: [...DEFAULT_COLUMN_ORDER],
   viewMode: 'flat',
+  workOrderLoadState: { tag: 'idle' },
   epicMeta: [],
   storyMeta: [],
   collapsedEpics: new Set(),
@@ -41,6 +43,7 @@ const loadedState: LedgerState = {
   filters: { ...initialFilters },
   columnOrder: [...DEFAULT_COLUMN_ORDER],
   viewMode: 'flat',
+  workOrderLoadState: { tag: 'idle' },
   epicMeta: [],
   storyMeta: [],
   collapsedEpics: new Set(),
@@ -177,7 +180,7 @@ describe('ledgerReducer', () => {
   });
 
   it('selectRow with null clears selection', () => {
-    const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedId: 133 });
+    const store = new TestStore<LedgerState, LedgerAction, LedgerEnv>(ledgerReducer, mockLedgerEnv, { ...loadedState, selectedId: 133 });
     store.send({ tag: 'selectRow', taskId: null }, (s) => { s.selectedId = null; });
     store.assertDrained();
   });
@@ -323,10 +326,10 @@ describe('ledgerReducer', () => {
     const epicA: EpicEntry  = { type: 'epic',  id: 'e1', title: 'Epic One' };
     const storyA: StoryEntry = { type: 'story', id: 's1', epic: 'e1', layer: 'ui', title: 'Story One' };
 
-    it('toggleViewMode flat→tree sets viewMode and fetches hierarchy', () => {
+    it('setViewMode flat→tree sets viewMode and fetches hierarchy', () => {
       const store = new TestStore(ledgerReducer, mockLedgerEnv, freshIdle());
       store
-        .send({ tag: 'toggleViewMode' }, (s) => { s.viewMode = 'tree'; })
+        .send({ tag: 'setViewMode', mode: 'tree' }, (s) => { s.viewMode = 'tree'; })
         .receive({ tag: 'hierarchyLoaded', epics: [], stories: [] }, (s) => {
           s.epicMeta  = [];
           s.storyMeta = [];
@@ -334,9 +337,9 @@ describe('ledgerReducer', () => {
       store.assertDrained();
     });
 
-    it('toggleViewMode tree→flat sets viewMode with no side effect', () => {
+    it('setViewMode tree→flat sets viewMode with no side effect', () => {
       const store = new TestStore(ledgerReducer, mockLedgerEnv, { ...freshIdle(), viewMode: 'tree' });
-      store.send({ tag: 'toggleViewMode' }, (s) => { s.viewMode = 'flat'; });
+      store.send({ tag: 'setViewMode', mode: 'flat' }, (s) => { s.viewMode = 'flat'; });
       store.assertDrained();
     });
 

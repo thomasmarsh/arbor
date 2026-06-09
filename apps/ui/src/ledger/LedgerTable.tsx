@@ -1,27 +1,40 @@
-import { Fragment, useRef, type Ref } from 'react';
+import type { TaskEntry, TaskStatus } from '@arbor/api/ledger';
 import { withLogging } from '@arbor/common';
 import { useStore } from '@arbor/common/react';
-import type { TaskEntry, TaskStatus } from '@arbor/api/ledger';
-import type { Snapshot } from 'valtio';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import ScienceIcon from '@mui/icons-material/Science';
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import Skeleton from '@mui/material/Skeleton';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
-import Skeleton from '@mui/material/Skeleton';
-import ScienceIcon from '@mui/icons-material/Science';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import { liveLedgerEnv, type LedgerEnv } from './ledger.env.js';
-import { ledgerReducer, initialLedgerState, applyFilters, ledgerSubscriptions } from './ledger.store.js';
-import type { EpicEntry, LedgerAction, LedgerFilters, LedgerState, ColId, StoryEntry } from './ledger.store.js';
-import { LedgerDetailDrawer } from './LedgerDetailDrawer.js';
-import { LedgerToolbar } from './LedgerToolbar.js';
-import { HelpOverlay } from './HelpOverlay.js';
+import { Fragment, useRef, type Ref } from 'react';
+import type { Snapshot } from 'valtio';
 import { DndSortWrapper, useDndItem } from './dnd-adapter.js';
 import { EpicGroupRow } from './EpicGroupRow.js';
+import { HelpOverlay } from './HelpOverlay.js';
+import { liveLedgerEnv, type LedgerEnv } from './ledger.env.js';
+import type {
+  ColId,
+  EpicEntry,
+  LedgerAction,
+  LedgerFilters,
+  LedgerState,
+  StoryEntry,
+  WorkOrderResponse,
+} from './ledger.store.js';
+import {
+  applyFilters,
+  initialLedgerState,
+  ledgerReducer,
+  ledgerSubscriptions,
+} from './ledger.store.js';
+import { LedgerDetailDrawer } from './LedgerDetailDrawer.js';
+import { LedgerToolbar } from './LedgerToolbar.js';
 import { StoryGroupRow } from './StoryGroupRow.js';
 
 // Task-column widths cycle through a deterministic spread so rows look natural.
@@ -85,14 +98,30 @@ function LedgerSkeleton() {
           <TableBody>
             {Array.from({ length: 8 }, (_, i) => (
               <TableRow key={i}>
-                <TableCell><Skeleton width={24} /></TableCell>
-                <TableCell><Skeleton width={36} /></TableCell>
-                <TableCell><Skeleton variant="rounded" width={32} height={24} /></TableCell>
-                <TableCell><Skeleton variant="rounded" width={32} height={24} /></TableCell>
-                <TableCell><Skeleton variant="rounded" width={48} height={24} /></TableCell>
-                <TableCell><Skeleton variant="rounded" width={64} height={24} /></TableCell>
-                <TableCell><Skeleton width={16} /></TableCell>
-                <TableCell><Skeleton width={TASK_WIDTHS[i % TASK_WIDTHS.length] ?? 150} /></TableCell>
+                <TableCell>
+                  <Skeleton width={24} />
+                </TableCell>
+                <TableCell>
+                  <Skeleton width={36} />
+                </TableCell>
+                <TableCell>
+                  <Skeleton variant="rounded" width={32} height={24} />
+                </TableCell>
+                <TableCell>
+                  <Skeleton variant="rounded" width={32} height={24} />
+                </TableCell>
+                <TableCell>
+                  <Skeleton variant="rounded" width={48} height={24} />
+                </TableCell>
+                <TableCell>
+                  <Skeleton variant="rounded" width={64} height={24} />
+                </TableCell>
+                <TableCell>
+                  <Skeleton width={16} />
+                </TableCell>
+                <TableCell>
+                  <Skeleton width={TASK_WIDTHS[i % TASK_WIDTHS.length] ?? 150} />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -107,7 +136,13 @@ function GroupRow({ label, colSpan }: { label: string; colSpan: number }) {
     <TableRow>
       <TableCell
         colSpan={colSpan}
-        sx={{ py: 0.5, color: 'text.secondary', fontWeight: 600, fontSize: '0.75rem', bgcolor: 'action.hover' }}
+        sx={{
+          py: 0.5,
+          color: 'text.secondary',
+          fontWeight: 600,
+          fontSize: '0.75rem',
+          bgcolor: 'action.hover',
+        }}
       >
         {label}
       </TableCell>
@@ -118,26 +153,30 @@ function GroupRow({ label, colSpan }: { label: string; colSpan: number }) {
 function SortableColHeader({ id }: { id: ColId }) {
   const { ref, style, handleProps } = useDndItem(id);
   return (
-    <TableCell
-      ref={ref}
-      style={style}
-      {...handleProps}
-    >
+    <TableCell ref={ref} style={style} {...handleProps}>
       {COLUMN_LABELS[id]}
     </TableCell>
   );
 }
 
 function TaskRow({
-  task, isSelected, rowRef, columnOrder, onClick,
+  task,
+  isSelected,
+  rowRef,
+  columnOrder,
+  onClick,
+  dim,
+  pendingDeps,
 }: {
   task: Snapshot<TaskEntry>;
   isSelected: boolean;
   rowRef: Ref<HTMLTableRowElement> | null;
   columnOrder: readonly ColId[];
   onClick: () => void;
+  dim?: boolean;
+  pendingDeps?: number[];
 }) {
-  const isDim = task.status === 'done' || task.status === 'canceled';
+  const isDim = dim ?? (task.status === 'done' || task.status === 'canceled');
   return (
     <TableRow
       ref={rowRef}
@@ -147,15 +186,37 @@ function TaskRow({
       onClick={onClick}
     >
       {columnOrder.map((id) => (
-        <TableCell key={id}>{COLUMN_RENDER[id](task)}</TableCell>
+        <TableCell key={id}>
+          {id === 'task' && pendingDeps && pendingDeps.length > 0
+            ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
+                {COLUMN_RENDER[id](task)}
+                <Chip
+                  label={`waiting on: ${pendingDeps.map((d) => `#${String(d)}`).join(', ')}`}
+                  size="small"
+                  color="warning"
+                  variant="outlined"
+                  sx={{ fontSize: '0.65rem', height: 18 }}
+                />
+              </Box>
+            )
+            : COLUMN_RENDER[id](task)}
+        </TableCell>
       ))}
     </TableRow>
   );
 }
 
 function TreeTableBody({
-  epicMeta, storyMeta, allTasks, collapsedEpics, collapsedStories,
-  columnOrder, selectedId, selectedRowRef, send,
+  epicMeta,
+  storyMeta,
+  allTasks,
+  collapsedEpics,
+  collapsedStories,
+  columnOrder,
+  selectedId,
+  selectedRowRef,
+  send,
 }: {
   epicMeta: EpicEntry[];
   storyMeta: StoryEntry[];
@@ -180,38 +241,46 @@ function TreeTableBody({
               taskCount={epicTasks.length}
               collapsed={isEpicCollapsed}
               colSpan={columnOrder.length}
-              onToggle={() => { send({ tag: 'toggleEpicCollapse', epicId: epic.id }); }}
+              onToggle={() => {
+                send({ tag: 'toggleEpicCollapse', epicId: epic.id });
+              }}
             />
-            {!isEpicCollapsed && storyMeta
-              .filter((s) => s.epic === epic.id)
-              .map((story) => {
-                const storyTasks = epicTasks.filter((t) => t.story === story.id);
-                if (storyTasks.length === 0) return null;
-                const isStoryCollapsed = collapsedStories.has(story.id);
-                return (
-                  <Fragment key={story.id}>
-                    <StoryGroupRow
-                      story={story}
-                      collapsed={isStoryCollapsed}
-                      colSpan={columnOrder.length}
-                      onToggle={() => { send({ tag: 'toggleStoryCollapse', storyId: story.id }); }}
-                    />
-                    {!isStoryCollapsed && storyTasks.map((task) => {
-                      const isSelected = task.id === selectedId;
-                      return (
-                        <TaskRow
-                          key={task.id}
-                          task={task}
-                          isSelected={isSelected}
-                          rowRef={isSelected ? selectedRowRef : null}
-                          columnOrder={columnOrder}
-                          onClick={() => { send({ tag: 'selectRow', taskId: task.id }); }}
-                        />
-                      );
-                    })}
-                  </Fragment>
-                );
-              })}
+            {!isEpicCollapsed &&
+              storyMeta
+                .filter((s) => s.epic === epic.id)
+                .map((story) => {
+                  const storyTasks = epicTasks.filter((t) => t.story === story.id);
+                  if (storyTasks.length === 0) return null;
+                  const isStoryCollapsed = collapsedStories.has(story.id);
+                  return (
+                    <Fragment key={story.id}>
+                      <StoryGroupRow
+                        story={story}
+                        collapsed={isStoryCollapsed}
+                        colSpan={columnOrder.length}
+                        onToggle={() => {
+                          send({ tag: 'toggleStoryCollapse', storyId: story.id });
+                        }}
+                      />
+                      {!isStoryCollapsed &&
+                        storyTasks.map((task) => {
+                          const isSelected = task.id === selectedId;
+                          return (
+                            <TaskRow
+                              key={task.id}
+                              task={task}
+                              isSelected={isSelected}
+                              rowRef={isSelected ? selectedRowRef : null}
+                              columnOrder={columnOrder}
+                              onClick={() => {
+                                send({ tag: 'selectRow', taskId: task.id });
+                              }}
+                            />
+                          );
+                        })}
+                    </Fragment>
+                  );
+                })}
           </Fragment>
         );
       })}
@@ -229,9 +298,12 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
     { tag: 'fetch' },
     ledgerSubscriptions,
   );
-  watch((s: LedgerState) => s.selectedId ?? -1, () => {
-    selectedRowRef.current?.scrollIntoView({ block: 'nearest' });
-  });
+  watch(
+    (s: LedgerState) => s.selectedId ?? -1,
+    () => {
+      selectedRowRef.current?.scrollIntoView({ block: 'nearest' });
+    },
+  );
 
   const groups = $.state.loadState.tag === 'loaded' ? $.state.loadState.groups : null;
   // Snapshot<LedgerFilters> is structurally identical to LedgerFilters (all primitives)
@@ -240,22 +312,40 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
   const colOrderRaw: unknown = $.state.columnOrder;
   const columnOrder = colOrderRaw as readonly ColId[];
   const viewModeRaw: unknown = $.state.viewMode;
-  const viewMode = viewModeRaw as 'flat' | 'tree';
+  const viewMode = viewModeRaw as 'flat' | 'tree' | 'workOrder';
+  const workOrderRaw: unknown =
+    $.state.workOrderLoadState.tag === 'loaded'
+      ? $.state.workOrderLoadState.workOrder
+      : null;
+  const workOrder = workOrderRaw as WorkOrderResponse | null;
   const collapsedEpicsRaw: unknown = $.state.collapsedEpics;
   const collapsedEpics = collapsedEpicsRaw as ReadonlySet<string>;
   const collapsedStoriesRaw: unknown = $.state.collapsedStories;
   const collapsedStories = collapsedStoriesRaw as ReadonlySet<string>;
-  const epicMetaRaw: unknown  = $.state.epicMeta;
-  const epicMeta  = epicMetaRaw  as EpicEntry[];
+  const epicMetaRaw: unknown = $.state.epicMeta;
+  const epicMeta = epicMetaRaw as EpicEntry[];
   const storyMetaRaw: unknown = $.state.storyMeta;
   const storyMeta = storyMetaRaw as StoryEntry[];
 
   const rawSections = groups
     ? [
-        { label: 'In Progress', tasks: applyFilters([...groups.inProgress] as TaskEntry[], filters) },
+        {
+          label: 'In Progress',
+          tasks: applyFilters([...groups.inProgress] as TaskEntry[], filters),
+        },
         { label: 'Ready', tasks: applyFilters([...groups.ready] as TaskEntry[], filters) },
-        { label: 'Blocked', tasks: applyFilters(groups.blocked.map((b) => b.task) as TaskEntry[], filters) },
-        ...($.state.showAll ? [{ label: 'Done', tasks: applyFilters(groups.done.concat(groups.canceled) as TaskEntry[], filters) }] : []),
+        {
+          label: 'Blocked',
+          tasks: applyFilters(groups.blocked.map((b) => b.task) as TaskEntry[], filters),
+        },
+        ...($.state.showAll
+          ? [
+              {
+                label: 'Done',
+                tasks: applyFilters(groups.done.concat(groups.canceled) as TaskEntry[], filters),
+              },
+            ]
+          : []),
       ]
     : [];
 
@@ -271,7 +361,9 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
         ...applyFilters([...groups.inProgress] as TaskEntry[], filters),
         ...applyFilters([...groups.ready] as TaskEntry[], filters),
         ...applyFilters(groups.blocked.map((b) => b.task) as TaskEntry[], filters),
-        ...($.state.showAll ? applyFilters(groups.done.concat(groups.canceled) as TaskEntry[], filters) : []),
+        ...($.state.showAll
+          ? applyFilters(groups.done.concat(groups.canceled) as TaskEntry[], filters)
+          : []),
       ]
     : [];
 
@@ -293,7 +385,9 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
           <TableHead>
             <DndSortWrapper<ColId>
               ids={columnOrder}
-              onReorder={(fromId, toId) => { send({ tag: 'reorderColumn', fromId, toId }); }}
+              onReorder={(fromId, toId) => {
+                send({ tag: 'reorderColumn', fromId, toId });
+              }}
               direction="horizontal"
             >
               <TableRow>
@@ -304,26 +398,29 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
             </DndSortWrapper>
           </TableHead>
           <TableBody>
-            {viewMode === 'flat' && sections.map((section) =>
-              section.tasks.length > 0 ? (
-                <Fragment key={section.label}>
-                  <GroupRow label={section.label} colSpan={columnOrder.length} />
-                  {section.tasks.map((task) => {
-                    const isSelected = task.id === $.state.selectedId;
-                    return (
-                      <TaskRow
-                        key={task.id}
-                        task={task}
-                        isSelected={isSelected}
-                        rowRef={isSelected ? selectedRowRef : null}
-                        columnOrder={columnOrder}
-                        onClick={() => { send({ tag: 'selectRow', taskId: task.id }); }}
-                      />
-                    );
-                  })}
-                </Fragment>
-              ) : null
-            )}
+            {viewMode === 'flat' &&
+              sections.map((section) =>
+                section.tasks.length > 0 ? (
+                  <Fragment key={section.label}>
+                    <GroupRow label={section.label} colSpan={columnOrder.length} />
+                    {section.tasks.map((task) => {
+                      const isSelected = task.id === $.state.selectedId;
+                      return (
+                        <TaskRow
+                          key={task.id}
+                          task={task}
+                          isSelected={isSelected}
+                          rowRef={isSelected ? selectedRowRef : null}
+                          columnOrder={columnOrder}
+                          onClick={() => {
+                            send({ tag: 'selectRow', taskId: task.id });
+                          }}
+                        />
+                      );
+                    })}
+                  </Fragment>
+                ) : null,
+              )}
             {viewMode === 'tree' && (
               <TreeTableBody
                 epicMeta={epicMeta}
@@ -337,11 +434,37 @@ export function LedgerTable({ env = liveLedgerEnv }: { env?: LedgerEnv } = {}) {
                 send={send}
               />
             )}
+            {viewMode === 'workOrder' &&
+              workOrder &&
+              applyFilters(workOrder.tasks, filters).map((task) => {
+                const isSelected = task.id === $.state.selectedId;
+                const taskPendingDeps: number[] =
+                  workOrder.pendingDeps[String(task.id)] ?? [];
+                return (
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    isSelected={isSelected}
+                    rowRef={isSelected ? selectedRowRef : null}
+                    columnOrder={columnOrder}
+                    onClick={() => { send({ tag: 'selectRow', taskId: task.id }); }}
+                    dim={taskPendingDeps.length > 0}
+                    {...(taskPendingDeps.length > 0 ? { pendingDeps: taskPendingDeps } : {})}
+                  />
+                );
+              })}
           </TableBody>
         </Table>
       </TableContainer>
       <LedgerDetailDrawer state={$.state} send={send} />
-      {$.state.helpOpen && <HelpOverlay open onClose={() => { send({ tag: 'closeHelp' }); }} />}
+      {$.state.helpOpen && (
+        <HelpOverlay
+          open
+          onClose={() => {
+            send({ tag: 'closeHelp' });
+          }}
+        />
+      )}
     </Box>
   );
 }

@@ -1,11 +1,22 @@
-import type { DisplayGroupsResponse, EpicEntry, StoryEntry, TaskStatus } from '@arbor/api/ledger';
+import type {
+  DisplayGroupsResponse,
+  EpicEntry,
+  StoryEntry,
+  TaskStatus,
+  WorkOrderResponse,
+} from '@arbor/api/ledger';
 import { ledgerRouter } from '@arbor/api/ledger';
 import { Effect, type Result } from '@arbor/common';
 import { createClient } from '@arbor/router';
 
+interface Hierarchy {
+  epics: EpicEntry[];
+  stories: StoryEntry[];
+}
 export interface LedgerEnv {
   fetchQueue: Effect<Result<DisplayGroupsResponse, string>>;
-  fetchHierarchy: Effect<Result<{ epics: EpicEntry[]; stories: StoryEntry[] }, string>>;
+  fetchHierarchy: Effect<Result<Hierarchy, string>>;
+  fetchWorkOrder: Effect<Result<WorkOrderResponse, string>>;
   setStatus: (id: number, status: TaskStatus) => Effect<undefined>;
   setRank: (id: number, rank: number) => Effect<undefined>;
   pollTick: Effect<undefined>;
@@ -20,12 +31,16 @@ export const liveLedgerEnv: LedgerEnv = {
     () => client.fetchOk({ tag: 'ledger-get-queue' }),
     (err) => (err instanceof Error ? err.message : 'fetch failed'),
   ),
-  fetchHierarchy: Effect.tryCatch(
+  fetchHierarchy: Effect.tryCatch<Hierarchy, string>(
     async () => {
       const data = await client.fetchOk({ tag: 'ledger-get-hierarchy' });
       return { epics: data.epics, stories: data.stories };
     },
     (err) => (err instanceof Error ? err.message : 'fetch hierarchy failed'),
+  ),
+  fetchWorkOrder: Effect.tryCatch(
+    () => client.fetchOk({ tag: 'ledger-get-work-order' }),
+    (err) => (err instanceof Error ? err.message : 'fetch work order failed'),
   ),
   setStatus: (id, status) =>
     Effect.tryPromise(

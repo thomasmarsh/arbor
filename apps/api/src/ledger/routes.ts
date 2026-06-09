@@ -1,7 +1,7 @@
 import { createServer, respond } from '@arbor/router';
 import type { Result } from '@arbor/common';
 import type { EpicEntry, StoryEntry, TaskEntry, WaveEntry } from '@arbor/app-common';
-import { computeDisplayGroups, readPlanDoc } from './reader.js';
+import { computeDisplayGroups, computeWorkOrder, readPlanDoc } from './reader.js';
 import { ledgerRouter } from './router.js';
 import type { LedgerRepository } from '../repositories/ledger.repository.js';
 
@@ -72,6 +72,13 @@ export const createLedgerServer = (repo: LedgerRepository) =>
       const data = await getHierarchyData(repo);
       return data
         ? respond(200, { epics: data.epics, stories: data.stories, tasks: data.tasks })
+        : respond(500, { error: 'internal' });
+    },
+
+    'ledger-get-work-order': async (_ctx) => {
+      const data = await getTasksAndWaves(repo);
+      return data
+        ? respond(200, computeWorkOrder(data.tasks, data.waves))
         : respond(500, { error: 'internal' });
     },
   });

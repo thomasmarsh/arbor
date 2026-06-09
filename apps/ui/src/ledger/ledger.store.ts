@@ -1,6 +1,6 @@
 import { Effect, Sub, type Reducer } from '@arbor/common';
 import type { Snapshot } from 'valtio';
-import type { DisplayGroupsResponse, EpicEntry, StoryEntry, TaskEntry, TaskStatus } from '@arbor/api/ledger';
+import type { DisplayGroupsResponse, WorkOrderResponse, EpicEntry, StoryEntry, TaskEntry, TaskStatus } from '@arbor/api/ledger';
 import type { LedgerEnv } from './ledger.env.js';
 
 export type ColId = 'id' | 'wave' | 'epic' | 'story' | 'layer' | 'status' | 'size' | 'task';
@@ -40,12 +40,18 @@ export const initialFilters: LedgerFilters = {
   kind: null,
 };
 
-export type { DisplayGroupsResponse, EpicEntry, StoryEntry };
+export type { DisplayGroupsResponse, WorkOrderResponse, EpicEntry, StoryEntry };
 
 export type LedgerLoadState =
   | { tag: 'idle' }
   | { tag: 'loading' }
   | { tag: 'loaded'; groups: DisplayGroupsResponse }
+  | { tag: 'error'; message: string };
+
+export type WorkOrderLoadState =
+  | { tag: 'idle' }
+  | { tag: 'loading' }
+  | { tag: 'loaded'; workOrder: WorkOrderResponse }
   | { tag: 'error'; message: string };
 
 export type PlanDocState =
@@ -64,7 +70,8 @@ export interface LedgerState {
   filters: LedgerFilters;
   helpOpen: boolean;
   columnOrder: readonly ColId[];
-  viewMode: 'flat' | 'tree';
+  viewMode: 'flat' | 'tree' | 'workOrder';
+  workOrderLoadState: WorkOrderLoadState;
   epicMeta: EpicEntry[];
   storyMeta: StoryEntry[];
   collapsedEpics: Set<string>;
@@ -93,7 +100,9 @@ export type LedgerAction =
   | { tag: 'setKindFilter'; kind: 'task' | 'spike' | null }
   | { tag: 'clearFilters' }
   | { tag: 'reorderColumn'; fromId: ColId; toId: ColId }
-  | { tag: 'toggleViewMode' }
+  | { tag: 'setViewMode'; mode: 'flat' | 'tree' | 'workOrder' }
+  | { tag: 'workOrderLoaded'; workOrder: WorkOrderResponse }
+  | { tag: 'workOrderError'; message: string }
   | { tag: 'hierarchyLoaded'; epics: EpicEntry[]; stories: StoryEntry[] }
   | { tag: 'toggleEpicCollapse'; epicId: string }
   | { tag: 'toggleStoryCollapse'; storyId: string };
@@ -109,6 +118,7 @@ export const initialLedgerState: LedgerState = {
   helpOpen: false,
   columnOrder: loadColumnOrder(),
   viewMode: 'flat',
+  workOrderLoadState: { tag: 'idle' },
   epicMeta: [],
   storyMeta: [],
   collapsedEpics: new Set(),
@@ -167,15 +177,22 @@ export function ledgerSubscriptions(state: Snapshot<LedgerState>): Sub<LedgerAct
   ];
 
   const viewModeRaw: unknown = state.viewMode;
-  const viewMode = viewModeRaw as 'flat' | 'tree';
+  const viewMode = viewModeRaw as 'flat' | 'tree' | 'workOrder';
   const collapsedEpicsRaw: unknown = state.collapsedEpics;
   const collapsedEpics = collapsedEpicsRaw as ReadonlySet<string>;
   const collapsedStoriesRaw: unknown = state.collapsedStories;
   const collapsedStories = collapsedStoriesRaw as ReadonlySet<string>;
 
-  const visibleRows = viewMode === 'tree'
-    ? allTasks.filter((t) => !collapsedEpics.has(t.epic) && !collapsedStories.has(t.story))
-    : allTasks;
+  const workOrderTasksRaw: unknown =
+    state.workOrderLoadState.tag === 'loaded' ? state.workOrderLoadState.workOrder.tasks : null;
+  const workOrderTasks = (workOrderTasksRaw ?? []) as TaskEntry[];
+
+  const visibleRows =
+    viewMode === 'tree'
+      ? allTasks.filter((t) => !collapsedEpics.has(t.epic) && !collapsedStories.has(t.story))
+      : viewMode === 'workOrder'
+        ? applyFilters(workOrderTasks, filters)
+        : allTasks;
   const selectedId = state.selectedId;
   const selected = visibleRows.find((t) => t.id === selectedId);
 
@@ -337,9 +354,9 @@ export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, 
       }
       return null;
     }
-    case 'toggleViewMode': {
-      $.state.viewMode = $.state.viewMode === 'flat' ? 'tree' : 'flat';
-      if ($.state.viewMode === 'tree') {
+    case 'setViewMode': {
+      $.state.viewMode = action.mode;
+      if (action.mode === 'tree') {
         return env.fetchHierarchy.map((result) =>
           result.fold<LedgerAction>(
             ({ epics, stories }) => ({ tag: 'hierarchyLoaded', epics, stories }),
@@ -347,6 +364,23 @@ export const ledgerReducer: Reducer<LedgerState, LedgerAction, LedgerEnv> = ($, 
           ),
         );
       }
+      if (action.mode === 'workOrder') {
+        $.state.workOrderLoadState = { tag: 'loading' };
+        return env.fetchWorkOrder.map((result) =>
+          result.fold<LedgerAction>(
+            (workOrder) => ({ tag: 'workOrderLoaded', workOrder }),
+            (err) => ({ tag: 'workOrderError', message: err }),
+          ),
+        );
+      }
+      return null;
+    }
+    case 'workOrderLoaded': {
+      $.state.workOrderLoadState = { tag: 'loaded', workOrder: action.workOrder };
+      return null;
+    }
+    case 'workOrderError': {
+      $.state.workOrderLoadState = { tag: 'error', message: action.message };
       return null;
     }
     case 'hierarchyLoaded': {

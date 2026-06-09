@@ -14,6 +14,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import type { Snapshot } from 'valtio';
 import type { LedgerAction, LedgerFilters, LedgerState } from './ledger.store.js';
@@ -55,7 +56,7 @@ export function LedgerToolbar({ state, send, groups }: LedgerToolbarProps) {
   const waves = groups ? deriveWaves(groups) : [];
   const anyActive = isAnyFilterActive(state.filters);
   const viewModeRaw: unknown = state.viewMode;
-  const viewMode = viewModeRaw as 'flat' | 'tree';
+  const viewMode = viewModeRaw as 'flat' | 'tree' | 'workOrder';
 
   return (
     <Paper variant="outlined" sx={{ mb: 1 }}>
@@ -143,12 +144,15 @@ export function LedgerToolbar({ state, send, groups }: LedgerToolbarProps) {
           size="small"
           value={viewMode}
           onChange={(_e, val: string | null) => {
-            if (val !== null) send({ tag: 'toggleViewMode' });
+            if (val === 'flat' || val === 'tree' || val === 'workOrder') {
+              send({ tag: 'setViewMode', mode: val });
+            }
           }}
           aria-label="view mode"
         >
           <ToggleButton value="flat" aria-label="flat view"><ViewListIcon fontSize="small" /></ToggleButton>
           <ToggleButton value="tree" aria-label="tree view"><AccountTreeIcon fontSize="small" /></ToggleButton>
+          <ToggleButton value="workOrder" aria-label="work order view"><FormatListNumberedIcon fontSize="small" /></ToggleButton>
         </ToggleButtonGroup>
 
         <FormControlLabel

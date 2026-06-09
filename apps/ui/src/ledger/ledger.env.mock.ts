@@ -1,6 +1,8 @@
 import { Effect, Result } from '@arbor/common';
-import type { DisplayGroupsResponse, TaskEntry } from '@arbor/api/ledger';
+import type { DisplayGroupsResponse, WorkOrderResponse, TaskEntry } from '@arbor/api/ledger';
 import type { LedgerEnv } from './ledger.env.js';
+
+export const emptyWorkOrder: WorkOrderResponse = { tasks: [], pendingDeps: {} };
 
 export const emptyGroups: DisplayGroupsResponse = {
   inProgress: [],
@@ -24,10 +26,11 @@ export const groupsWithTasks: DisplayGroupsResponse = {
 };
 
 export const mockLedgerEnv: LedgerEnv = {
-  fetchQueue:     Effect.send(Result.ok(emptyGroups)),
-  fetchHierarchy: Effect.send(Result.ok({ epics: [], stories: [] })),
+  fetchQueue:      Effect.send(Result.ok(emptyGroups)),
+  fetchHierarchy:  Effect.send(Result.ok({ epics: [], stories: [] })),
+  fetchWorkOrder:  Effect.send(Result.ok(emptyWorkOrder)),
   setStatus:    () => Effect.send(undefined),
   setRank:      () => Effect.send(undefined),
-  pollTick:      Effect.none(),
+  pollTick:        Effect.none(),
   fetchPlanDoc: () => Effect.send(Result.ok('# Mock Plan\n\nNo content.')),
 };

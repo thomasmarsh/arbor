@@ -17,6 +17,12 @@ const DisplayGroupsResponse = z.object({
   canceled: z.array(TaskEntry),
 });
 export type DisplayGroupsResponse = z.infer<typeof DisplayGroupsResponse>;
+
+const WorkOrderResponse = z.object({
+  tasks: z.array(TaskEntry),
+  pendingDeps: z.record(z.string(), z.array(z.number())),
+});
+export type WorkOrderResponse = z.infer<typeof WorkOrderResponse>;
 const ErrorResponse = z.object({ error: z.string() });
 
 const GetTasks        = object({ tag: literal('ledger-get-tasks') });
@@ -26,6 +32,7 @@ const PatchTaskStatus = object({ tag: literal('ledger-patch-task-status'), id: i
 const PatchTaskRank   = object({ tag: literal('ledger-patch-task-rank'), id: integer() });
 const GetTaskPlan     = object({ tag: literal('ledger-get-task-plan'), id: integer() });
 const GetHierarchy    = object({ tag: literal('ledger-get-hierarchy') });
+const GetWorkOrder    = object({ tag: literal('ledger-get-work-order') });
 
 const PlanResponse = z.object({ content: z.string() });
 const HierarchyResponse = z.object({
@@ -57,6 +64,9 @@ export const ledgerRouter = defineRoutes([
   }),
   httpRoute(GetHierarchy, 'GET', 'api/ledger/hierarchy', {
     response: { 200: HierarchyResponse, 500: ErrorResponse },
+  }),
+  httpRoute(GetWorkOrder, 'GET', 'api/ledger/work-order', {
+    response: { 200: WorkOrderResponse, 500: ErrorResponse },
   }),
 ]);
 
